@@ -2626,20 +2626,29 @@ DBCellWrite(cellDef, fileName)
 	}
     }
 
-    /* Everything worked. */
+    /* Everything worked so far. */
+
     (void) StrDup(&cellDef->cd_file, expandname);
     result = TRUE;
     {
-    	 struct stat thestat;
-	 realf = fopen(expandname,"r");
-	 fstat(fileno(realf),&thestat);
-	 if (thestat.st_size != DBFileOffset)
-	 {
-              cellDef->cd_flags |= CDMODIFIED;
-	      TxError("Warning: I/O error in writing file\n");
-	 }
-	 fclose(realf);
-	 realf = NULL;
+	struct stat thestat;
+	realf = fopen(expandname,"r");
+	if (realf == NULL)
+	{
+	    cellDef->cd_flags |= CDMODIFIED;
+	    TxError("Warning: Cannot open file for writing!\n");
+	}
+	else
+	{
+	    fstat(fileno(realf),&thestat);
+	    if (thestat.st_size != DBFileOffset)
+	    {
+		cellDef->cd_flags |= CDMODIFIED;
+		TxError("Warning: I/O error in writing file\n");
+	    }
+	    fclose(realf);
+	}
+	realf = NULL;
     }
 
 cleanup:
