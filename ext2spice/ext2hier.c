@@ -983,10 +983,82 @@ spcresistHierVisit(hc, hierName1, hierName2, res)
     int res;
 {
     res = (res + 500) / 1000;
-
+ 
     fprintf(esSpiceF, "R%d %s %s %d\n", esResNum++,
 		nodeSpiceHierName(hc, hierName1),
                 nodeSpiceHierName(hc, hierName2), res);
+
+    return 0;
+}
+
+/*
+ * ----------------------------------------------------------------------------
+ *
+ * spcnodeHierVisit --
+ *
+ * Procedure to output a single node to the .spice file along with its 
+ * attributes and its dictionary (if present). Called by EFVisitNodes().
+ *
+ * Results:
+ *	Returns 0 always.
+ *
+ * Side effects:
+ *	Writes to the files esSpiceF
+ *
+ * ----------------------------------------------------------------------------
+ */
+
+int
+spcnodeHierVisit(hc, node, res, cap)
+    HierContext *hc;
+    EFNode *node;
+    int res; 
+    double cap;
+{
+    EFNodeName *nn;
+    HierName *hierName;
+    bool isConnected = FALSE;
+    char *fmt, *nsn;
+    EFAttr *ap;
+
+    if (node->efnode_client)
+    {
+	isConnected = (esDistrJunct) ?
+		(((nodeClient *)node->efnode_client)->m_w.widths != NULL) :
+        	((((nodeClient *)node->efnode_client)->m_w.visitMask
+		& DEV_CONNECT_MASK) != 0);
+    }
+    if (!isConnected && esDevNodesOnly) 
+	return 0;
+
+    /* Don't mark known ports as "FLOATING" nodes */
+    if (!isConnected && node->efnode_flags & EF_PORT) isConnected = TRUE;
+
+    hierName = (HierName *) node->efnode_name->efnn_hier;
+    nsn = nodeSpiceHierName(hc, hierName);
+
+    if (esFormat == SPICE2 || esFormat == HSPICE && strncmp(nsn, "z@", 2)==0 ) {
+	static char ntmp[MAX_STR_SIZE];
+
+	EFHNSprintf(ntmp, hierName);
+	fprintf(esSpiceF, "** %s == %s\n", ntmp, nsn);
+    }
+    cap = cap  / 1000;
+    if (cap > EFCapThreshold)
+    {
+	fprintf(esSpiceF, esSpiceCapFormat, esCapNum++, nsn, cap,
+			  (isConnected) ?  "\n" : " **FLOATING\n");
+    }
+    if (node->efnode_attrs && !esNoAttrs)
+    {
+	fprintf(esSpiceF, "**nodeattr %s :",nsn );
+	for (fmt = " %s", ap = node->efnode_attrs; ap; ap = ap->efa_next)
+	{
+	    fprintf(esSpiceF, fmt, ap->efa_text);
+	    fmt = ",%s";
+	}
+	putc('\n', esSpiceF);
+    }
 
     return 0;
 }
@@ -1360,9 +1432,9 @@ esHierVisit(hc, cdata)
     Def *topdef = (Def *)cdata;
     EFNode *snode;
 
-    /* Cells without any contents (devices or subcircuits) are	*/
-    /* already absorbed into their parents.  Use this		*/
-    /* opportunity to remove all ports.				*/
+    /* Cells without any contents (devices or subcircuits) will	*/
+    /* be absorbed into their parents.  Use this opportunity to	*/
+    /* remove all ports.					*/
 
     if (def != topdef)
     {
@@ -1413,12 +1485,16 @@ esHierVisit(hc, cdata)
     /* Output devices */
     EFHierVisitDevs(hcf, spcdevHierVisit, (ClientData)NULL);
 
-    /* Output lumped resistors */
+    /* Output lumped parasitic resistors */
     EFHierVisitResists(hcf, spcresistHierVisit, (ClientData)NULL);
 
-    /* Output lumped capacitances */
+    /* Output coupling capacitances (note use of node 0 for substrate) */
     sprintf( esSpiceCapFormat,  "C%%d %%s %%s %%.%dlffF\n", esCapAccuracy);
     EFHierVisitCaps(hcf, spccapHierVisit, (ClientData)NULL);
+
+    /* Output lumped capacitance and resistance to substrate */
+    sprintf( esSpiceCapFormat,  "C%%d %%s 0 %%.%dlffF%%s\n", esCapAccuracy);
+    EFHierVisitNodes(hcf, spcnodeHierVisit, (ClientData) NULL);
 
     if (def != topdef)
 	fprintf(esSpiceF, ".ends\n\n");

@@ -212,7 +212,10 @@ EFFlatBuildOneLevel(def)
     efAddNodes(&efFlatContext, FALSE);
     efAddConns(&efFlatContext);
 
+    efFlatKills(&efFlatContext);
     efFlatGlob();
+    efFlatCaps(&efFlatContext);
+    efFlatDists(&efFlatContext);
 
     return &efFlatContext;
 }
