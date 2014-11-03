@@ -563,7 +563,6 @@ efBuildDevice(def, class, type, r, argc, argv)
     bool hasModel = strcmp(type, "None") ? TRUE : FALSE;
 
     int area, perim;	/* Total area, perimeter of primary type (i.e., channel) */
-    char *substrate;	/* Name of node to which substrate is connected */
 
     devtmp.dev_subsnode = NULL;
     devtmp.dev_cap = 0.0;

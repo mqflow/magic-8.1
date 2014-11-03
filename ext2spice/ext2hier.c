@@ -994,6 +994,42 @@ spcresistHierVisit(hc, hierName1, hierName2, res)
 /*
  * ----------------------------------------------------------------------------
  *
+ * spcsubHierVisit --
+ *
+ * Find the node that connects to the substrate.  Copy the string name
+ * of this node into "resstr" to be returned to the caller.
+ *
+ * Results:
+ *	Return 1 if the substrate node has been found, to stop the search.
+ *	Otherwise return 0 to keep the search going.
+ *
+ * ----------------------------------------------------------------------------
+ */
+
+int
+spcsubHierVisit(hc, node, res, cap, resstr)
+    HierContext *hc;
+    EFNode *node;
+    int res; 		// Unused
+    double cap;		// Unused
+    char **resstr;
+{
+    HierName *hierName;
+    char *nsn;
+
+    if (node->efnode_flags & EF_SUBS_NODE)
+    {
+	hierName = (HierName *) node->efnode_name->efnn_hier;
+	nsn = nodeSpiceHierName(hc, hierName);
+	*resstr = StrDup((char **)NULL, nsn);
+	return 1;
+    }
+    return 0;
+}
+
+/*
+ * ----------------------------------------------------------------------------
+ *
  * spcnodeHierVisit --
  *
  * Procedure to output a single node to the .spice file along with its 
@@ -1432,6 +1468,7 @@ esHierVisit(hc, cdata)
     Def *def = hc->hc_use->use_def;
     Def *topdef = (Def *)cdata;
     EFNode *snode;
+    char *resstr = NULL;
 
     /* Cells without any contents (devices or subcircuits) will	*/
     /* be absorbed into their parents.  Use this opportunity to	*/
@@ -1489,13 +1526,19 @@ esHierVisit(hc, cdata)
     /* Output lumped parasitic resistors */
     EFHierVisitResists(hcf, spcresistHierVisit, (ClientData)NULL);
 
-    /* Output coupling capacitances (note use of node 0 for substrate) */
+    /* Output coupling capacitances */
     sprintf( esSpiceCapFormat,  "C%%d %%s %%s %%.%dlffF\n", esCapAccuracy);
     EFHierVisitCaps(hcf, spccapHierVisit, (ClientData)NULL);
 
+    /* Find the substrate node */
+    EFHierVisitNodes(hcf, spcsubHierVisit, (ClientData)&resstr);
+    if (resstr == NULL) resstr = StrDup((char **)NULL, "0");
+
     /* Output lumped capacitance and resistance to substrate */
-    sprintf( esSpiceCapFormat,  "C%%d %%s 0 %%.%dlffF%%s\n", esCapAccuracy);
+    sprintf( esSpiceCapFormat,  "C%%d %%s %s %%.%dlffF%%s\n",
+			resstr, esCapAccuracy);
     EFHierVisitNodes(hcf, spcnodeHierVisit, (ClientData) NULL);
+    freeMagic(resstr);
 
     if (def != topdef)
 	fprintf(esSpiceF, ".ends\n\n");

@@ -720,8 +720,11 @@ EFHierVisitNodes(hc, nodeProc, cdata)
     while (he = HashNext(&def->def_nodes, &hs))
     {
 	sname = (EFNodeName *) HashGetValue(he);
-	snode = sname->efnn_node;
 
+	/* The following shouldn't happen---need to investigate */
+	if (sname == (EFNodeName *)NULL) continue;
+
+	snode = sname->efnn_node;
 	res = EFNodeResist(snode);
 	cap = snode->efnode_cap;
 	hierName = (HierName *) snode->efnode_name->efnn_hier;
