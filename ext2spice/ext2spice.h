@@ -23,6 +23,7 @@ void CmdExtToSpice();
 extern int spcmainArgs();
 extern int spccapVisit(), spcdevVisit(), spcnodeVisit(), subcktVisit();
 extern int spcresistVisit(), devMergeVisit(), devDistJunctVisit();
+extern int spcsubVisit();
 extern int subcktUndef();
 extern EFNode *spcdevSubstrate();
 extern char *nodeSpiceName();

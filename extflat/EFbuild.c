@@ -131,8 +131,9 @@ bool efConnInitSubs();
  */
 
 void
-efBuildNode(def, nodeName, nodeCap, x, y, layerName, av, ac)
+efBuildNode(def, isSubsnode, nodeName, nodeCap, x, y, layerName, av, ac)
     Def *def;		/* Def to which this connection is to be added */
+    bool isSubsnode;	/* TRUE if the node is the substrate */
     char *nodeName;	/* One of the names for this node */
     double nodeCap;	/* Capacitance of this node to ground */
     int x; int y;	/* Location of a point inside this node */
@@ -173,7 +174,7 @@ efBuildNode(def, nodeName, nodeCap, x, y, layerName, av, ac)
     /* New node itself */
     size = sizeof (EFNode) + (efNumResistClasses - 1) * sizeof (PerimArea);
     newnode = (EFNode *) mallocMagic((unsigned)(size));
-    newnode->efnode_flags = 0;
+    newnode->efnode_flags = (isSubsnode == TRUE) ? EF_SUBS_NODE : 0;
     newnode->efnode_cap = nodeCap;
     newnode->efnode_attrs = (EFAttr *) NULL;
     newnode->efnode_loc.r_xbot = x;
@@ -410,7 +411,8 @@ efBuildEquiv(def, nodeName1, nodeName2)
 	{
 	    if (efWarn)
 		efReadError("Creating new node %s\n", nodeName1);
-	    efBuildNode(def, nodeName1, (double)0, 0, 0,
+	    efBuildNode(def, FALSE,
+		    nodeName1, (double)0, 0, 0,
 		    (char *) NULL, (char **) NULL, 0);
 	    nn1 = (EFNodeName *) HashGetValue(he1);
 	}
@@ -817,7 +819,8 @@ efBuildPortNode(def, name, idx, x, y, layername)
     if (nn == (EFNodeName *) NULL)
     {
 	/* Create node if it doesn't already exist */
-	efBuildNode(def, name, (double)0, x, y, layername, (char **) NULL, 0);
+	efBuildNode(def, FALSE, name, (double)0, x, y,
+			layername, (char **) NULL, 0);
 
 	nn = (EFNodeName *) HashGetValue(he);
     }
@@ -916,7 +919,7 @@ efBuildDevNode(def, name, isSubsNode)
 	/* Create node if it doesn't already exist */
 	if (efWarn && !isSubsNode)
 	    efReadError("Node %s doesn't exist so creating it\n", name);
-	efBuildNode(def, name, (double)0, 0, 0,
+	efBuildNode(def, isSubsNode, name, (double)0, 0, 0,
 		(char *) NULL, (char **) NULL, 0);
 
 	nn = (EFNodeName *) HashGetValue(he);
@@ -924,20 +927,12 @@ efBuildDevNode(def, name, isSubsNode)
 	{
 	    if (!EFHNIsGlob(nn->efnn_hier))
 	    {
-#ifdef MAGIC_WRAPPER
-		if ((name[0] == '$') && (name[1] != '$'))
-		    efReadError("Substrate node is an undefined Tcl variable.\n");
-		// else
-#endif
-		//    efReadError("Default device substrate node"
-		//		" \"%s\" is not a global\n", name);
-
 		/* This node is declared to be an implicit port */
 		nn->efnn_node->efnode_flags |= EF_SUBS_PORT;
 		nn->efnn_port = -1;
 		def->def_flags |= DEF_SUBSNODES;
 	    }
-	    nn->efnn_node->efnode_flags |= EF_DEVTERM;
+	    nn->efnn_node->efnode_flags |= (EF_DEVTERM | EF_SUBS_NODE);
 	}
     }
     return nn->efnn_node;
@@ -1540,12 +1535,18 @@ efNodeMerge(node1, node2)
 	node1->efnode_flags &= ~EF_DEVTERM;
 
     /*
-     * If node2 has the EF_PORT flag set but node1 does not,
-     * then copy the port record in the flags to node1.
+     * If node2 has the EF_PORT flag set, then copy the port
+     * record in the flags to node1.
      */
-    if ((node2->efnode_flags & EF_PORT) &&
-		!(node1->efnode_flags & EF_PORT))
+    if (node2->efnode_flags & EF_PORT)
 	node1->efnode_flags |= EF_PORT;
+
+    /*
+     * If node2 has the EF_SUBS_NODE flag set, then copy the port
+     * record in the flags to node1.
+     */
+    if (node2->efnode_flags & EF_SUBS_NODE)
+	node1->efnode_flags |= EF_SUBS_NODE;
 
     /* Get rid of node2 */
     freeMagic((char *) node2);

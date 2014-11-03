@@ -1384,7 +1384,8 @@ esMakePorts(hc, cdata)
 		    nn = (EFNodeName *) HashGetValue(he);
 		    if (nn == NULL)
 		    {
-			efBuildNode(portdef, portname, 0.0, 0, 0, NULL, NULL, 0);
+			efBuildNode(portdef, FALSE, portname, 0.0,
+					0, 0, NULL, NULL, 0);
 			nn = (EFNodeName *) HashGetValue(he);
 		    }
 

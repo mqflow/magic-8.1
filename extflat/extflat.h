@@ -187,6 +187,11 @@ typedef struct efnhdr
      * nodes, which are not declared ports.
      */
 #define EF_SUBS_PORT	0x10
+    /*
+     * EF_SUBS_NODE is defined for substrate nodes defined in the
+     * .ext file.
+     */
+#define EF_SUBS_NODE	0x20
 
 extern int efNumResistClasses;	/* Number of resistance classes in efResists */
 

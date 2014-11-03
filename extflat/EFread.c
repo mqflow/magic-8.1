@@ -53,8 +53,8 @@ char *extDevTable[] = {"fet", "mosfet", "asymmetric", "bjt", "devres",
 typedef enum
 {
     ADJUST, ATTR, CAP, DEVICE, DIST, EQUIV, FET, KILLNODE, MERGE, NODE,
-    PARAMETERS, PORT, RESISTOR, RESISTCLASS, RNODE, SCALE, TECH,
-    TIMESTAMP, USE, VERSION, EXT_STYLE
+    PARAMETERS, PORT, RESISTOR, RESISTCLASS, RNODE, SCALE, SUBSTRATE,
+    TECH, TIMESTAMP, USE, VERSION, EXT_STYLE
 } Key;
 
 static struct
@@ -81,6 +81,7 @@ keyTable[] =
     "resistclasses",	RESISTCLASS,	1,
     "rnode",		RNODE,		5,
     "scale",		SCALE,		4,
+    "substrate",	SUBSTRATE,	3,
     "tech",		TECH,		2,
     "timestamp",	TIMESTAMP,	2,
     "use",		USE,		9,
@@ -352,6 +353,7 @@ readfile:
 
 	    /* node name R C x y layer a1 p1 a2 p2 ... [ attrs ] */
 	    case NODE:
+	    case SUBSTRATE:
 		attrs = NULL;
 		ac = argc - 7;
 		if (ac & 01)
@@ -363,7 +365,9 @@ readfile:
 		}
 		/* Note: resistance is ignored; we use perim/area instead */
 		cap = atoCap(argv[3])*cscale;
-		efBuildNode(def, argv[1], (double) cap,
+		efBuildNode(def,
+			    (keyTable[n].k_key == SUBSTRATE) ? TRUE : FALSE,
+			    argv[1], (double) cap,
 			    atoi(argv[4]), atoi(argv[5]), argv[6],
 			    &argv[7], ac);
 		break;
@@ -391,7 +395,7 @@ readfile:
 	     */
 	    case RNODE:
 		cap = atoCap(argv[3])*cscale;
-		efBuildNode(def, argv[1], (double) cap,
+		efBuildNode(def, FALSE, argv[1], (double) cap,
 			    atoi(argv[4]), atoi(argv[5]), argv[6],
 			    (char **) NULL, 0);
 		break;

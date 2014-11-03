@@ -521,6 +521,10 @@ EFHNBest(hierName1, hierName2)
     if (ncomponents1 < ncomponents2) return TRUE;
     if (ncomponents1 > ncomponents2) return FALSE;
 
+    /* Non-default substrate node name is preferred over "0" */
+    if (ncomponents1 == 1 && !strcmp(hierName1->hn_name, "0")) return FALSE;
+    if (ncomponents2 == 1 && !strcmp(hierName2->hn_name, "0")) return TRUE;
+
     /* Same # of pathname components; check length */
     for (len1 = 0, np1 = hierName1; np1; np1 = np1->hn_parent)
 	len1 += strlen(np1->hn_name);

@@ -72,7 +72,7 @@ typedef enum
     DEFAULTSIDEWALL,
     DEVICE, FET, FETRESIST, HEIGHT, LAMBDA, OVERC,
     PERIMC, PLANEORDER, NOPLANEORDER, RESIST, RSCALE, SIDEHALO, SIDEOVERLAP,
-    SIDEWALL, STEP, STYLE, UNITS, VARIANT
+    SIDEWALL, STEP, STYLE, SUBSTRATE, UNITS, VARIANT
 } Key;
 
 typedef struct
@@ -155,6 +155,9 @@ static keydesc keyTable[] = {
 
     "style",		STYLE,		2,	4,
 "stylename",
+
+    "substrate",	SUBSTRATE,	3,	3,
+"types plane",
 
     "units",		UNITS,		2,	2,
 "lambda|microns",
@@ -524,8 +527,8 @@ extTechStyleAlloc()
     style = (ExtStyle *) mallocMagic(sizeof (ExtStyle));
 
     /* Make sure that the memory for character strings is NULL, */
-    /* because we want the Init section to free memory if has	*/
-    /* been previously allocated.				*/
+    /* because we want the Init section to free memory if it	*/
+    /* has been previously allocated.				*/
 
     for (r = 0; r < NT; r++)
     {
@@ -536,7 +539,6 @@ extTechStyleAlloc()
 	style->exts_deviceClass[r] = (char) 0;
 	style->exts_transResist[r].ht_table = (HashEntry **) NULL;
     }
-
     return style;
 }
 
@@ -661,6 +663,9 @@ extTechStyleInit(style)
 	style->exts_typeToResistClass[r] = -1;
     }
     doConvert = FALSE;
+
+    style->exts_globSubstratePlane = 0;
+    TTMaskZero(&style->exts_globSubstrateTypes);
 }
 
 
@@ -1403,8 +1408,6 @@ ExtTechSimpleSideOverlapCap(argv)
  * that are integer multiples of minsize get an additional contact cut for each
  * increment of minsize, and resistance is in milliohms.
  *
- * +++ FOR NOW, CONSIDER ALL SUBSTRATE TO BE AT GROUND +++
- *
  * Overlap coupling capacitance is specified by:
  *
  *	overlap	 toptypes bottomtypes capacitance [shieldtypes]
@@ -1731,6 +1734,7 @@ ExtTechLine(sectionName, argc, argv)
 	case RESIST:
 	case SIDEWALL:
 	case SIDEOVERLAP:
+	case SUBSTRATE:
 	    DBTechNoisyNameMask(argv[1], &types1);
 	    break;
 	case DEVICE:
@@ -2478,6 +2482,11 @@ ExtTechLine(sectionName, argc, argv)
 	    }
 	    ExtCurStyle->exts_stepSize = val;
 	    break;
+	case SUBSTRATE:
+	    TTMaskZero(&ExtCurStyle->exts_globSubstrateTypes);
+	    TTMaskSetMask(&ExtCurStyle->exts_globSubstrateTypes, &types1);
+	    ExtCurStyle->exts_globSubstratePlane = DBTechNoisyNamePlane(argv[2]);
+	    break;
 	case NOPLANEORDER: {
 	     if ( ExtCurStyle->exts_planeOrderStatus == seenPlaneOrder ) 
 		TechError("\"noplaneordering\" specified after \"planeorder\".\n");
@@ -2788,6 +2797,15 @@ zinit:
     /* needed, so normalize it back to lambda units.			*/
 
     style->exts_sideCoupleHalo /= 1000;
+
+    /* Substrate check. */
+
+    if (style->exts_globSubstratePlane < 0)
+    {
+	style->exts_globSubstrateTypes = DBSpaceBits;
+	/* Need more intelligent behavior for finding the substrate plane */
+	style->exts_globSubstratePlane = PL_TECHDEPBASE;
+    }
 }
 
 /*

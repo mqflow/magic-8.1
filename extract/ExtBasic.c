@@ -109,7 +109,9 @@ typedef struct LB1
     struct LB1 *b_next;
 } LinkedBoundary;
 
-LinkedBoundary **extSpecialBounds;		/* Linked Boundary List */
+LinkedBoundary **extSpecialBounds;	/* Linked Boundary List */
+NodeRegion  	*glob_subsnode;		/* Global substrate node */
+static Label	*subsLabel = NULL;	/* Label used for substrate */
 
 /* Structure used for finding substrate connections on implicitly-defined
  * substrates
@@ -143,7 +145,6 @@ void extTransOutTerminal();
 void extTransBad();
 
 bool extLabType();
-
 
 /*
  * ----------------------------------------------------------------------------
@@ -166,8 +167,10 @@ bool extLabType();
  *	The following kinds of records are output:
  *
  *		node
+ *		substrate
  *		equiv
  *		fet
+ *		device
  *
  * Interruptible in a limited sense.  We will still return a
  * Region list, but labels may not have been assigned, and
@@ -185,6 +188,8 @@ extBasic(def, outFile)
     bool coupleInitialized = FALSE;
     TransRegion *transList;
     HashTable extCoupleHash;
+
+    glob_subsnode = (NodeRegion *)NULL;
 
     /*
      * Build up a list of the transistor regions for extOutputTrans()
@@ -229,13 +234,19 @@ extBasic(def, outFile)
 	coupleInitialized = TRUE;
 	HashInit(&extCoupleHash, 256, HashSize(sizeof (CoupleKey)));
 	extFindCoupling(def, &extCoupleHash, (Rect *) NULL);
+
+	/* Convert coupling capacitance to the substrate node to
+	 * substrate capacitance on each node in nreg_cap
+	 */
+	if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING))
+	    extRelocateSubstrateCoupling(&extCoupleHash, glob_subsnode);
     }
 
     /* Output device parameters for any subcircuit devices */
     if (!SigInterruptPending)
 	extOutputParameters(def, transList, outFile);
 
-    /* Output each node, along with its resistance and capacitance to GND */
+    /* Output each node, along with its resistance and capacitance to substrate */
     if (!SigInterruptPending)
 	extOutputNodes(nodeList, outFile);
 
@@ -401,9 +412,22 @@ extOutputNodes(nodeList, outFile)
     {
 	/* Output the node */
 	text = extNodeName((LabRegion *) reg);
-	intR = (reg->nreg_resist + rround) / ExtCurStyle->exts_resistScale;
-	finC = reg->nreg_cap/ExtCurStyle->exts_capScale;
-	fprintf(outFile, "node \"%s\" %d %lg", text, intR, finC);
+
+	/* Check if this node is the substrate */
+	if (reg == glob_subsnode)
+	{
+	    if (((LabRegion *)reg)->lreg_labels == NULL)
+		fprintf(outFile, "substrate \"0\" 0 0");
+	    else
+		fprintf(outFile, "substrate \"%s\" 0 0", text);
+	}
+	else
+	{
+
+	    intR = (reg->nreg_resist + rround) / ExtCurStyle->exts_resistScale;
+	    finC = reg->nreg_cap/ExtCurStyle->exts_capScale;
+	    fprintf(outFile, "node \"%s\" %d %lg", text, intR, finC);
+	}
 
 	/* Output its location (lower-leftmost point and type name) */
 
@@ -1384,16 +1408,6 @@ extOutputTrans(def, transList, outFile)
 	{
 	    subsName = extNodeName(subsNode);
 	}
-#ifdef MAGIC_WRAPPER
-	/* If subsName is a Tcl variable (begins with "$"), make the	*/
-	/* variable substitution, if one exists.  Ignore double-$.	*/
-	else if (subsName && subsName[0] == '$' && subsName[1] != '$')
-	{
-	    char *varsub = (char *)Tcl_GetVar(magicinterp, &subsName[1],
-				TCL_GLOBAL_ONLY);
-	    if (varsub != NULL) subsName = varsub;
-	}
-#endif
 
 	/* Original-style FET record backward compatibility */
 	if (ExtCurStyle->exts_deviceClass[t] != DEV_FET)
@@ -1984,6 +1998,13 @@ extTransTileFunc(tile, pNum, arg)
 
     if (extTransRec.tr_subsnode == (NodeRegion *)NULL)
 	extTransFindSubs(tile, arg->fra_def, &extTransRec.tr_subsnode);
+
+    /* If the transistor does not connect to a defined node, then it
+     * is assumed to connect to the global substrate.
+     */
+
+    if (extTransRec.tr_subsnode == (NodeRegion *)NULL)
+	extTransRec.tr_subsnode = glob_subsnode;
 
     return (0);
 }
@@ -2753,12 +2774,17 @@ extFindNodes(def, clipArea)
 			 */
 {
     int extNodeAreaFunc();
+    int extSubsFunc();
     FindRegion arg;
     int pNum, n;
+    TileTypeBitMask subsTypesNonSpace;
 
     /* Reset perimeter and area prior to node extraction */
     for (n = 0; n < ExtCurStyle->exts_numResistClasses; n++)
 	extResistArea[n] = extResistPerim[n] = 0;
+
+    /* Also reset the substrate node pointer */
+    glob_subsnode = (NodeRegion *)NULL;
 
     extNodeClipArea = clipArea;
     if (extNodeStack == (Stack *) NULL)
@@ -2768,6 +2794,72 @@ extFindNodes(def, clipArea)
     arg.fra_region = (Region *) NULL;
 
     SigDisableInterrupts();
+
+    /* First pass:  Find substrate.  Collect all tiles belonging */
+    /* to the substrate and push them onto the stack.  Then	 */
+    /* call extNodeAreaFunc() on the first of these to generate	 */
+    /* a single substrate node.					 */
+
+    TTMaskZero(&subsTypesNonSpace);
+    TTMaskSetMask(&subsTypesNonSpace, &ExtCurStyle->exts_globSubstrateTypes);
+    TTMaskClearType(&subsTypesNonSpace, TT_SPACE);
+
+    for (pNum = PL_TECHDEPBASE; pNum < DBNumPlanes; pNum++)
+    {
+	/* Does the type set of this plane intersect the substrate types? */
+	if (TTMaskIntersect(&DBPlaneTypes[pNum], &subsTypesNonSpace))
+	{
+	    arg.fra_pNum = pNum;
+	    DBSrPaintClient((Tile *) NULL, def->cd_planes[pNum],
+			&TiPlaneRect, &subsTypesNonSpace, extUnInit,
+			extSubsFunc, (ClientData) &arg);
+	}
+    }
+
+    /* If there was a substrate connection, process it and everything	*/
+    /* that was connected to it.  If not, then create a new node	*/
+    /* (named "0" by default) to represent the substrate.		*/
+
+    if (!StackEmpty(extNodeStack))
+    {
+	Tile *tile;
+	int tilePlaneNum;
+	POPTILE(tile, tilePlaneNum);
+	arg.fra_pNum = tilePlaneNum;
+	extNodeAreaFunc(tile, &arg);
+	glob_subsnode = (NodeRegion *)arg.fra_region;
+    }
+    else
+    {
+	LabelList *ll;
+
+	extNodeAreaFunc((Tile *)NULL, (FindRegion *)&arg);
+	glob_subsnode = (NodeRegion *)arg.fra_region;
+	glob_subsnode->nreg_pnum = ExtCurStyle->exts_globSubstratePlane;
+	glob_subsnode->nreg_type = TT_SPACE;
+	glob_subsnode->nreg_ll.p_x = MINFINITY + 3;
+	glob_subsnode->nreg_ll.p_y = MINFINITY + 3;
+
+	if (subsLabel == NULL)
+	{
+	    subsLabel = (Label *) mallocMagic((unsigned) (sizeof (Label)));
+	    subsLabel->lab_type = TT_SPACE;
+	    subsLabel->lab_just = GEO_NORTH;
+	    subsLabel->lab_flags = LABEL_GENERATE;
+	    strcpy(subsLabel->lab_text, "0");
+	    subsLabel->lab_rect = TiPlaneRect;
+	    subsLabel->lab_next = (Label *)NULL;
+	}
+
+	ll = (LabelList *) mallocMagic((unsigned) (sizeof (LabelList)));
+	ll->ll_next = (LabelList *) NULL;
+	ll->ll_label = subsLabel;
+
+	glob_subsnode->nreg_labels = ll;
+    }
+
+    /* Second pass:  Find all other nodes */
+
     for (pNum = PL_TECHDEPBASE; pNum < DBNumPlanes; pNum++)
     {
 	arg.fra_pNum = pNum;
@@ -2785,6 +2877,27 @@ extFindNodes(def, clipArea)
 }
 
 int
+extSubsFunc(tile, arg)
+    Tile *tile;
+    FindRegion *arg;
+{
+    TileType type;
+
+    if (IsSplit(tile))
+    {
+	type = (SplitSide(tile)) ? SplitRightType(tile) : SplitLeftType(tile);
+	if (type == TT_SPACE) return 0;		/* Should not happen */
+    }
+
+    /* Mark this tile as pending and push it */
+    PUSHTILE(tile, arg->fra_pNum);
+
+    /* That's all we do */
+    return (0);
+}
+
+
+int
 extNodeAreaFunc(tile, arg)
     Tile *tile;
     FindRegion *arg;
@@ -2800,7 +2913,7 @@ extNodeAreaFunc(tile, arg)
     Rect r;
     PlaneAndArea pla;
 
-    if (IsSplit(tile))
+    if (tile && IsSplit(tile))
     {
 	type = (SplitSide(tile)) ? SplitRightType(tile) : SplitLeftType(tile);
 	if (type == TT_SPACE) return 0;		/* Should not happen */
@@ -2826,6 +2939,9 @@ extNodeAreaFunc(tile, arg)
     /* Prepend the new node to the region list */
     reg->nreg_next = (NodeRegion *) arg->fra_region;
     arg->fra_region = (Region *) reg;
+
+    /* Used by substrate generating routine */
+    if (tile == NULL) return 1;
 
     /* Mark this tile as pending and push it */
     PUSHTILE(tile, arg->fra_pNum);

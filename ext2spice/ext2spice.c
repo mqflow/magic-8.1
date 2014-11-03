@@ -223,8 +223,8 @@ CmdExtToSpice(w, cmd)
     int argc = cmd->tx_argc;
     char **argv = cmd->tx_argv;
     char **msg;
+    char *resstr = NULL;
     bool err_result, locDoSubckt;
-    char *resstr;
 
     short sd_rclass;
     short sub_rclass;
@@ -678,14 +678,6 @@ runexttospice:
 	    esFetInfo[i].defSubs = subname;
 	}
 
-	/* Tcl variable substitution for substrate node names */
-	if (subname && (subname[0] == '$'))
-	{
-	    resstr = (char *)Tcl_GetVar(magicinterp, &subname[1],
-			TCL_GLOBAL_ONLY);
-	    if (resstr != NULL) esFetInfo[i].defSubs = resstr;
-	}
-
 	if (esDoHierarchy && (subname != NULL))
 	{
 	    globalList *glptr;
@@ -724,11 +716,6 @@ runexttospice:
 	}
     }
 
-    /* Keep a pointer to the "GND" variable, if it exists. */
-
-    resstr = (char *)Tcl_GetVar(magicinterp, "GND", TCL_GLOBAL_ONLY);
-    if (resstr == NULL) resstr = "GND";		/* default value */
-
     /* Write the output file */
 
     fprintf(esSpiceF, "* %s file created from %s.ext - technology: %s\n\n",
@@ -757,19 +744,7 @@ runexttospice:
 	fprintf(esSpiceF, ".global ");
 	while (glist != NULL)
 	{
-	    /* Handle global names that are TCL variables */
-	    if (glist->gll_name[0] == '$')
-	    {
-		resstr = (char *)Tcl_GetVar(magicinterp, &(glist->gll_name[1]),
-			TCL_GLOBAL_ONLY);
-		if (resstr != NULL)
-		    esFormatSubs(esSpiceF, resstr);
-		else
-		    esFormatSubs(esSpiceF, glist->gll_name);
-	    }
-	    else
-		esFormatSubs(esSpiceF, glist->gll_name);
-
+	    esFormatSubs(esSpiceF, glist->gll_name);
 	    fprintf(esSpiceF, " ");
 	    freeMagic(glist->gll_name);
 	    freeMagic(glist);
@@ -841,9 +816,14 @@ runexttospice:
 	}
 	EFVisitResists(spcresistVisit, (ClientData) NULL);
 	EFVisitSubcircuits(subcktVisit, (ClientData) NULL);
+
+	/* Visit nodes to find the substrate node */
+	EFVisitNodes(spcsubVisit, (ClientData)&resstr);
+	if (resstr == NULL) resstr = StrDup((char **)NULL, "0");
 	(void) sprintf( esSpiceCapFormat, "C%%d %%s %s %%.%dlffF%%s",
 			resstr, esCapAccuracy);
 	EFVisitNodes(spcnodeVisit, (ClientData) NULL);
+	freeMagic(resstr);
 
 	if ((esDoSubckt == TRUE) || (locDoSubckt == TRUE))
 	    fprintf(esSpiceF, ".ends\n");
@@ -2642,6 +2622,43 @@ spcresistVisit(hierName1, hierName2, res)
     return 0;
 }
 
+
+/*
+ * ----------------------------------------------------------------------------
+ *
+ * spcsubVisit --
+ *
+ *	Routine to find the node that connects to substrate.  Copy the
+ *	string name of this node into "resstr" to be returned to the
+ *	caller.
+ *
+ * Results:
+ *	Return 1 if the substrate node has been found, to stop the search.
+ *	Otherwise return 0 to keep the search going.
+ *
+ * ----------------------------------------------------------------------------
+ */
+
+int
+spcsubVisit(node, res, cap, resstr)
+    EFNode *node;
+    int res; 		// Unused
+    double cap;		// Unused
+    char **resstr;
+{
+    HierName *hierName;
+    char *nsn;
+
+    if (node->efnode_flags & EF_SUBS_NODE)
+    {
+	hierName = (HierName *) node->efnode_name->efnn_hier;
+	nsn = nodeSpiceName(hierName);
+	*resstr = StrDup((char **)NULL, nsn);
+	return 1;
+    }
+    return 0;
+}
+
 /*
  * ----------------------------------------------------------------------------
  *

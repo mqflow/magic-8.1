@@ -260,7 +260,6 @@ CmdExtToSim(w, cmd)
     char **argv = cmd->tx_argv; 
     char **msg;
     bool err_result;
-    char *resstr;
 
     short sd_rclass;
     short sub_rclass;
@@ -596,14 +595,6 @@ runexttosim:
 	    fetInfo[i].resClassSD = sd_rclass;
 	    fetInfo[i].resClassSub = sub_rclass;
 	    fetInfo[i].defSubs = subname;
-	}
-
-	/* Tcl variable substitution for substrate node names */
-	if (subname && (subname[0] == '$'))
-	{
-	    resstr = (char *)Tcl_GetVar(magicinterp, &subname[1],
-			TCL_GLOBAL_ONLY);
-	    if (resstr != NULL) fetInfo[i].defSubs = resstr;
 	}
     }
 

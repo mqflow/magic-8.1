@@ -820,6 +820,17 @@ typedef struct extstyle
     TileTypeBitMask	 exts_subsTransistorTypes[NT];
 #endif	/* ARIEL */
 
+	/*
+	 * There is a single name for global substrate, and a list of
+	 * types that connect to the substrate.  Since for non-SOI
+	 * processes, this generally is used to specify that space on
+	 * the well plane is the substrate, the plane number for the
+	 * well plane is given, too.
+	 */
+    char		*exts_globSubstrateName;
+    TileTypeBitMask	 exts_globSubstrateTypes;
+    int			 exts_globSubstratePlane;
+
     /* Scaling */
 	/*
 	 * Step size used when breaking up a large cell for interaction
@@ -998,6 +1009,9 @@ extern int extNumFatal;		/* Number fatal errors encountered so far */
 extern int extNumWarnings;	/* Number warning messages so far */
 extern CellUse *extParentUse;	/* Dummy use for def being extracted */
 extern ClientData extNbrUn;	/* Ditto */
+
+extern NodeRegion *save_subsnode;	/* Substrate node for cell def */
+extern NodeRegion *glob_subsnode;	/* Substrate connection to subcell */
 
     /*
      * This is really a (Stack *), but we use the struct tag to avoid

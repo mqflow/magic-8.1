@@ -191,6 +191,53 @@ extFindCoupling(def, table, clipArea)
     }
 
 }
+
+/*
+ * ----------------------------------------------------------------------------
+ *
+ * extRelocateSubstrateCoupling ---
+ *
+ * Move coupling capacitance to the substrate node from the coupling
+ * cap table onto the source node's cap-to-substrate record.
+ *
+ * ----------------------------------------------------------------------------
+ */
+   
+void
+extRelocateSubstrateCoupling(table, subsnode)
+    HashTable *table;		/* Coupling capacitance hash table */
+    NodeRegion *subsnode;	/* Node record for substrate */
+{
+    HashEntry *he;
+    CoupleKey *ck;
+    HashSearch hs;
+    CapValue cap;
+    NodeRegion *rtp;
+    NodeRegion *rbp;
+
+    HashStartSearch(&hs);
+    while (he = HashNext(table, &hs))
+    {
+	cap = extGetCapValue(he);
+	if (cap == 0) continue;
+
+	ck = (CoupleKey *) he->h_key.h_words;
+	rtp = (NodeRegion *) ck->ck_1;
+	rbp = (NodeRegion *) ck->ck_2;
+
+	if (rtp == subsnode)
+	{
+	    rbp->nreg_cap += cap;
+	    extSetCapValue(he, 0);
+	}
+	else if (rbp == subsnode)
+	{
+	    rtp->nreg_cap += cap;
+	    extSetCapValue(he, 0);
+	}
+    }
+}
+
 
 /*
  * ----------------------------------------------------------------------------

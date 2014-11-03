@@ -57,6 +57,8 @@ int ExtInterBloat = 10;
 /* Imports from elsewhere in this module */
 extern int extHierYankFunc();
 extern LabRegion *extSubtreeHardNode();
+extern Node *extHierNewNode();
+extern ExtTree *extHierNewOne();
 
 /* Global data incremented by extSubtree() */
 int extSubtreeTotalArea;	/* Total area of cell */
@@ -675,6 +677,44 @@ extSubtreeFunc(scx, ha)
 				extHierLabFirst, (int (*)()) NULL);
 	ExtLabelRegions(cumUse->cu_def, ExtCurStyle->exts_nodeConn,
 			&(ha->ha_cumFlat.et_nodes), &TiPlaneRect);
+    }
+
+    /* Process substrate connection 				*/
+    /* save_subsnode connects to glob_subsnode 			*/
+    /* (node names get chained together, one node gets removed)	*/
+
+    if (save_subsnode != NULL && glob_subsnode != NULL &&
+		save_subsnode->nreg_labels != NULL &&
+		glob_subsnode->nreg_labels != NULL)
+    {
+	HashTable *table = &ha->ha_connHash;
+	HashEntry *he;
+	NodeName *nn;
+	Node *node1, *node2;
+
+	/* Register the name, like is done in extHierConnectFunc2 */
+	he = HashFind(table, save_subsnode->nreg_labels->ll_label->lab_text);
+	nn = (NodeName *) HashGetValue(he);
+	node1 = nn ? nn->nn_node : extHierNewNode(he);
+
+	he = HashFind(table, glob_subsnode->nreg_labels->ll_label->lab_text);
+	nn = (NodeName *) HashGetValue(he);
+	node2 = nn ? nn->nn_node : extHierNewNode(he);
+
+	if (node1 != node2)
+	{
+	    /*
+	     * Both sets of names will now point to node1.
+	     * We don't need to update node_cap since it
+	     * hasn't been computed yet.
+	     */
+	    for (nn = node2->node_names; nn->nn_next; nn = nn->nn_next)
+	        nn->nn_node = node1;
+	    nn->nn_node = node1;
+	    nn->nn_next = node1->node_names;
+	    node1->node_names = node2->node_names;
+	    freeMagic((char *) node2);
+	}
     }
 
     /* Process connections; this updates ha->ha_connHash */
