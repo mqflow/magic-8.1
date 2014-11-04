@@ -97,44 +97,7 @@ EFHNIsGlob(hierName)
 #endif
     return hierName->hn_name[strlen(hierName->hn_name) - 1] == '!';
 }
-
-/*
- * ----------------------------------------------------------------------------
- *
- * EFHNIsGND --
- *
- * Determine whether a HierName is the same as the global signal GND.
- *
- * The Tcl version of magic expands this to include names which are
- * equal to the global Tcl variable $GND, if it is set.
- *
- * Results:
- *	TRUE if the name is GND, false if not.
- *
- * Side effects:
- *	None.
- *
- * ----------------------------------------------------------------------------
- */
 
-bool
-EFHNIsGND(hierName)
-    HierName *hierName;
-{
-#ifdef MAGIC_WRAPPER
-    char *retstr;
-#endif
-
-    if (hierName->hn_parent != (HierName *) NULL) return FALSE;
-
-#ifdef MAGIC_WRAPPER
-    retstr = (char *)Tcl_GetVar(magicinterp, "GND", TCL_GLOBAL_ONLY);
-    if (retstr != NULL)
-	if (!strcmp(hierName->hn_name, retstr)) return TRUE;
-#endif
-
-    return (strcmp(hierName->hn_name, "GND!") == 0);
-}
 
 /*
  * ----------------------------------------------------------------------------

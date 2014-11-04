@@ -236,8 +236,8 @@ efBuildAttr(def, nodeName, r, layerName, text)
     EFAttr *ap;
     int size;
 
-    he = HashFind(&def->def_nodes, nodeName);
-    if (HashGetValue(he) == NULL)
+    he = HashLookOnly(&def->def_nodes, nodeName);
+    if (he == NULL || HashGetValue(he) == NULL)
     {
 	efReadError("Attribute for nonexistent node %s ignored\n", nodeName);
 	return;

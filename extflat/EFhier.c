@@ -382,7 +382,7 @@ efHierDevKilled(hc, dev, prefix)
     for (n = 0; n < dev->dev_nterm; n++)
     {
 	suffix = dev->dev_terms[n].dterm_node->efnode_name->efnn_hier;
-	he = HashFind(&def->def_nodes, EFHNToStr(suffix));
+	he = HashLookOnly(&def->def_nodes, EFHNToStr(suffix));
 	if (he  && (nn = (EFNodeName *) HashGetValue(he))
 		&& (nn->efnn_node->efnode_flags & EF_KILLED))
 	    return TRUE;
@@ -507,13 +507,13 @@ efHierVisitSingleResist(hc, name1, name2, res, ca)
     HashEntry *he;
     Def *def = hc->hc_use->use_def;
 
-    if ((he = HashFind(&def->def_nodes, name1)) == NULL)
+    if ((he = HashLookOnly(&def->def_nodes, name1)) == NULL)
 	return 0;
     n1 = ((EFNodeName *) HashGetValue(he))->efnn_node;
     if (n1->efnode_flags & EF_KILLED)
 	return 0;
 
-    if ((he = HashFind(&def->def_nodes, name2)) == NULL)
+    if ((he = HashLookOnly(&def->def_nodes, name2)) == NULL)
 	return 0;
     n2 = ((EFNodeName *) HashGetValue(he))->efnn_node;
     if (n2->efnode_flags & EF_KILLED)
@@ -728,7 +728,7 @@ EFHierVisitNodes(hc, nodeProc, cdata)
 	res = EFNodeResist(snode);
 	cap = snode->efnode_cap;
 	hierName = (HierName *) snode->efnode_name->efnn_hier;
-	if (EFHNIsGND(hierName))
+	if (snode->efnode_flags & EF_SUBS_NODE)
 	    cap = 0;
 
 	if (snode->efnode_flags & EF_KILLED) continue;

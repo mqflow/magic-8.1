@@ -98,7 +98,6 @@ GetHierNode(hc, name)
     EFNodeName *nn;
     Def *def = hc->hc_use->use_def;
 
-    // he = HashFind(&def->def_nodes, EFHNToStr(name));
     he = EFHNConcatLook(hc->hc_hierName, name, "node");
     if (he == NULL) return NULL;
     nn = (EFNodeName *) HashGetValue(he);
@@ -225,7 +224,7 @@ subcktHierVisit(use, hierName, is_top)
  * spcdevHierVisit --
  *
  * Procedure to output a single dev to the .spice file.
- * Called by EFVisitDevs().
+ * Called by EFHierVisitDevs().
  *
  * Results:
  *	Returns 0 always.
@@ -914,7 +913,7 @@ spcdevHierMergeVisit(hc, dev, scale)
  * spccapHierVisit --
  *
  * Procedure to output a single capacitor to the .spice file.
- * Called by EFVisitCaps().
+ * Called by EFHierVisitCaps().
  *
  * Results:
  *	Returns 0 always.
@@ -956,7 +955,7 @@ spccapHierVisit(hc, hierName1, hierName2, cap)
  * spcresistHierVisit --
  *
  * Procedure to output a single resistor to the .spice file.
- * Called by EFVisitResists().
+ * Called by EFHierVisitResists().
  *
  * Results:
  *	Returns 0 always.
@@ -1033,7 +1032,7 @@ spcsubHierVisit(hc, node, res, cap, resstr)
  * spcnodeHierVisit --
  *
  * Procedure to output a single node to the .spice file along with its 
- * attributes and its dictionary (if present). Called by EFVisitNodes().
+ * attributes and its dictionary (if present). Called by EFHierVisitNodes().
  *
  * Results:
  *	Returns 0 always.
@@ -1127,9 +1126,9 @@ char *nodeSpiceHierName(hc, hname)
     EFNode *node;
     Def *def = hc->hc_use->use_def;
 
-    he = HashFind(&def->def_nodes, EFHNToStr(hname));
-    if (he == NULL)
-	return "errGnd!";
+    he = HashLookOnly(&def->def_nodes, EFHNToStr(hname));
+    if (he == NULL) return "error";
+
     nn = (EFNodeName *) HashGetValue(he);
     if (nn == NULL)
 	return "<invalid node>";
@@ -1163,7 +1162,7 @@ retName:
  * ----------------------------------------------------------------------------
  *
  * devMergeVisit --
- * Visits each dev throu EFVisitDevs and finds if it is in parallel with
+ * Visits each dev throu EFHierVisitDevs and finds if it is in parallel with
  * any previously visited dev.
  *
  * Results:

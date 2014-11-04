@@ -675,7 +675,7 @@ EFVisitNodes(nodeProc, cdata)
 	res = EFNodeResist(node);
 	cap = node->efnode_cap;
 	hierName = (HierName *) node->efnode_name->efnn_hier;
-	if (EFHNIsGND(hierName))
+	if (node->efnode_flags & EF_SUBS_NODE)
 	    cap = 0;
 	if (efWatchNodes)
 	{
