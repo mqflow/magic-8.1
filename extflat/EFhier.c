@@ -382,7 +382,7 @@ efHierDevKilled(hc, dev, prefix)
     for (n = 0; n < dev->dev_nterm; n++)
     {
 	suffix = dev->dev_terms[n].dterm_node->efnode_name->efnn_hier;
-	he = HashLookOnly(&def->def_nodes, EFHNToStr(suffix));
+	he = HashLookOnly(&efNodeHashTable, EFHNToStr(suffix));
 	if (he  && (nn = (EFNodeName *) HashGetValue(he))
 		&& (nn->efnn_node->efnode_flags & EF_KILLED))
 	    return TRUE;
@@ -507,13 +507,13 @@ efHierVisitSingleResist(hc, name1, name2, res, ca)
     HashEntry *he;
     Def *def = hc->hc_use->use_def;
 
-    if ((he = HashLookOnly(&def->def_nodes, name1)) == NULL)
+    if ((he = HashLookOnly(&efNodeHashTable, name1)) == NULL)
 	return 0;
     n1 = ((EFNodeName *) HashGetValue(he))->efnn_node;
     if (n1->efnode_flags & EF_KILLED)
 	return 0;
 
-    if ((he = HashLookOnly(&def->def_nodes, name2)) == NULL)
+    if ((he = HashLookOnly(&efNodeHashTable, name2)) == NULL)
 	return 0;
     n2 = ((EFNodeName *) HashGetValue(he))->efnn_node;
     if (n2->efnode_flags & EF_KILLED)
@@ -710,21 +710,13 @@ EFHierVisitNodes(hc, nodeProc, cdata)
     Def *def = hc->hc_use->use_def;
     EFCapValue cap;
     int res;
-    EFNodeName *sname;
     EFNode *snode;
     HierName *hierName;
-    HashSearch hs;
-    HashEntry *he;
 
-    HashStartSearch(&hs);
-    while (he = HashNext(&def->def_nodes, &hs))
+    for (snode = (EFNode *) efNodeList.efnode_next;
+            snode != &efNodeList;
+            snode = (EFNode *) snode->efnode_next)
     {
-	sname = (EFNodeName *) HashGetValue(he);
-
-	/* The following shouldn't happen---need to investigate */
-	if (sname == (EFNodeName *)NULL) continue;
-
-	snode = sname->efnn_node;
 	res = EFNodeResist(snode);
 	cap = snode->efnode_cap;
 	hierName = (HierName *) snode->efnode_name->efnn_hier;

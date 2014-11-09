@@ -1006,12 +1006,12 @@ spcresistHierVisit(hc, hierName1, hierName2, res)
  */
 
 int
-spcsubHierVisit(hc, node, res, cap, resstr)
+spcsubHierVisit(hc, node, res, cap, resstrptr)
     HierContext *hc;
     EFNode *node;
     int res; 		// Unused
     double cap;		// Unused
-    char **resstr;
+    char **resstrptr;
 {
     HierName *hierName;
     char *nsn;
@@ -1020,7 +1020,7 @@ spcsubHierVisit(hc, node, res, cap, resstr)
     {
 	hierName = (HierName *) node->efnode_name->efnn_hier;
 	nsn = nodeSpiceHierName(hc, hierName);
-	*resstr = StrDup((char **)NULL, nsn);
+	*resstrptr = StrDup((char **)NULL, nsn);
 	return 1;
     }
     return 0;
