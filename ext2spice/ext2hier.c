@@ -1443,6 +1443,87 @@ esMakePorts(hc, cdata)
 	    //		name, portname);
 	}
     }
+
+    // Now do the same thing for parasitic connections into subcells
+    // However, restrict the number of ports based on "cthresh".
+
+    for (conn = (Connection *)def->def_caps; conn; conn = conn->conn_next)
+    {
+	for (j = 0; j < 2; j++)
+	{
+	    name = (j == 0) ? conn->conn_1.cn_name : conn->conn_2.cn_name;
+	    locname = (j == 0) ? conn->conn_2.cn_name : conn->conn_1.cn_name;
+	    if ((tptr = strchr(name, '/')) == NULL)
+		continue;
+
+	    // Ignore capacitances that are less than the threshold.
+	    // In particular, this keeps parasitics out of the netlist for
+	    // LVS purposes if "cthresh" is set to "infinite".
+
+	    if (conn->conn_cap < EFCapThreshold) continue;
+
+	    portname = name;
+	    updef = def;
+
+	    while (tptr != NULL)
+	    {
+		/* Ignore array information for the purpose of tracing	*/	
+		/* the cell definition hierarchy.			*/
+
+		aptr = strchr(portname, '[');
+		if ((aptr == NULL) || (aptr > tptr))
+		    *tptr = '\0';
+		else
+		    *aptr = '\0';
+
+		// Find the cell for the instance
+		portdef = NULL;
+		for (use = updef->def_uses; use; use = use->use_next)
+		{
+		    if (!strcmp(use->use_id, portname))
+		    {
+			portdef = use->use_def;
+			break;
+		    }
+		}
+		if ((aptr == NULL) || (aptr > tptr))
+		    *tptr = '/';
+		else
+		    *aptr = '[';
+		portname = tptr + 1;
+
+		// Find the net of portname in the subcell and
+		// make it a port if it is not already.
+
+		if (portdef)
+		{
+		    he = HashFind(&portdef->def_nodes, portname);
+		    nn = (EFNodeName *) HashGetValue(he);
+		    if (nn == NULL)
+		    {
+			efBuildNode(portdef, FALSE, portname, 0.0,
+					0, 0, NULL, NULL, 0);
+			nn = (EFNodeName *) HashGetValue(he);
+		    }
+
+		    if (!(nn->efnn_node->efnode_flags & EF_PORT))
+		    {
+			nn->efnn_node->efnode_flags |= EF_PORT;
+			nn->efnn_port = -1;	// Will be sorted later
+		    }
+		}
+
+		if ((tptr = strchr(portname, '/')) == NULL)
+		    break;
+		if (portdef == NULL) break;	// Error condition?
+
+		updef = portdef;
+	    }
+	    // Diagnostic
+	    // TxPrintf("Connection in %s to net %s (%s)\n", def->def_name,
+	    //		name, portname);
+	}
+    }
     return 0;
 }
 
