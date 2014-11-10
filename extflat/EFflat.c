@@ -159,9 +159,10 @@ HierContext *
 EFFlatBuildOneLevel(def)
     Def *def;		/* root def being flattened */
 {
-    int usecount;
+    int usecount, savecount;
     Use *use;
     int efFlatNodesDeviceless();	/* Forward declaration */
+    int efFlatCapsDeviceless();		/* Forward declaration */
 
     efFlatRootDef = def;
 
@@ -193,7 +194,7 @@ EFFlatBuildOneLevel(def)
     usecount = 0;
 
     /* Record all nodes of the next level in the hierarchy */
-    efHierSrUses(&efFlatContext, efAddNodes, (ClientData)FALSE);
+    efHierSrUses(&efFlatContext, efAddNodes, (ClientData)TRUE);
 
     /* Expand all subcells that contain connectivity information but	*/
     /* no active devices (including those in subcells).			*/
@@ -214,7 +215,7 @@ EFFlatBuildOneLevel(def)
 
     efFlatKills(&efFlatContext);
     efFlatGlob();
-    efFlatCaps(&efFlatContext);
+    efFlatCapsDeviceless(&efFlatContext);
     efFlatDists(&efFlatContext);
 
     return &efFlatContext;
@@ -448,12 +449,20 @@ efAddNodes(hc, stdcell)
 	    newap->efa_next = newnode->efnode_attrs;
 	    newnode->efnode_attrs = newap;
 	}
-	newnode->efnode_cap = node->efnode_cap;
+
+	// If called with "hierarchy on", all local node caps and adjustments
+	// have been output and should be ignored.
+	
+	newnode->efnode_cap = (!stdcell) ? node->efnode_cap : (EFCapValue)0.0;
 	newnode->efnode_client = (ClientData) NULL;
 	newnode->efnode_flags = node->efnode_flags;
 	newnode->efnode_type = node->efnode_type;
-	bcopy((char *) node->efnode_pa, (char *) newnode->efnode_pa,
-		efNumResistClasses * sizeof (PerimArea));
+	if (!stdcell)
+	    bcopy((char *) node->efnode_pa, (char *) newnode->efnode_pa,
+			efNumResistClasses * sizeof (PerimArea));
+	else
+	    bzero((char *) newnode->efnode_pa,
+			efNumResistClasses * sizeof (PerimArea));
 	GeoTransRect(&hc->hc_trans, &node->efnode_loc, &newnode->efnode_loc);
 
 	/* Scale the result by "scale" --- hopefully we end up with an integer	*/
@@ -878,6 +887,43 @@ efFlatKills(hc)
     return (0);
 }
 
+
+/*----
+ * WIP
+ *----
+ */
+
+int
+efFlatCapsDeviceless(hc)
+    HierContext *hc;
+{
+    Connection *conn;
+    int newcount = 0;
+    Use *use;
+
+    for (use = hc->hc_use->use_def->def_uses; use; use = use->use_next)
+	newcount++;
+
+    /* Recursively flatten uses that have no active devices */
+    if (newcount > 0)
+	efHierSrUses(hc, efFlatCapsDeviceless, (ClientData)NULL);
+
+    if (!(hc->hc_use->use_def->def_flags & DEF_NODEVICES))
+	if (hc->hc_use->use_def->def_flags & DEF_PROCESSED)
+	    return 0;
+
+    /* Output our own capacitors */
+    for (conn = hc->hc_use->use_def->def_caps; conn; conn = conn->conn_next)
+    {
+	/* Special case for speed if no arraying info */
+	if (conn->conn_1.cn_nsubs == 0)
+	    efFlatSingleCap(hc, conn->conn_name1, conn->conn_name2, conn);
+	else
+	    efHierSrArray(hc, conn, efFlatSingleCap, (ClientData) NULL);
+    }
+    return (0);
+}
+
 /*
  * ----------------------------------------------------------------------------
  *
@@ -899,9 +945,9 @@ efFlatKills(hc)
  *	canonical name of the node for which this full name is an alias.  The
  *	canonical name is output as the node to which this terminal connects.
  *
- *	Capacitance where one of the nodes is GND is treated specially;
+ *	Capacitance where one of the nodes is substrate is treated specially;
  *	instead of adding an entry to the global hash table, we update
- *	the substrate capacitance of the other node appropriately (KLUDGE).
+ *	the substrate capacitance of the other node appropriately.
  *
  * Results:
  *	Returns 0 to keep efHierSrUses going.

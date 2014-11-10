@@ -21,6 +21,7 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
 #include <stdlib.h>		/* for atof() */
 #include <string.h>
 #include <ctype.h>
+#include <math.h>		/* for fabs() */
 
 #ifdef MAGIC_WRAPPER
 #include "tcltk/tclmagic.h"
@@ -940,7 +941,7 @@ spccapHierVisit(hc, hierName1, hierName2, cap)
     double cap;
 {
     cap = cap / 1000;
-    if (cap <= EFCapThreshold)
+    if (fabs(cap) <= EFCapThreshold)
 	return 0;
 
     fprintf(esSpiceF, esSpiceCapFormat, esCapNum++,
@@ -1079,7 +1080,7 @@ spcnodeHierVisit(hc, node, res, cap)
 	fprintf(esSpiceF, "** %s == %s\n", ntmp, nsn);
     }
     cap = cap  / 1000;
-    if (cap > EFCapThreshold)
+    if (fabs(cap) > EFCapThreshold)
     {
 	fprintf(esSpiceF, esSpiceCapFormat, esCapNum++, nsn, cap,
 			  (isConnected) ?  "\n" : " **FLOATING\n");
@@ -1460,7 +1461,7 @@ esMakePorts(hc, cdata)
 	    // In particular, this keeps parasitics out of the netlist for
 	    // LVS purposes if "cthresh" is set to "infinite".
 
-	    if (conn->conn_cap < EFCapThreshold) continue;
+	    if (fabs((double)conn->conn_cap) < EFCapThreshold) continue;
 
 	    portname = name;
 	    updef = def;

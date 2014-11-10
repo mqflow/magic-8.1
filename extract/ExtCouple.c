@@ -228,12 +228,12 @@ extRelocateSubstrateCoupling(table, subsnode)
 	if (rtp == subsnode)
 	{
 	    rbp->nreg_cap += cap;
-	    extSetCapValue(he, 0);
+	    extSetCapValue(he, (CapValue)0);
 	}
 	else if (rbp == subsnode)
 	{
 	    rtp->nreg_cap += cap;
-	    extSetCapValue(he, 0);
+	    extSetCapValue(he, (CapValue)0);
 	}
     }
 }
