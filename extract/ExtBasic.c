@@ -131,7 +131,6 @@ typedef struct TSD1
 void extOutputNodes();
 int extTransTileFunc();
 int extTransPerimFunc();
-NodeRegion *extTransFindSubsNode();
 int extTransFindSubs();
 
 int extAnnularTileFunc();
@@ -1401,6 +1400,10 @@ extOutputTrans(def, transList, outFile)
 	 * Use the default substrate node unless the transistor overlaps
 	 * material whose type is in exts_transSubstrateTypes, in which
 	 * case we use the node of the overlapped material.
+	 *
+	 * Technology files using the "substrate" keyword (magic-8.1 or
+	 * newer) should have the text "error" in the substrate node
+	 * name.
 	 */
 	subsName = ExtCurStyle->exts_transSubstrateName[t];
 	if (!TTMaskIsZero(&ExtCurStyle->exts_transSubstrateTypes[t])
@@ -1879,23 +1882,18 @@ extOutputTrans(def, transList, outFile)
 }
 
 int
-extTransFindSubs(tile, def, sn)
+extTransFindSubs(tile, t, mask, def, sn)
     Tile *tile;
+    TileType t;
+    TileTypeBitMask *mask;
     CellDef *def;
     NodeRegion **sn;
 {
-    TileType t;
-    TileTypeBitMask *mask;
     Rect tileArea;
     int pNum;
     int extTransFindSubsFunc1();	/* Forward declaration */
 
     TiToRect(tile, &tileArea);
-    if (IsSplit(tile))
-        t = (SplitSide(tile)) ? SplitRightType(tile): SplitLeftType(tile);
-    else
-        t = TiGetTypeExact(tile);
-    mask = &ExtCurStyle->exts_transSubstrateTypes[t];
     for (pNum = PL_TECHDEPBASE; pNum < DBNumPlanes; pNum++)
     {
 	if (TTMaskIntersect(&DBPlaneTypes[pNum], mask))
@@ -1956,6 +1954,7 @@ extTransTileFunc(tile, pNum, arg)
     TileTypeBitMask mask;
     TileType loctype;
     int perim;
+    bool allow_globsubsnode;
 
     LabelList *ll;
     Label *lab;
@@ -1996,15 +1995,30 @@ extTransTileFunc(tile, pNum, arg)
 		extTransPerimFunc, (ClientData)NULL);
     extTransRec.tr_perim += perim;
 
+    allow_globsubsnode = FALSE;
     if (extTransRec.tr_subsnode == (NodeRegion *)NULL)
-	extTransFindSubs(tile, arg->fra_def, &extTransRec.tr_subsnode);
+    {
+	TileTypeBitMask *smask;
 
-    /* If the transistor does not connect to a defined node, then it
-     * is assumed to connect to the global substrate.
+	smask = &ExtCurStyle->exts_transSubstrateTypes[loctype];
+	if (TTMaskHasType(smask, TT_SPACE))
+	{
+	    allow_globsubsnode = TRUE;
+	    TTMaskClearType(smask, TT_SPACE);
+	}
+	extTransFindSubs(tile, loctype, smask, arg->fra_def, &extTransRec.tr_subsnode);
+	if (allow_globsubsnode)
+	    TTMaskSetType(smask, TT_SPACE);
+    }
+
+    /* If the transistor does not connect to a defined node, and
+     * the substrate types include "space", then it is assumed to
+     * connect to the global substrate.
      */
 
     if (extTransRec.tr_subsnode == (NodeRegion *)NULL)
-	extTransRec.tr_subsnode = glob_subsnode;
+	if (allow_globsubsnode)
+	    extTransRec.tr_subsnode = glob_subsnode;
 
     return (0);
 }

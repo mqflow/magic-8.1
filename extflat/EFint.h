@@ -290,7 +290,7 @@ extern char *efHNToStrFunc();
 
     /* Functions for hashing of HierNames */
 extern int efHNCompare();
-extern int efHNHash();
+extern int efHNHash(HierName *);
 
     /* Functions for hashing of Distances */
 extern bool efHNDistCompare();

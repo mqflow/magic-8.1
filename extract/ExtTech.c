@@ -1794,12 +1794,20 @@ ExtTechLine(sectionName, argc, argv)
 	    nterm = atoi(argv[3]);
 	    transName = argv[4];
 	    subsName = argv[5];
+
+	    // From magic version 8.1, subs name can be a nonfunctional
+	    // throwaway (e.g., "error"), so don't throw a warning. 
+	
 	    cp = strchr(subsName, '!');
 	    if (cp == NULL || cp[1] != '\0')
 	    {
-		TechError("Fet substrate node %s is not a global name\n",
-		    subsName);
+		if (strcasecmp(subsName, "error"))
+		{
+		    TechError("Fet substrate node %s is not a global name\n",
+				subsName);
+		}
 	    }
+
 	    subsTypes = DBZeroTypeBits;
 	    if (sscanf(argv[6], "%lf", &capVal) != 1)
 	    {
@@ -1812,6 +1820,7 @@ ExtTechLine(sectionName, argc, argv)
 		gscap = aToCap(argv[6]);
 		gccap = (argc > 7) ? aToCap(argv[7]) : (CapValue) 0;
 	    }
+
 	    TTMaskSetMask(&ExtCurStyle->exts_transMask, &types1);
 	    for (t = TT_TECHDEPBASE; t < DBNumTypes; t++)
 		if (TTMaskHasType(&types1, t))
