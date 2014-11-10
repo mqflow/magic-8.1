@@ -1126,7 +1126,8 @@ char *nodeSpiceHierName(hc, hname)
     EFNode *node;
     Def *def = hc->hc_use->use_def;
 
-    he = HashLookOnly(&def->def_nodes, EFHNToStr(hname));
+    // he = HashLookOnly(&def->def_nodes, EFHNToStr(hname));
+    he = HashLookOnly(&efNodeHashTable, (char *)hname);
     if (he == NULL) return "error";
 
     nn = (EFNodeName *) HashGetValue(he);
