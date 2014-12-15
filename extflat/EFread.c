@@ -136,7 +136,7 @@ EFReadFile(name, dosubckt, resist, noscale)
     if (def == NULL)
 	def = efDefNew(name);
 
-    rc = efReadDef(def, dosubckt, resist, noscale);
+    rc = efReadDef(def, dosubckt, resist, noscale, TRUE);
     if (EFArgTech) EFTech = StrDup((char **) NULL, EFArgTech);
     if (EFScale == 0.0) EFScale = 1.0;
 
@@ -164,9 +164,9 @@ EFReadFile(name, dosubckt, resist, noscale)
  */
 
 bool
-efReadDef(def, dosubckt, resist, noscale)
+efReadDef(def, dosubckt, resist, noscale, toplevel)
    Def *def;
-   bool dosubckt, resist, noscale;
+   bool dosubckt, resist, noscale, toplevel;
 {
     int argc, ac, n;
     EFCapValue cap;
@@ -558,13 +558,14 @@ resistChanged:
     /* If we are considering standard cells, only the first level of	*/
     /* subcircuits is meaningful.					*/
 
-    if (def->def_flags & DEF_SUBCIRCUIT)
+    if ((def->def_flags & DEF_SUBCIRCUIT) && (toplevel != TRUE))
 	DoSubCircuit = FALSE;
 
     /* Read in each def that has not yet been read in */
     for (use = def->def_uses; use; use = use->use_next)
 	if ((use->use_def->def_flags & DEF_AVAILABLE) == 0)
-	    if(efReadDef(use->use_def, DoSubCircuit, resist, noscale) != TRUE)
+	    if (efReadDef(use->use_def, DoSubCircuit, resist, noscale, FALSE)
+			!= TRUE)
 		rc = FALSE;
 
     return rc;

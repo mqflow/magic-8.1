@@ -186,8 +186,8 @@ extMakeUnique(def, ll, lreg, lregList, labelHash, option)
     cpend = strchr(text, '\0');
     if (cpend > text) cpend--;
     if (*cpend == '#') goto makeUnique;
-    if (*cpend == '!')
-	return 0;
+    if (*cpend == '!') return 0;
+    if ((option == 2) && (ll->ll_label->lab_flags & PORT_DIR_MASK)) return 0;
 
     /* Generate a warning for each occurrence of this label */
     nwarn = 0;
