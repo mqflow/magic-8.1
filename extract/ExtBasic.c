@@ -2866,6 +2866,7 @@ extFindNodes(def, clipArea)
 	}
 
 	ll = (LabelList *) mallocMagic((unsigned) (sizeof (LabelList)));
+	ll->ll_attr = LL_NOATTR;
 	ll->ll_next = (LabelList *) NULL;
 	ll->ll_label = subsLabel;
 
