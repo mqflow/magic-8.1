@@ -664,7 +664,12 @@ extTechStyleInit(style)
     }
     doConvert = FALSE;
 
-    style->exts_globSubstratePlane = 0;
+    // The exts_globSubstratePlane setting of -1 will be used to set a
+    // backwards-compatibility mode matching previous behavior with
+    // respect to the substrate when there is no "substrate" line in
+    // the techfile.
+
+    style->exts_globSubstratePlane = -1;
     TTMaskZero(&style->exts_globSubstrateTypes);
 }
 
@@ -2806,15 +2811,6 @@ zinit:
     /* needed, so normalize it back to lambda units.			*/
 
     style->exts_sideCoupleHalo /= 1000;
-
-    /* Substrate check. */
-
-    if (style->exts_globSubstratePlane < 0)
-    {
-	style->exts_globSubstrateTypes = DBSpaceBits;
-	/* Need more intelligent behavior for finding the substrate plane */
-	style->exts_globSubstratePlane = PL_TECHDEPBASE;
-    }
 }
 
 /*

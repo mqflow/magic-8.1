@@ -678,6 +678,17 @@ runexttospice:
 	    esFetInfo[i].defSubs = subname;
 	}
 
+	if (EFCompat == TRUE)
+	{
+	    /* Tcl variable substitution for substrate node names */
+	    if (subname && (subname[0] == '$'))
+	    {
+		resstr = (char *)Tcl_GetVar(magicinterp, &subname[1],
+			TCL_GLOBAL_ONLY);
+		if (resstr != NULL) esFetInfo[i].defSubs = resstr;
+	    }
+	}
+
 	if (esDoHierarchy && (subname != NULL))
 	{
 	    globalList *glptr;
@@ -716,6 +727,14 @@ runexttospice:
 	}
     }
 
+    if (EFCompat == TRUE)
+    {
+	/* Keep a pointer to the "GND" variable, if it exists. */
+
+	resstr = (char *)Tcl_GetVar(magicinterp, "GND", TCL_GLOBAL_ONLY);
+	if (resstr == NULL) resstr = "GND";	/* default value */
+    }
+
     /* Write the output file */
 
     fprintf(esSpiceF, "* %s file created from %s.ext - technology: %s\n\n",
@@ -744,7 +763,24 @@ runexttospice:
 	fprintf(esSpiceF, ".global ");
 	while (glist != NULL)
 	{
-	    esFormatSubs(esSpiceF, glist->gll_name);
+	    if (EFCompat == TRUE)
+	    {
+		/* Handle global names that are TCL variables */
+		if (glist->gll_name[0] == '$')
+		{
+		    resstr = (char *)Tcl_GetVar(magicinterp,
+				&(glist->gll_name[1]), TCL_GLOBAL_ONLY);
+		    if (resstr != NULL)
+			esFormatSubs(esSpiceF, resstr);
+		    else
+			esFormatSubs(esSpiceF, glist->gll_name);
+		}
+		else
+		    esFormatSubs(esSpiceF, glist->gll_name);
+	    }
+	    else
+		esFormatSubs(esSpiceF, glist->gll_name);
+
 	    fprintf(esSpiceF, " ");
 	    freeMagic(glist->gll_name);
 	    freeMagic(glist);
@@ -817,13 +853,17 @@ runexttospice:
 	EFVisitResists(spcresistVisit, (ClientData) NULL);
 	EFVisitSubcircuits(subcktVisit, (ClientData) NULL);
 
-	/* Visit nodes to find the substrate node */
-	EFVisitNodes(spcsubVisit, (ClientData)&resstr);
-	if (resstr == NULL) resstr = StrDup((char **)NULL, "0");
+	if (EFCompat == FALSE)
+	{
+	    /* Visit nodes to find the substrate node */
+	    EFVisitNodes(spcsubVisit, (ClientData)&resstr);
+	    if (resstr == NULL) resstr = StrDup((char **)NULL, "0");
+	}
 	(void) sprintf( esSpiceCapFormat, "C%%d %%s %s %%.%dlffF%%s",
 			resstr, esCapAccuracy);
 	EFVisitNodes(spcnodeVisit, (ClientData) NULL);
-	freeMagic(resstr);
+
+	if (EFCompat == FALSE) freeMagic(resstr);
 
 	if ((esDoSubckt == TRUE) || (locDoSubckt == TRUE))
 	    fprintf(esSpiceF, ".ends\n");

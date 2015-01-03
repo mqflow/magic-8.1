@@ -53,6 +53,7 @@ char *EFVersion = MAGIC_VERSION;/* Version number of .ext format we read */
 char *EFLibPath = NULL;		/* Library search path for .ext files */
 char *EFTech = NULL;
 char *EFStyle = NULL;		/* Start with no extraction style */
+bool  EFCompat = TRUE;		/* Start with backwards compatibility enabled */
 
 #ifdef MAGIC_WRAPPER
 extern char     *Path;		/* magic's search path---note this should  */

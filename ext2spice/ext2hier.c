@@ -1612,15 +1612,18 @@ esHierVisit(hc, cdata)
     sprintf( esSpiceCapFormat,  "C%%d %%s %%s %%.%dlffF\n", esCapAccuracy);
     EFHierVisitCaps(hcf, spccapHierVisit, (ClientData)NULL);
 
-    /* Find the substrate node */
-    EFHierVisitNodes(hcf, spcsubHierVisit, (ClientData)&resstr);
-    if (resstr == NULL) resstr = StrDup((char **)NULL, "0");
+    if (EFCompat == FALSE)
+    {
+	/* Find the substrate node */
+	EFHierVisitNodes(hcf, spcsubHierVisit, (ClientData)&resstr);
+	if (resstr == NULL) resstr = StrDup((char **)NULL, "0");
 
-    /* Output lumped capacitance and resistance to substrate */
-    sprintf( esSpiceCapFormat,  "C%%d %%s %s %%.%dlffF%%s\n",
+	/* Output lumped capacitance and resistance to substrate */
+	sprintf( esSpiceCapFormat,  "C%%d %%s %s %%.%dlffF%%s\n",
 			resstr, esCapAccuracy);
-    EFHierVisitNodes(hcf, spcnodeHierVisit, (ClientData) NULL);
-    freeMagic(resstr);
+	EFHierVisitNodes(hcf, spcnodeHierVisit, (ClientData) NULL);
+	freeMagic(resstr);
+    }
 
     if (def != topdef)
 	fprintf(esSpiceF, ".ends\n\n");

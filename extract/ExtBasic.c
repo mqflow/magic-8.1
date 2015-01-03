@@ -228,7 +228,8 @@ extBasic(def, outFile)
      * This comes before extOutputNodes because we may have to adjust
      * node capacitances in this step.
      */
-    if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING))
+    if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING) &&
+		(ExtCurStyle->exts_globSubstratePlane != -1))
     {
 	coupleInitialized = TRUE;
 	HashInit(&extCoupleHash, 256, HashSize(sizeof (CoupleKey)));
@@ -1411,6 +1412,23 @@ extOutputTrans(def, transList, outFile)
 	{
 	    subsName = extNodeName(subsNode);
 	}
+
+#ifdef MAGIC_WRAPPER
+
+	// Substrate variable substitution when in backwards-compatibility
+	// substrate mode.
+
+	else if ((ExtCurStyle->exts_globSubstratePlane == -1) &&
+		(subsName && subsName[0] == '$' && subsName[1] != '$'))
+	{
+	    // If subsName is a Tcl variable (begins with "$"), make the
+	    // variable substitution, if one exists.  Ignore double-$.
+
+	    char *varsub = (char *)Tcl_GetVar(magicinterp, &subsName[1],
+			TCL_GLOBAL_ONLY);
+	    if (varsub != NULL) subsName = varsub;
+	}
+#endif
 
 	/* Original-style FET record backward compatibility */
 	if (ExtCurStyle->exts_deviceClass[t] != DEV_FET)
@@ -2843,7 +2861,7 @@ extFindNodes(def, clipArea)
 	extNodeAreaFunc(tile, &arg);
 	glob_subsnode = (NodeRegion *)arg.fra_region;
     }
-    else
+    else if (ExtCurStyle->exts_globSubstratePlane != -1)
     {
 	LabelList *ll;
 

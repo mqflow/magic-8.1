@@ -203,6 +203,9 @@ efBuildNode(def, isSubsnode, nodeName, nodeCap, x, y, layerName, av, ac)
     newnode->efnode_prev = (EFNodeHdr *) &def->def_firstn;
     def->def_firstn.efnode_next->efnhdr_prev = (EFNodeHdr *) newnode;
     def->def_firstn.efnode_next = (EFNodeHdr *) newnode;
+
+    /* If isSubsnode was TRUE, then turn off backwards compatibility mode */
+    if (isSubsnode == TRUE) EFCompat = FALSE;
 }
 
 /*

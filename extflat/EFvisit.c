@@ -675,8 +675,16 @@ EFVisitNodes(nodeProc, cdata)
 	res = EFNodeResist(node);
 	cap = node->efnode_cap;
 	hierName = (HierName *) node->efnode_name->efnn_hier;
-	if (node->efnode_flags & EF_SUBS_NODE)
-	    cap = 0;
+	if (EFCompat)
+	{
+	    if (EFHNIsGND(hierName))
+		cap = 0;
+	}
+	else
+	{
+	    if (node->efnode_flags & EF_SUBS_NODE)
+		cap = 0;
+	}
 	if (efWatchNodes)
 	{
 	    for (nn = node->efnode_name; nn; nn = nn->efnn_next)
