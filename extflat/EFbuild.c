@@ -517,7 +517,18 @@ efBuildDeviceParams(name, argc, argv)
 	else
 	    newparm->parm_scale = 1.0;
 
-	newparm->parm_name = StrDup((char **)NULL, pptr + 1);
+	// For parameters defined for cell defs, copy the whole
+	// expression verbatim into parm_name.  parm_type is
+	// reassigned to be a numerical order.
+
+	if (name[0] == ':')
+	{
+	    newparm->parm_name = StrDup((char **)NULL, argv[n]);
+	    newparm->parm_type[1] = '0' + n / 10;
+	    newparm->parm_type[0] = '0' + n % 10;
+	}
+	else
+	    newparm->parm_name = StrDup((char **)NULL, pptr + 1);
 	newparm->parm_next = plist;
 	plist = newparm;
     }

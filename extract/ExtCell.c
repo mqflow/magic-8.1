@@ -279,6 +279,8 @@ extHeader(def, f)
     FILE *f;		/* Write to this file */
 {
     int n;
+    bool propfound;
+    char *propvalue;
 
     /* Output a timestamp (should be first) */
     fprintf(f, "timestamp %d\n", def->cd_timestamp);
@@ -309,6 +311,19 @@ extHeader(def, f)
     for (n = 0; n < ExtCurStyle->exts_numResistClasses; n++)
 	fprintf(f, " %d", ExtCurStyle->exts_resistByResistClass[n]);
     fprintf(f, "\n");
+
+    /* Output any parameters defined for this cell that	*/
+    /* are to be passed to instances of the cell	*/
+    /* (created by defining property "parameter")	*/
+
+    propvalue = (char *)DBPropGet(def, "parameter", &propfound);
+    if (propfound)
+    {
+	// Use device parameter table to store the cell def parameters,
+	// but preface name with ":" to avoid any conflict with device
+	// names.
+	fprintf(f, "parameters :%s %s\n", def->cd_name, propvalue);
+    }
 
     /* Output all calls on subcells */
     (void) DBCellEnum(def, extOutputUsesFunc, (ClientData) f);

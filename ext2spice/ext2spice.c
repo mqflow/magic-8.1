@@ -1289,6 +1289,7 @@ subcktVisit(use, hierName, is_top)
     int portorder, portmax, imp_max;
     char stmp[MAX_STR_SIZE];
     char *instname;
+    DevParam *plist, *pptr;
 
     if (is_top == TRUE) return 0;	/* Ignore the top-level cell */
 
@@ -1408,8 +1409,20 @@ subcktVisit(use, hierName, is_top)
 	}
     }
 
-    fprintf(esSpiceF, " %s\n", def->def_name);	/* subcircuit model name */
+    // Check for a "device parameter" defined with the name of the cell.
+    // This contains a list of parameter strings to be passed to the
+    // cell instance.
 
+    instname = mallocMagic(2 + strlen(def->def_name));
+    sprintf(instname, ":%s", def->def_name);
+    plist = efGetDeviceParams(instname);
+    for (pptr = plist; pptr; pptr = pptr->parm_next)
+    {
+	fprintf(esSpiceF, " %s", pptr->parm_name);
+    }    
+    freeMagic(instname);
+
+    fprintf(esSpiceF, " %s\n", def->def_name);	/* subcircuit model name */
     return 0;
 }
 
