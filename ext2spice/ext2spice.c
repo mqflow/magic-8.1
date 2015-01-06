@@ -1487,6 +1487,8 @@ topVisit(def)
     HashSearch hs;
     HashEntry *he;
     int portorder, portmax;
+    DevParam *plist, *pptr;
+    char *instname;
 
     fprintf(esSpiceF, ".subckt %s", def->def_name);
 
@@ -1597,6 +1599,17 @@ topVisit(def)
 	    }
 	}
     }
+
+    // Add any parameters defined by "property parameter" in the cell
+
+    instname = mallocMagic(2 + strlen(def->def_name));
+    sprintf(instname, ":%s", def->def_name);
+    plist = efGetDeviceParams(instname);
+    for (pptr = plist; pptr; pptr = pptr->parm_next)
+    {
+	fprintf(esSpiceF, " %s", pptr->parm_name);
+    }    
+    freeMagic(instname);
 
     fprintf(esSpiceF, "\n");
 }
