@@ -564,12 +564,16 @@ proc magic::cursorview {win} {
    if {[catch {set cr [cif scale out]}]} {return}
    if {$cr == 0} {return}
    set olst [${win} cursor internal]
-   set olstx [expr [lindex $olst 0] * $cr]
-   set olsty [expr [lindex $olst 1] * $cr]
+
+   set olstx [expr [lindex $olst 0]]
+   set olsty [expr [lindex $olst 1]]
 
    if {$Opts(crosshair)} {
       *bypass crosshair ${olstx}i ${olsty}i
    }
+
+   set olstx [expr $olstx * $cr]
+   set olsty [expr $olsty * $cr]
 
    if {[${win} box exists]} {
       set dlst [${win} box position]

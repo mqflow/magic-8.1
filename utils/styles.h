@@ -104,48 +104,48 @@
 #define	STYLE_BACKGROUND	23
 #define STYLE_CMEDIT		24
 
-#define	STYLE_LABEL_PALE	27
-#define	STYLE_PORT_PALE		28
-
 /* Colors used by Tcl/Tk */
 
 #define TK_MEDIUM_GRAY		25
 #define TK_LIGHT_GRAY		26
 
+#define	STYLE_LABEL_PALE	27
+#define	STYLE_PORT_PALE		28
+
 /* Assortment of solid colors */
 
-#define	STYLE_WHITE		27
-#define STYLE_GRAY1		28
-#define STYLE_GRAY2		29
-#define STYLE_GRAY		29
-#define STYLE_BLACK		30
-#define STYLE_RED1		31
-#define STYLE_PINK		31
-#define STYLE_RED2		32
-#define STYLE_RED3		33
-#define	STYLE_RED		33
-#define STYLE_GREEN1		34
-#define STYLE_GREEN2		35
-#define STYLE_GREEN3		36
-#define	STYLE_GREEN		36
-#define STYLE_BLUE1		37
-#define STYLE_BLUE2		38
-#define STYLE_BLUE3		39
-#define	STYLE_BLUE		39
-#define STYLE_PURPLE1		40
-#define STYLE_PURPLE2		41
-#define STYLE_PURPLE		41
-#define STYLE_YELLOW1		42
-#define STYLE_YELLOW2		43
-#define STYLE_YELLOW		43
-#define STYLE_ORANGE1		44
-#define STYLE_ORANGE2		45
-#define STYLE_ORANGE		45
-#define STYLE_BROWN1		46
-#define STYLE_BROWN2		47
-#define STYLE_BROWN		47
-#define STYLE_MAGENTA		48
-#define STYLE_CYAN		49
+#define	STYLE_WHITE		29
+#define STYLE_GRAY1		30
+#define STYLE_GRAY2		31
+#define STYLE_GRAY		31
+#define STYLE_BLACK		32
+#define STYLE_RED1		33
+#define STYLE_PINK		33
+#define STYLE_RED2		34
+#define STYLE_RED3		35
+#define	STYLE_RED		35
+#define STYLE_GREEN1		36
+#define STYLE_GREEN2		37
+#define STYLE_GREEN3		38
+#define	STYLE_GREEN		38
+#define STYLE_BLUE1		39
+#define STYLE_BLUE2		40
+#define STYLE_BLUE3		41
+#define	STYLE_BLUE		41
+#define STYLE_PURPLE1		42
+#define STYLE_PURPLE2		43
+#define STYLE_PURPLE		43
+#define STYLE_YELLOW1		44
+#define STYLE_YELLOW2		45
+#define STYLE_YELLOW		45
+#define STYLE_ORANGE1		46
+#define STYLE_ORANGE2		47
+#define STYLE_ORANGE		47
+#define STYLE_BROWN1		48
+#define STYLE_BROWN2		49
+#define STYLE_BROWN		49
+#define STYLE_MAGENTA		50
+#define STYLE_CYAN		51
 
 /* Mark the number after all the built-in styles as the	*/
 /* beginning of the styles used by the technology files	*/
