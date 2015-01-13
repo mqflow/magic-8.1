@@ -994,8 +994,20 @@ dbReadOpen(cellDef, name, setFileName)
     }
     else if (cellDef->cd_file != (char *) NULL)
     {
-	f = PaLockOpen(cellDef->cd_file, "r", "", ".",
+	/* Do not send a name with a file extension to PaLockOpen(),
+	 * otherwise that routine must handle it and then cannot
+	 * distinguish between, say, cell.mag and cell.mag.mag.
+	 */
+	char *pptr = strrchr(cellDef->cd_file, '.');
+	if (pptr != NULL)
+	    if (strcmp(pptr, DBSuffix)) pptr = NULL;
+	else
+	    *pptr = '\0';
+
+	f = PaLockOpen(cellDef->cd_file, "r", DBSuffix, ".",
 			(char *) NULL, &filename, &is_locked);
+
+	if (pptr != NULL) *pptr = '.';	// Put it back where you found it!
     }
     else
     {
