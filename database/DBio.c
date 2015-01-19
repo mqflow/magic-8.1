@@ -998,7 +998,12 @@ dbReadOpen(cellDef, name, setFileName)
 	 * otherwise that routine must handle it and then cannot
 	 * distinguish between, say, cell.mag and cell.mag.mag.
 	 */
-	char *pptr = strrchr(cellDef->cd_file, '.');
+	char *pptr, *sptr;
+
+	sptr = strrchr(cellDef->cd_file, '/');
+	if (sptr == NULL) sptr = cellDef->cd_file;
+
+	pptr = strrchr(sptr + 1, '.');
 	if (pptr != NULL)
 	    if (strcmp(pptr, DBSuffix)) pptr = NULL;
 	else

@@ -163,7 +163,7 @@ extFileOpen(def, file, mode, prealfile)
 			 * a string holding the name of the .ext file.
 			 */
 {
-    char namebuf[512], *name, *endp;
+    char namebuf[512], *name, *endp, *ends;
     int len;
     FILE *rfile;
 
@@ -171,7 +171,9 @@ extFileOpen(def, file, mode, prealfile)
     else if (def->cd_file)
     {
 	name = def->cd_file;
-	if (endp = strrchr(def->cd_file, '.'))
+	ends = strrchr(def->cd_file, '/');
+	if (ends == NULL) ends = def->cd_file;
+	if (endp = strrchr(ends + 1, '.'))
 	{
 	    name = namebuf;
 	    len = endp - def->cd_file;

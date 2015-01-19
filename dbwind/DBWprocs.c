@@ -324,18 +324,21 @@ DBWloadWindow(window, name, ignoreTech, expand)
 	 * read it from disk.
 	 */
 
-	/* Strip off any ".mag" extension from the name */
-	char *dotptr = strrchr(name, '.');
-
-	if (dotptr != NULL)
-	    if (!strcmp(dotptr, ".mag"))
-		*dotptr = '\0';
+	char *dotptr;
 
 	rootname = strrchr(name, '/');
 	if (rootname == NULL)
 	    rootname = name;
 	else
 	    rootname++;
+
+	/* Strip off any ".mag" extension from the name */
+	dotptr = strrchr(rootname, '.');
+
+	if (dotptr != NULL)
+	    if (!strcmp(dotptr, ".mag"))
+		*dotptr = '\0';
+
 	newEditDef = DBCellLookDef(rootname);
 
 	if ((newEditDef != (CellDef *)NULL) && (newEditDef->cd_file != NULL))
