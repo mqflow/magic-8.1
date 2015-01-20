@@ -383,6 +383,8 @@ TechLoad(filename, initmask)
     }
     else
     {
+	char *sptr, *dptr;
+
 	/* TECH_VERSION in the filename is deprecated as of magic version	*/
 	/* 7.2.27;  TECH_VERSION is no longer defined in the utils/Makefile.	*/
 	/* It has been changed to TECH_FORMAT_VERSION, left at version 27,	*/
@@ -390,6 +392,20 @@ TechLoad(filename, initmask)
 	/* compatibility with *.tech27 files, of which there are many.	*/
 
 	(void) sprintf(suffix, ".tech");
+
+	/* Added 1/20/2015 to correspond to change to PaLockOpen();	*/
+	/* Always strip suffix from filename when suffix is specified.	*/
+
+	sptr = strrchr(filename, '/');
+	if (sptr == NULL)
+	    sptr = filename;
+	else
+	    sptr++;
+
+	dptr = strrchr(sptr, '.');
+	if ((dptr != NULL) && !strncmp(dptr, suffix, strlen(suffix)))
+	    *dptr = '\0';
+
 	tf = PaOpen(filename, "r", suffix, ".", SysLibPath, &realname);
 	if (tf == (FILE *) NULL)
 	{
@@ -408,6 +424,10 @@ TechLoad(filename, initmask)
 	    }
 	}
 	(void) StrDup(&TechFileName, realname);
+
+	// In case filename is not a temporary string, put it back the
+	// way it was.
+	if (dptr != NULL) *dptr = '.';
     }
     topfile.file = tf;
     topfile.next = NULL;

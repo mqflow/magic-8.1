@@ -1001,9 +1001,12 @@ dbReadOpen(cellDef, name, setFileName)
 	char *pptr, *sptr;
 
 	sptr = strrchr(cellDef->cd_file, '/');
-	if (sptr == NULL) sptr = cellDef->cd_file;
+	if (sptr == NULL)
+	    sptr = cellDef->cd_file;
+	else
+	    sptr++;
 
-	pptr = strrchr(sptr + 1, '.');
+	pptr = strrchr(sptr, '.');
 	if (pptr != NULL)
 	    if (strcmp(pptr, DBSuffix)) pptr = NULL;
 	else
