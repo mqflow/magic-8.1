@@ -370,12 +370,24 @@ _tcl_dispatch(ClientData clientData,
 	/* has an extension which is not ".mag", we will return the 	*/
 	/* error.							*/
 
+	/* Updated 1/20/2015:  Need to check for a '.' AFTER the last	*/
+	/* slash, so as to avoid problems with ./, ../, etc.		*/
+
 	if (idx == IDX_LOAD)
 	{
-	    char *dotptr;
-	    if ((argc >= 2) && (dotptr = strrchr(argv[1], '.')) != NULL)
-		if (strcmp(dotptr + 1, "mag"))
-		    return result;
+	    char *dotptr, *slashptr;
+	    if (argc >= 2)
+	    {
+		slashptr = strrchr(argv[1], '/');
+		if (slashptr == NULL)
+		    slashptr = argv[1];
+		else
+		    slashptr++;
+
+		if ((dotptr = strrchr(slashptr, '.')) != NULL)
+		    if (strcmp(dotptr + 1, "mag"))
+			return result;
+	    }
 	}
     }
     Tcl_ResetResult(interp);
