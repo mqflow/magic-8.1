@@ -332,10 +332,15 @@ drc off
 
 # Initial window for wrapper, if defined.
 # empty string is equivalent to passing NULL cell name.
+#
+# If a startup file has created a window, then don't make another one.
 
-if {![catch {set winname [magic::openwrapper $cellname]}]} {
-   magic::techmanager initall
-   magic::scrollupdate $winname
+if {[info commands magic::openwrapper] != {}} {
+   if {[windownames layout] == {}} {
+      set winname [magic::openwrapper $cellname]
+      magic::techmanager initall
+      magic::scrollupdate $winname
+   }
 } else {
    # Initial geometry handler for the default window, non-wrapper version
    catch {wm geometry .magic1 ${Opts(geometry)}}
