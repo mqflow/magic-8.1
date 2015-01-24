@@ -1851,8 +1851,8 @@ CmdSetLabel(w, cmd)
 			float scale = 1.0;
 			if ((cmd->tx_argc == 4) && StrIsNumeric(cmd->tx_argv[3]))
 			    scale = (float)atof(cmd->tx_argv[3]);
-			if (DBLoadFont(cmd->tx_argv[2], scale) == 0)
-			    TxPrintf("%s\n", DBFontList[DBNumFonts - 1]->mf_name);
+			if (DBLoadFont(cmd->tx_argv[2], scale) != 0)
+			    TxError("Error loading font \"%s\"\n", cmd->tx_argv[2]);
 			font = DBNameToFont(cmd->tx_argv[2]);
 			if (font < -1) break;
 		    }
