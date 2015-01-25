@@ -614,6 +614,10 @@ proc magic::toolupdate {win {yesno "yes"} {layerlist "none"}} {
    if {$layerlist == "*"} {
       set layerlist [magic::tech layer "*"]
    }
+
+   # Change from comma-separated list to Tcl list
+   set layerlist [string map {, " "} $layerlist]
+
    foreach layer $layerlist {
       switch $layer {
 	 none {}
