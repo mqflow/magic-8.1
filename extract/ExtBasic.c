@@ -416,14 +416,10 @@ extOutputNodes(nodeList, outFile)
 	/* Check if this node is the substrate */
 	if (reg == glob_subsnode)
 	{
-	    if (((LabRegion *)reg)->lreg_labels == NULL)
-		fprintf(outFile, "substrate \"0\" 0 0");
-	    else
-		fprintf(outFile, "substrate \"%s\" 0 0", text);
+	    fprintf(outFile, "substrate \"%s\" 0 0", text);
 	}
 	else
 	{
-
 	    intR = (reg->nreg_resist + rround) / ExtCurStyle->exts_resistScale;
 	    finC = reg->nreg_cap/ExtCurStyle->exts_capScale;
 	    fprintf(outFile, "node \"%s\" %d %lg", text, intR, finC);
