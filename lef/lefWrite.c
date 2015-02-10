@@ -82,28 +82,40 @@ lefFileOpen(def, file, suffix, mode, prealfile)
 			 * a string holding the name of the LEF/DEF file.
 			 */
 {
-    char namebuf[512], *name, *endp;
+    char namebuf[512], *name, *endp, *ends;
     int len;
     FILE *rfile;
 
-    if (file) name = file;
+    if (file) 
+	name = file;
     else if (def && def->cd_file)
-    {
 	name = def->cd_file;
-	if (endp = strrchr(def->cd_file, '.'))
-	{
-	    name = namebuf;
-	    len = endp - def->cd_file;
-	    if (len > sizeof namebuf - 1) len = sizeof namebuf - 1;
-	    (void) strncpy(namebuf, def->cd_file, len);
-	    namebuf[len] = '\0';
-	}
-    }
-    else if (def) name = def->cd_name;
+    else if (def)
+	name = def->cd_name;
     else
     {
 	TxError("LEF file open:  No file name or cell given\n");
 	return NULL;
+    }
+
+    // Strip off suffix, if there is one
+
+    ends = strrchr(name, '/');
+    if (ends == NULL)
+	ends = name;
+    else
+	ends++;
+
+    if (endp = strrchr(ends, '.'))
+    {
+	if (!strcmp(endp, suffix))
+	{
+	    len = endp - name;
+	    if (len > sizeof namebuf - 1) len = sizeof namebuf - 1;
+	    (void) strncpy(namebuf, name, len);
+	    namebuf[len] = '\0';
+	    name = namebuf;
+	}
     }
 
     /* Try once as-is, and if this fails, try stripping any leading	*/
