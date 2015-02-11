@@ -623,7 +623,7 @@ DBWDrawBox(window, plane)
     if ((screenArea.r_xbot == screenArea.r_xtop) &&
 	    (screenArea.r_ybot == screenArea.r_ytop))
     {
-	GrSetStuff(STYLE_DRAWBOX);
+	GrSetStuff(STYLE_OUTLINEHIGHLIGHTS);
 	GrFastBox(&screenArea);
 	GEO_EXPAND(&screenArea, 1, &screenArea);
 	GrFastBox(&screenArea);
@@ -641,7 +641,7 @@ DBWDrawBox(window, plane)
 	    || ((screenArea.r_ytop != screenArea.r_ybot) &&
 	    (screenArea.r_ytop < screenArea.r_ybot + 4)))
     {
-	GrClipBox(&screenArea, STYLE_DRAWBOX);
+	GrClipBox(&screenArea, STYLE_OUTLINEHIGHLIGHTS);
 	return;
     }
 

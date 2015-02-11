@@ -32,6 +32,7 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
 #include "utils/utils.h"
 #include "tiles/tile.h"
 #include "utils/hash.h"
+#include "utils/styles.h"
 #include "database/database.h"
 #include "database/fonts.h"
 #include "windows/windows.h"
@@ -679,12 +680,13 @@ CmdSelect(w, cmd)
 #define SEL_MOVE	 7
 #define SEL_PICK	 8
 #define SEL_SAVE	 9
-#define SEL_BOX		10
-#define SEL_CHUNK	11
-#define SEL_REGION	12
-#define SEL_NET		13
-#define SEL_SHORT	14
-#define SEL_DEFAULT	15
+#define SEL_FEEDBACK	10
+#define SEL_BOX		11
+#define SEL_CHUNK	12
+#define SEL_REGION	13
+#define SEL_NET		14
+#define SEL_SHORT	15
+#define SEL_DEFAULT	16
 
     static char *cmdSelectOption[] =
     {
@@ -698,6 +700,7 @@ CmdSelect(w, cmd)
 	"move",
 	"pick",
 	"save",
+	"feedback",
 	"box",
 	"chunk",
 	"region",
@@ -721,6 +724,7 @@ CmdSelect(w, cmd)
 	"move                            move selection to a location in the layout",
 	"pick                            delete selection from layout",
 	"save file                       save selection on disk in file.mag",
+	"feedback [style]		 copy selection to feedback",
 	"[more | less] box | chunk | region | net [layers]\n"
 	"				 [de]select chunk/region/net specified by\n"
 	"				 the lower left corner of the current box",
@@ -757,7 +761,7 @@ CmdSelect(w, cmd)
 				 * also used to step through multiple uses.
 				 */
     static bool lessCycle = FALSE, lessCellCycle = FALSE;
-    char path[200], *printPath, **msg, **optionArgs;
+    char path[200], *printPath, **msg, **optionArgs, *feedtext;
     TerminalPath tpath;
     CellUse *use;
     CellDef *rootBoxDef;
@@ -766,6 +770,7 @@ CmdSelect(w, cmd)
     Rect r, selarea;
     ExtRectList *rlist;
     int option;
+    int feedstyle;
     bool layerspec;
     bool degenerate;
     bool more = FALSE, less = FALSE, samePlace = TRUE;
@@ -1007,6 +1012,26 @@ CmdSelect(w, cmd)
 
 	    DBUpdateStamps();
 	    cmdSaveCell(SelectDef, cmd->tx_argv[2], FALSE, FALSE);
+	    return;
+
+	/*--------------------------------------------------------------------
+	 * Copy the selection into a feedback area for permanent display
+	 *--------------------------------------------------------------------
+	 */
+	 case SEL_FEEDBACK:
+	    feedtext = NULL;
+	    feedstyle = STYLE_ORANGE1;
+	    if (cmd->tx_argc > 2)
+	    {
+		/* Get style (To do) */
+		feedstyle = GrGetStyleFromName(cmd->tx_argv[2]);
+		if (cmd->tx_argc > 3)
+		    feedtext = cmd->tx_argv[3];
+	    }
+	    SelCopyToFeedback(SelectRootDef, SelectUse, feedstyle,
+			(feedtext == NULL) ? "selection" : feedtext);
+	    GeoTransRect(&SelectUse->cu_transform, &SelectDef->cd_bbox, &selarea);
+	    DBWHLRedraw(SelectRootDef, &selarea, FALSE);
 	    return;
 
 	/*--------------------------------------------------------------------

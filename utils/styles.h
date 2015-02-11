@@ -36,7 +36,6 @@
  * STYLE_HORIZHIGLIGHTS:     used to draw highlights with horizontal lines.
  * STYLE_VERTHIGLIGHTS:      used to draw highlights with vertical lines.
  * STYLE_OUTLINEHIGHLIGHTS:  used to draw highlights as solid box outlines.
- * STYLE_DRAWBOX:	     same as STYLE_OUTLINEHIGHLIGHTS (old and archaic).
  * STYLE_DOTTEDHIGLIGHTS:    used to draw highlights with dotted box outlines.
  * STYLE_ERASEBOX:	     used to erase the box from the screen.
  * STYLE_ERASEHIGHLIGHTS:    used to erase all highlights from an area.
@@ -80,7 +79,6 @@
 #define STYLE_PALEHIGHLIGHTS	3
 #define STYLE_HORIZHIGHLIGHTS	4
 #define STYLE_VERTHIGHLIGHTS	5
-#define	STYLE_DRAWBOX		6
 #define STYLE_OUTLINEHIGHLIGHTS	6
 #define STYLE_DOTTEDHIGHLIGHTS	7
 #define	STYLE_ERASEBOX		8

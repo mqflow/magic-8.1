@@ -121,7 +121,7 @@ SelRedisplay(window, plane)
 
     /* Redisplay the information on the paint planes. */
 
-    GrSetStuff(STYLE_DRAWBOX);
+    GrSetStuff(STYLE_OUTLINEHIGHLIGHTS);
     selRedisplayPlane = plane;
     for (i = PL_SELECTBASE; i < DBNumPlanes; i += 1)
     {
@@ -379,3 +379,55 @@ SelSetDisplay(selectUse, displayRoot)
     selDisUse = selectUse;
     selDisRoot = displayRoot;
 }
+
+/*----------------------------------------------------------------------*/
+/* Functions for converting selections to highlight areas		*/
+/*----------------------------------------------------------------------*/
+
+void
+SelCopyToFeedback(celldef, seluse, style)
+    CellDef *celldef;		/* Cell def to hold feedback */
+    CellUse *seluse;		/* Cell use holding selection */
+    int style;			/* Style to use for feedback */
+{
+    int selFeedbackFunc();	/* Forward reference */
+    int i;
+    CellDef *saveDef;
+
+    if (celldef == NULL) return;
+
+    saveDef = selDisRoot;
+    selDisRoot = celldef;
+
+    UndoDisable();
+    for (i = PL_SELECTBASE; i < DBNumPlanes; i += 1)
+    {
+	(void) DBSrPaintArea((Tile *) NULL, seluse->cu_def->cd_planes[i],
+		&TiPlaneRect, &DBAllButSpaceBits, selFeedbackFunc,
+		(ClientData)&style);
+    }
+    UndoEnable();
+
+    selDisRoot = saveDef;
+}
+
+/*----------------------------------------------------------------------*/
+/* Callback function per tile of the selection
+/*----------------------------------------------------------------------*/
+
+int
+selFeedbackFunc(tile, style)
+    Tile *tile;
+    int *style;
+{
+    Rect area;
+
+    TiToRect(tile, &area);
+
+    DBWFeedbackAdd(&area, "selection", selDisRoot, 1, *style |
+                (TiGetTypeExact(tile) & (TT_DIAGONAL | TT_DIRECTION | TT_SIDE)));
+        /* (preserve information about the geometry of a diagonal tile) */
+    return 0;
+}
+
+/*----------------------------------------------------------------------*/

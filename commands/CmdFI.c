@@ -216,7 +216,7 @@ CmdFeedback(w, cmd)
 			{
 			    TxError("%s isn't a valid display style.  Try one of:\n",
 					cmd->tx_argv[3]);
-			    TxError("    dotted, pale, mediaum, solid, outline,\n");
+			    TxError("    dotted, pale, medium, solid, outline,\n");
 			    TxError("    or a long name from the .dstyle file\n");
 			    break;
 			}
