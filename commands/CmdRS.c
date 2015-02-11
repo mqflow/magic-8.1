@@ -1025,6 +1025,13 @@ CmdSelect(w, cmd)
 	    {
 		/* Get style (To do) */
 		feedstyle = GrGetStyleFromName(cmd->tx_argv[2]);
+		if (feedstyle == -1)
+		{
+		    TxError("Unknown style %s\n", cmd->tx_argv[2]);
+		    TxError("Use a number or one of the long names in the"
+					" .dstyle file\n");
+		    return;
+		}
 		if (cmd->tx_argc > 3)
 		    feedtext = cmd->tx_argv[3];
 	    }
