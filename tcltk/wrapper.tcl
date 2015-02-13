@@ -626,7 +626,7 @@ proc magic::toolupdate {win {yesno "yes"} {layerlist "none"}} {
 	 labels {set canon $layer}
 	 default {set canon [magic::tech layer $layer]}
       }
-      if {$layer != "none"} {
+      if {$layer != "none" && $canon != ""} {
          if {$yesno == "yes"} {
 	    ${framename}.toolbar.b$canon configure -image img_$canon 
 	    ${framename}.toolbar.p$canon configure -image pale_$canon 
