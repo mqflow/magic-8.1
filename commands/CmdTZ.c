@@ -157,6 +157,9 @@ CmdCheckForPaintFunc()
 #define TECH_PLANES	6
 #define TECH_LAYERS	7
 #define TECH_DRC	8
+#define TECH_LOCK	9
+#define TECH_UNLOCK	10	
+#define TECH_REVERT	11
 
 void
 CmdTech(w, cmd)
@@ -185,9 +188,11 @@ CmdTech(w, cmd)
 	"version		Show current technology version",
 	"lambda			Show internal units per lambda", 
 	"planes			Show defined planes",
-	"layers	[lock|unlock <layer...>]\n\
-				Show (or lock and unlock) defined layers",
+	"layers	[<layer...>]	Show defined layers",
 	"drc <rule> <layer...>	Query DRC ruleset",
+	"locked [<layer...>]	Lock (make uneditable) layer <layer>",
+	"unlocked [<layer...>]	Unlock (make editable) layer <layer>",
+	"revert [<layer...>]	Revert lock state of layer <layer> to default",
 	NULL
     };
 
@@ -271,80 +276,111 @@ CmdTech(w, cmd)
 #endif
 
 	case TECH_LAYERS:
-	    if (cmd->tx_argc == 4)
-	    {
-		TileTypeBitMask lockmask, *rMask;
-		TileType ctype;
-
-		if (!strcmp(cmd->tx_argv[3], "*"))
-		    TTMaskSetMask(&lockmask, &DBUserLayerBits);
-		else
-		    DBTechNoisyNameMask(cmd->tx_argv[3], &lockmask);
-		if (!strcmp(cmd->tx_argv[2], "lock"))
-		{
-		    TTMaskClearMask(&DBActiveLayerBits, &lockmask);
-		    for (ctype = TT_TECHDEPBASE; ctype < DBNumUserLayers; ctype++)
-			if (TTMaskHasType(&lockmask, ctype))
-			    if (DBIsContact(ctype))
-				DBLockContact(ctype);
-		    for (ctype = DBNumUserLayers; ctype < DBNumTypes; ctype++)
-		    {
-			rMask = DBResidueMask(ctype);
-			if (TTMaskIntersect(&lockmask, rMask))
-			{
-			    TTMaskClearType(&DBActiveLayerBits, ctype);
-			    DBLockContact(ctype);
-			}
-		    }
-		}
-		else if (!strcmp(cmd->tx_argv[2], "unlock"))
-		{
-		    TTMaskSetMask(&DBActiveLayerBits, &lockmask);
-		    for (ctype = TT_TECHDEPBASE; ctype < DBNumUserLayers; ctype++)
-			if (TTMaskHasType(&lockmask, ctype))
-			    if (DBIsContact(ctype))
-				DBUnlockContact(ctype);
-
-		    for (ctype = DBNumUserLayers; ctype < DBNumTypes; ctype++)
-		    {
-			TileTypeBitMask testmask;
-			rMask = DBResidueMask(ctype);
-			TTMaskAndMask3(&testmask, &DBActiveLayerBits, rMask);
-			if (TTMaskEqual(&testmask, rMask))
-			{
-			    TTMaskSetType(&DBActiveLayerBits, ctype);
-			    DBUnlockContact(ctype);
-			}
-		    }
-		    TTMaskAndMask(&DBActiveLayerBits, &DBAllButSpaceAndDRCBits);
-		}
-		else
-		    TxError("Unknown operation %s; use lock or unlock\n",
-				cmd->tx_argv[2]);
-	    }
-	    else if (cmd->tx_argc == 3)
+	    if (cmd->tx_argc == 3)
 	    {
 		if (!strcmp(cmd->tx_argv[2], "*"))
 		    DBTechPrintTypes(&DBAllButSpaceAndDRCBits, TRUE);
-		else if (!strcmp(cmd->tx_argv[2], "locked"))
-		{
-		    TileTypeBitMask lockedLayers;
-		    TTMaskCom2(&lockedLayers, &DBActiveLayerBits);
-		    TTMaskAndMask(&lockedLayers, &DBAllButSpaceAndDRCBits);
-		    DBTechPrintTypes(&lockedLayers, TRUE);
-		}
-		else if (!strcmp(cmd->tx_argv[2], "revert") ||
-			!strcmp(cmd->tx_argv[2], "relock"))
-		{
-		    // Copy DBTechActiveLayerBits back to DBActiveLayerBits
-		    TTMaskZero(&DBActiveLayerBits);
-		    TTMaskSetMask(&DBActiveLayerBits, &DBTechActiveLayerBits);
-		}
 		else
 		    DBTechPrintCanonicalType(cmd->tx_argv[2]);
 	    }
 	    else if (cmd->tx_argc == 2)
 		DBTechPrintTypes(&DBAllButSpaceAndDRCBits, FALSE);
+	    else
+		goto wrongNumArgs;
+	    break;
+
+	case TECH_LOCK:
+	    if (cmd->tx_argc == 3)
+	    {
+		TileTypeBitMask lockmask, *rMask;
+		TileType ctype;
+
+		if (!strcmp(cmd->tx_argv[2], "*"))
+		    TTMaskSetMask(&lockmask, &DBUserLayerBits);
+		else
+		    DBTechNoisyNameMask(cmd->tx_argv[2], &lockmask);
+
+		TTMaskClearMask(&DBActiveLayerBits, &lockmask);
+
+		for (ctype = TT_TECHDEPBASE; ctype < DBNumUserLayers; ctype++)
+		    if (TTMaskHasType(&lockmask, ctype))
+			if (DBIsContact(ctype))
+			    DBLockContact(ctype);
+
+		for (ctype = DBNumUserLayers; ctype < DBNumTypes; ctype++)
+		{
+		    rMask = DBResidueMask(ctype);
+		    if (TTMaskIntersect(&lockmask, rMask))
+		    {
+			TTMaskClearType(&DBActiveLayerBits, ctype);
+			DBLockContact(ctype);
+		    }
+		}
+	    }
+	    else if (cmd->tx_argc == 2)
+	    {
+		/* List all locked layers */
+		TileTypeBitMask lockedLayers;
+		TTMaskCom2(&lockedLayers, &DBActiveLayerBits);
+		TTMaskAndMask(&lockedLayers, &DBAllButSpaceAndDRCBits);
+		DBTechPrintTypes(&lockedLayers, TRUE);
+	    }
+	    else
+		goto wrongNumArgs;
+	    break;
+
+	case TECH_UNLOCK:
+	    if (cmd->tx_argc == 3)
+	    {
+		TileTypeBitMask lockmask, *rMask;
+		TileType ctype;
+
+		if (!strcmp(cmd->tx_argv[2], "*"))
+		    TTMaskSetMask(&lockmask, &DBUserLayerBits);
+		else
+		    DBTechNoisyNameMask(cmd->tx_argv[2], &lockmask);
+
+		TTMaskSetMask(&DBActiveLayerBits, &lockmask);
+		for (ctype = TT_TECHDEPBASE; ctype < DBNumUserLayers; ctype++)
+		    if (TTMaskHasType(&lockmask, ctype))
+			if (DBIsContact(ctype))
+			    DBUnlockContact(ctype);
+
+		for (ctype = DBNumUserLayers; ctype < DBNumTypes; ctype++)
+		{
+		    TileTypeBitMask testmask;
+		    rMask = DBResidueMask(ctype);
+		    TTMaskAndMask3(&testmask, &DBActiveLayerBits, rMask);
+		    if (TTMaskEqual(&testmask, rMask))
+		    {
+			TTMaskSetType(&DBActiveLayerBits, ctype);
+			DBUnlockContact(ctype);
+		    }
+		}
+		TTMaskAndMask(&DBActiveLayerBits, &DBAllButSpaceAndDRCBits);
+	    }
+	    else if (cmd->tx_argc == 2)
+	    {
+		/* List all unlocked layers */
+
+		TileTypeBitMask unlockedLayers;
+		TTMaskZero(&unlockedLayers);
+		TTMaskSetMask(&unlockedLayers, &DBAllButSpaceAndDRCBits);
+		TTMaskCom2(&unlockedLayers, &DBActiveLayerBits);
+		TTMaskCom(&unlockedLayers);
+		DBTechPrintTypes(&unlockedLayers, TRUE);
+	    }
+	    else
+		goto wrongNumArgs;
+	    break;
+
+	case TECH_REVERT:
+	    if (cmd->tx_argc == 2)
+	    {
+		// Copy DBTechActiveLayerBits back to DBActiveLayerBits
+		TTMaskZero(&DBActiveLayerBits);
+		TTMaskSetMask(&DBActiveLayerBits, &DBTechActiveLayerBits);
+	    }
 	    else
 		goto wrongNumArgs;
 	    break;

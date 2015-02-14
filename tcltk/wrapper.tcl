@@ -737,7 +737,7 @@ proc magic::maketoolbar { framename } {
    # Figure out how many columns we need to fit all the layer buttons inside
    # the toolbar without going outside the window area.
 
-   set locklist [tech layer locked]
+   set locklist [tech locked]
    set ncols 1
    while {1} {
       incr ncols
@@ -750,12 +750,12 @@ proc magic::maketoolbar { framename } {
             grid ${framename}.toolbar.b$layername -row $i -column $j -sticky news
 	 }
 	 bind ${framename}.toolbar.p$layername <KeyPress-u> \
-		"$win tech layer unlock $layername ; \
+		"$win tech unlock $layername ; \
 		grid forget ${framename}.toolbar.p$layername ; \
 		grid ${framename}.toolbar.b$layername \
 		-row $i -column $j -sticky news"
 	 bind ${framename}.toolbar.b$layername <KeyPress-l> \
-		"$win tech layer lock $layername ; \
+		"$win tech lock $layername ; \
 		grid forget ${framename}.toolbar.b$layername ; \
 		grid ${framename}.toolbar.p$layername \
 		-row $i -column $j -sticky news"
@@ -1225,8 +1225,8 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # Layers
 # #################################
    set m [menu ${framename}.titlebar.mbuttons.layers.toolmenu -tearoff 0]
-   $m add command -label "Protect Base Layers" -command {magic::tech layer revert  }
-   $m add command -label "Unlock  Base Layers" -command {magic::tech layer unlock *}
+   $m add command -label "Protect Base Layers" -command {magic::tech revert  }
+   $m add command -label "Unlock  Base Layers" -command {magic::tech unlock *}
    $m add separator
    $m add command -label "Clear Feedback"      -command {magic::feedback clear}
    $m add separator
