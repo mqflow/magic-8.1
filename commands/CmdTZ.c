@@ -295,6 +295,7 @@ CmdTech(w, cmd)
 		TileTypeBitMask lockmask, *rMask;
 		TileType ctype;
 
+		TTMaskZero(&lockmask);
 		if (!strcmp(cmd->tx_argv[2], "*"))
 		    TTMaskSetMask(&lockmask, &DBUserLayerBits);
 		else
@@ -335,6 +336,7 @@ CmdTech(w, cmd)
 		TileTypeBitMask lockmask, *rMask;
 		TileType ctype;
 
+		TTMaskZero(&lockmask);
 		if (!strcmp(cmd->tx_argv[2], "*"))
 		    TTMaskSetMask(&lockmask, &DBUserLayerBits);
 		else
@@ -375,7 +377,22 @@ CmdTech(w, cmd)
 	    break;
 
 	case TECH_REVERT:
-	    if (cmd->tx_argc == 2)
+	    if (cmd->tx_argc == 3)
+	    {
+		TileTypeBitMask lockmask, *rMask;
+		TileType ctype;
+
+		TTMaskZero(&lockmask);
+		if (!strcmp(cmd->tx_argv[2], "*"))
+		    TTMaskSetMask(&lockmask, &DBTechActiveLayerBits);
+		else
+		    DBTechNoisyNameMask(cmd->tx_argv[2], &lockmask);
+
+		TTMaskClearMask(&DBActiveLayerBits, &lockmask);
+		TTMaskAndMask(&lockmask, &DBTechActiveLayerBits);
+		TTMaskSetMask(&DBActiveLayerBits, &lockmask);
+	    }
+	    else if (cmd->tx_argc == 2)
 	    {
 		// Copy DBTechActiveLayerBits back to DBActiveLayerBits
 		TTMaskZero(&DBActiveLayerBits);

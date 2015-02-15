@@ -176,6 +176,12 @@ MainExit(errNum)
     TxFlush();
     TxResetTerminal();
 
+#ifdef MAGIC_WRAPPER
+
+    if (RuntimeFlags & MAIN_TK_CONSOLE)
+	Tcl_Eval(magicinterp, "catch {tkcon slave slave exit}\n");
+#endif
+
     exit(errNum);
 }
 
