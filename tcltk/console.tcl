@@ -134,3 +134,10 @@ proc ::tkcon::New {} {
    ::tkcon::NewConsole 
 }
 
+# Recast the tkcon "exit" procedure so that File->Exit from the
+# tkcon console will run Magic's exit routine first.  Magic's exit
+# routine (see utils/main.c) is then responsible for calling Tkcon's
+# (renamed) exit routine.
+
+rename ::exit ::quit
+proc ::exit args {slave eval quit}

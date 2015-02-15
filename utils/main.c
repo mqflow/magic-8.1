@@ -178,8 +178,24 @@ MainExit(errNum)
 
 #ifdef MAGIC_WRAPPER
 
+    // NOTE:  This needs to be done in conjunction with the following
+    // commands in the console:
+    // (1) tkcon eval rename ::exit ::quit
+    // (2) tkcon eval proc::exit qrgs {slave eval quit}
+    //
+    // The lines above redirect tkcon's "exit" routine to be named
+    // "quit" (in the console, not the slave!).  Because the tkcon
+    // File->Exit callback is set to eval "exit", we then can create
+    // a new proc called "exit" in the console that runs "quit" in
+    // the slave (magic), and will therefore do the usual checks to
+    // save work before exiting;  if all responses are to exit without
+    // saving, then it finally gets to here, where it runs the (renamed)
+    // "quit" command in tkcon.  That will ensure that tkcon runs
+    // various cleanup activities such as saving the command-line
+    // history file before the final (!) exit.
+
     if (RuntimeFlags & MAIN_TK_CONSOLE)
-	Tcl_Eval(magicinterp, "catch {tkcon slave slave exit}\n");
+	Tcl_Eval(magicinterp, "catch {tkcon eval quit}\n");
 #endif
 
     exit(errNum);
