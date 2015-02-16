@@ -281,7 +281,11 @@ CmdTech(w, cmd)
 		if (!strcmp(cmd->tx_argv[2], "*"))
 		    DBTechPrintTypes(&DBAllButSpaceAndDRCBits, TRUE);
 		else
-		    DBTechPrintCanonicalType(cmd->tx_argv[2]);
+		{
+		    TileTypeBitMask layermask;
+		    DBTechNoisyNameMask(cmd->tx_argv[2], &layermask);
+		    DBTechPrintTypes(&layermask, TRUE);
+		}
 	    }
 	    else if (cmd->tx_argc == 2)
 		DBTechPrintTypes(&DBAllButSpaceAndDRCBits, FALSE);

@@ -516,51 +516,6 @@ DBTechPrintTypes(mask, dolist)
     }
 }
 
-/*
- * ----------------------------------------------------------------------------
- *
- * DBTechPrintCanonicalType --
- *
- *	Takes a name which may be an abbreviation of any of the designated
- *	aliases for a layer type, and returns the "canonical" type name;
- *	i.e., the name printed by DBTechPrintTypes list
- *
- * Results:
- *	None.  In the Tcl version, the canonical type name is returned
- *	as a Tcl result.
- * ----------------------------------------------------------------------------
- */
-
-void
-DBTechPrintCanonicalType(layername)
-    char *layername;
-{
-    int i = DBTechNameType(layername);
-    bool first = TRUE;
-    char *keepname;
-    NameList *p;
-
-    if (i >= 0)
-    {
-	for (p = dbTypeNameLists.sn_next; p != &dbTypeNameLists;
-		p = p->sn_next)
-	{
-	    if (((TileType)(spointertype) p->sn_value) == i)
-	    {
-		if (first) keepname = p->sn_name;
-		else if (strlen(p->sn_name) > strlen(keepname))
-		    keepname = p->sn_name;
-		first = FALSE;
-	    }
-	}
-#ifdef MAGIC_WRAPPER
-	Tcl_SetResult(magicinterp, keepname, NULL);
-#else
-	TxPrintf("Layer canonical name is %s\n", keepname);
-#endif
-    }
-}
-
 
 /*
  * ----------------------------------------------------------------------------
