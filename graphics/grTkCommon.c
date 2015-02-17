@@ -617,8 +617,9 @@ GrTkGetColorByName(name)
     else
     {
 	for (style = 0; style < TECHBEGINSTYLES + DBWNumStyles; style++)
-	    if (!strcmp(name, GrStyleTable[style].longname))
-		break;
+	    if (GrStyleTable[style].longname != NULL)
+		if (!strcmp(name, GrStyleTable[style].longname))
+		    break;
     }
     if (style >= TECHBEGINSTYLES + DBWNumStyles)
     {
