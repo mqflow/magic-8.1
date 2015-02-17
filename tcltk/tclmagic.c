@@ -565,6 +565,19 @@ _magic_initialize(ClientData clientData,
 
     if (strcmp(MainDisplayType, "NULL"))
 	RegisterTkCommands(interp);
+
+    /* Set up the console so that its menu option File->Exit	*/
+    /* calls magic's exit routine first.  This should not be	*/
+    /* done in console.tcl, or else it puts the console in a	*/
+    /* state where it is difficult to exit, if magic doesn't	*/
+    /* start up correctly.					*/
+
+    if (TxTkConsole)
+    {
+	Tcl_Eval(consoleinterp, "rename ::exit :: quit\n");
+	Tcl_Eval(consoleinterp, "proc ::exit args {slave eval quit}\n");
+    }
+
     return TCL_OK;
 
 magicfatal:

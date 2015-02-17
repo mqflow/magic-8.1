@@ -181,7 +181,7 @@ MainExit(errNum)
     // NOTE:  This needs to be done in conjunction with the following
     // commands in the console:
     // (1) tkcon eval rename ::exit ::quit
-    // (2) tkcon eval proc::exit qrgs {slave eval quit}
+    // (2) tkcon eval proc::exit args {slave eval quit}
     //
     // The lines above redirect tkcon's "exit" routine to be named
     // "quit" (in the console, not the slave!).  Because the tkcon
