@@ -524,6 +524,12 @@ char *libPath;
 		}
 		else
 		{
+		    if (StrIsInt(sectionName))
+		    {
+			TxError("Unexpected empty line in .dstyle file.\n");
+			newSection = FALSE;
+			goto recovery;
+		    }
 		    TxError("Bad section name \"%s\" in .dstyle file.\n",
 			sectionName);
 		    section = IGNORE;
@@ -535,6 +541,7 @@ char *libPath;
 	    {
 		int newres = TRUE;
 
+recovery:
 		switch (section)
 		{
 		    case LAYOUT_STYLES:
