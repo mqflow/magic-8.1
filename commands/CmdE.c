@@ -130,7 +130,7 @@ CmdEdit(w, cmd)
 	return;
     }
     else if (!(EditCellUse->cu_def->cd_flags & CDAVAILABLE))
-	DBCellRead(EditCellUse->cu_def, (char *)NULL, TRUE);
+	DBCellRead(EditCellUse->cu_def, (char *)NULL, TRUE, NULL);
 
     if (EditCellUse->cu_def->cd_flags & CDNOEDIT)
     {

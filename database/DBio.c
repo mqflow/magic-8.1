@@ -901,7 +901,7 @@ DBReadBackup(name)
  */
 
 bool
-DBCellRead(cellDef, name, ignoreTech)
+DBCellRead(cellDef, name, ignoreTech, errptr)
     CellDef *cellDef;	/* Pointer to definition of cell to be read in */
     char *name;		/* Name of file from which to read definition.
 			 * If NULL, then use cellDef->cd_file; if that
@@ -915,19 +915,25 @@ DBCellRead(cellDef, name, ignoreTech)
 			 * names do not match, but an attempt will be
 			 * made to read the file anyway.
 			 */
+    int *errptr;	/* Copy of errno set by file reading routine
+			 * is placed here, unless NULL.
+			 */
 {
     FILE *f;
     bool result;
 
+    if (errptr != NULL) *errptr = 0;
+
     if (cellDef->cd_flags & CDAVAILABLE)
 	result = TRUE;
 
-    else if ((f = dbReadOpen(cellDef, name, TRUE)) == NULL)
+    else if ((f = dbReadOpen(cellDef, name, TRUE, errptr)) == NULL)
 	result = FALSE;
 
     else
     {
 	result = (dbCellReadDef(f, cellDef, name, ignoreTech));
+
 #ifdef FILE_LOCKS
 	/* Close files that were locked by another user */
 	if (cellDef->cd_fd == -1) fclose(f);
@@ -967,13 +973,14 @@ DBCellRead(cellDef, name, ignoreTech)
  */
 
 FILE *
-dbReadOpen(cellDef, name, setFileName)
+dbReadOpen(cellDef, name, setFileName, errptr)
     CellDef *cellDef;	/* Def being read */
     char *name;		/* Name if specified, or NULL */
     bool setFileName;	/* If TRUE then cellDef->cd_file should be updated
 			 * to point to the name of the file from which the
 			 * cell was loaded.
 			 */
+    int *errptr;	/* Pointer to int to hold error value */
 {
     FILE *f = NULL;
     char *filename, *realname;
@@ -987,10 +994,13 @@ dbReadOpen(cellDef, name, setFileName)
     }
 #endif
 
+    if (errptr != NULL) *errptr = 0;	// No error, by default
+
     if (name != (char *) NULL)
     {
 	f = PaLockOpen(name, "r", DBSuffix, Path,
 			CellLibPath, &filename, &is_locked);
+	if (errptr != NULL) *errptr = errno;
     }
     else if (cellDef->cd_file != (char *) NULL)
     {
@@ -1015,12 +1025,14 @@ dbReadOpen(cellDef, name, setFileName)
 	f = PaLockOpen(cellDef->cd_file, "r", DBSuffix, ".",
 			(char *) NULL, &filename, &is_locked);
 
+	if (errptr != NULL) *errptr = errno;
 	if (pptr != NULL) *pptr = '.';	// Put it back where you found it!
     }
     else
     {
 	f = PaLockOpen(cellDef->cd_name, "r", DBSuffix, Path,
 			CellLibPath, &filename, &is_locked);
+	if (errptr != NULL) *errptr = errno;
     }
 
     if (f == NULL)
@@ -1030,16 +1042,18 @@ dbReadOpen(cellDef, name, setFileName)
 	    return ((FILE *) NULL);
 
 	if (name != (char *) NULL)
-	    TxError("File %s%s couldn't be found\n", name, DBSuffix);
+	    TxError("File %s%s couldn't be read\n", name, DBSuffix);
 	else if (cellDef->cd_file != (char *) NULL)
-	    TxError("File %s couldn't be found\n", cellDef->cd_file);
+	    TxError("File %s couldn't be read\n", cellDef->cd_file);
 	else {
-	    TxError("Cell %s couldn't be found\n", cellDef->cd_name);
+	    TxError("Cell %s couldn't be read\n", cellDef->cd_name);
 	    realname = (char *) mallocMagic((unsigned) (strlen(cellDef->cd_name)
 			+ strlen(DBSuffix) + 1));
 	    (void) sprintf(realname, "%s%s", cellDef->cd_name, DBSuffix);
 	    cellDef->cd_file = StrDup(&cellDef->cd_file, realname);
 	}
+	if (errptr) TxError("%s\n", strerror(*errptr));
+
 	cellDef->cd_flags |= CDNOTFOUND;
 	return ((FILE *) NULL);
     }
@@ -2581,7 +2595,7 @@ DBCellWrite(cellDef, fileName)
 #ifdef FILE_LOCKS
 	else
 	    /* Re-aquire the lock on the new file by opening it. */
-	    DBCellRead(cellDef, NULL, TRUE);
+	    DBCellRead(cellDef, NULL, TRUE, NULL);
 #endif  
 
     }

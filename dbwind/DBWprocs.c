@@ -290,7 +290,7 @@ DBWloadWindow(window, name, ignoreTech, expand)
     CellDef *newEditDef;
     CellUse *newEditUse;
     void DisplayWindow();
-    int res, newEdit;
+    int res, newEdit, error_val;
     int xadd, yadd;
     Rect loadBox;
     char *rootname;
@@ -383,10 +383,26 @@ DBWloadWindow(window, name, ignoreTech, expand)
 	if (newEditDef == (CellDef *) NULL)
 	    newEditDef = DBCellNewDef(rootname, (char *) NULL);
 
-	if (!DBCellRead(newEditDef, name, ignoreTech))
+	if (!DBCellRead(newEditDef, name, ignoreTech, &error_val))
 	{
-	    TxPrintf("Creating new cell\n");
-	    DBCellSetAvail(newEditDef);
+	    if (error_val == ENOENT)
+	    {
+		TxPrintf("Creating new cell\n");
+		DBCellSetAvail(newEditDef);
+	    }
+	    else
+	    {
+		/* File exists but some error has occurred like
+		 * file is unreadable or max file descriptors
+		 * was reached, in which csae we don't want to
+		 * create a new cell, so delete the new celldef
+		 * and return.
+		 */
+		UndoDisable();
+		DBCellDeleteDef(newEditDef);
+		UndoEnable();
+		return;
+	    }
 	}
 	else
 	{

@@ -294,7 +294,7 @@ DBTreeFindUse(name, use, scx)
 	 * is read in from disk.
 	 */
 	if ((def->cd_flags & CDAVAILABLE) == 0)
-	    (void) DBCellRead(def, (char *) NULL, TRUE);
+	    (void) DBCellRead(def, (char *) NULL, TRUE, NULL);
 
 	/*
 	 * Pull off the next component of path up to but not including
@@ -327,7 +327,7 @@ DBTreeFindUse(name, use, scx)
     /* Ensure that the leaf cell is read in */
     def = use->cu_def;
     if ((def->cd_flags & CDAVAILABLE) == 0)
-	(void) DBCellRead(def, (char *) NULL, TRUE);
+	(void) DBCellRead(def, (char *) NULL, TRUE, NULL);
 
     scx->scx_use = use;
 }

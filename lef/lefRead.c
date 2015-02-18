@@ -1428,7 +1428,7 @@ origin_error:
 		    /* Attempt to read a .mag file of this name */
 
 		    DBCellClearAvail(lefMacro);
-		    if (DBCellRead(lefMacro, tsave, TRUE))
+		    if (DBCellRead(lefMacro, tsave, TRUE, NULL))
 			is_imported = TRUE;
 		    else
 		    {

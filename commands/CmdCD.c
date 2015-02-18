@@ -760,7 +760,7 @@ CmdCellname(w, cmd)
 
 #ifdef FILE_LOCKS
 		    if (cellDef->cd_fd == -1)
-			dbReadOpen(cellDef, NULL, TRUE);
+			dbReadOpen(cellDef, NULL, TRUE, NULL);
 
 		    if (cellDef->cd_fd != -1)
 			cellDef->cd_flags &= ~CDNOEDIT;
@@ -3663,7 +3663,7 @@ cmdDumpParseArgs(cmdName, w, cmd, dummy, scx)
      * looked for then no new error message will be printed.
      */
     def->cd_flags &= ~CDNOTFOUND;
-    if (!DBCellRead(def, (char *) NULL, TRUE))
+    if (!DBCellRead(def, (char *) NULL, TRUE, NULL))
 	return (FALSE);
     DBReComputeBbox(def);
     dummy->cu_def = def;

@@ -614,6 +614,11 @@ GrTkGetColorByName(name)
 
     if (strlen(name) == 1)
 	style = GrStyleNames[name[0] & 0x7f];
+    else if (DBWNumStyles == 0)
+    {
+	TxError("No style table exists.\n");
+	return NULL;
+    }
     else
     {
 	for (style = 0; style < TECHBEGINSTYLES + DBWNumStyles; style++)
@@ -621,6 +626,7 @@ GrTkGetColorByName(name)
 		if (!strcmp(name, GrStyleTable[style].longname))
 		    break;
     }
+
     if (style >= TECHBEGINSTYLES + DBWNumStyles)
     {
 	TxError("Style does not exist or style is not accessible\n");
