@@ -401,7 +401,24 @@ DBWloadWindow(window, name, ignoreTech, expand)
 		UndoDisable();
 		DBCellDeleteDef(newEditDef);
 		UndoEnable();
-		return;
+
+		/*
+		 * Go back to loading cell (UNNAMED) if
+		 * there is no EditRootDef or EditCellUse.
+		 * Otherwise, on error, keep whatever was already
+		 * the root def & use.
+		 */
+		if (EditRootDef == NULL || EditCellUse == NULL)
+		{
+		    newEditDef = DBCellLookDef(UNNAMED);
+		    if (newEditDef == (CellDef *) NULL)
+		    {
+			newEditDef = DBCellNewDef(UNNAMED, (char *) NULL);
+			DBCellSetAvail(newEditDef);
+		    }
+		}
+		else
+		    return;
 	    }
 	}
 	else

@@ -487,6 +487,10 @@ PaLockOpen(file, mode, ext, path, library, pRealName, is_locked)
 	f = flock_open(realName, mode, is_locked);
 #endif
 	if (f != NULL) return f;
+
+	// If any error other than "file not found" occurred,
+	// then halt immediately.
+	if (errno != ENOENT) return NULL;
     }
 
     /* We've tried the path and that didn't work.  Now go through
@@ -502,6 +506,10 @@ PaLockOpen(file, mode, ext, path, library, pRealName, is_locked)
 	f = flock_open(realName, mode, is_locked);
 #endif
 	if (f != NULL) return f;
+
+	// If any error other than "file not found" occurred,
+	// then halt immediately.
+	if (errno != ENOENT) return NULL;
     }
 
     return NULL;

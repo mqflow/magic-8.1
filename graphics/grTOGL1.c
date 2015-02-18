@@ -1392,18 +1392,21 @@ GrTOGLIconUpdate(w,text)		/* See Blt code */
     class.res_class = "magic";
 
     XSetClassHint( grXdpy, wind, &class);
-    if (brack = strchr(text,'['))
+    if (text)
     {
-     	brack--;
-	*brack = 0;
-        XSetIconName(grXdpy,wind,text);
+	if (brack = strchr(text,'['))
+	{
+	    brack--;
+	    *brack = 0;
+            XSetIconName(grXdpy,wind,text);
+	    XStoreName(grXdpy,wind,text);
+     	    *brack = ' ';
+	    return;
+	}
+	if (brack = strrchr(text,' ')) text = brack+1;
+	XSetIconName(grXdpy,wind,text);
 	XStoreName(grXdpy,wind,text);
-     	*brack = ' ';
-	return;
     }
-    if (brack = strrchr(text,' ')) text = brack+1;
-    XSetIconName(grXdpy,wind,text);
-    XStoreName(grXdpy,wind,text);
 }
 
 /*
