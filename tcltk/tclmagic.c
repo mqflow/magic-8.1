@@ -574,7 +574,7 @@ _magic_initialize(ClientData clientData,
 
     if (TxTkConsole)
     {
-	Tcl_Eval(consoleinterp, "rename ::exit :: quit\n");
+	Tcl_Eval(consoleinterp, "rename ::exit ::quit\n");
 	Tcl_Eval(consoleinterp, "proc ::exit args {slave eval quit}\n");
     }
 
