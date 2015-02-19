@@ -1123,7 +1123,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    $m add separator
    $m add command -label "Print..."          -command { echo "not implemented" }
    $m add separator
-   $m add command -label "Save All and Quit" -command {magic::writeall force ; magic::quit -noprompt }
+   $m add command -label "Save All and Quit" -command {magic::writeall force ; if {[magic::cellname list modified] == {}} {magic::quit -noprompt} else {magic::quit} }
    $m add command -label "Quit"              -command {magic::quit}
 
 # #################################

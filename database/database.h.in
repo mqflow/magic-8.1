@@ -656,7 +656,8 @@ typedef struct
 #define CHILDINST 3
 #define ALLCELLS  4
 #define TOPCELLS  5
-#define OTHER	  6
+#define MODIFIED  6
+#define OTHER	  7
 
 /* -------------------- Exported procedure headers -------------------- */
 

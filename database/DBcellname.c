@@ -602,7 +602,7 @@ DBTopPrint(mw, dolist)
  *	Stuff is printed.
  *
  * Notes: "who" takes one of the options defined in database.h:
- *	PARENTS, CHILDREN, SELF, OTHER, ALLCELLS, or TOPCELLS.
+ *	PARENTS, CHILDREN, SELF, OTHER, ALLCELLS, MODIFIED, or TOPCELLS.
  *	"SELF" lists celldef names (most useful to list the name of
  *	a selected cell).  "OTHER" lists instance names.
  *
@@ -621,21 +621,41 @@ DBCellPrint(CellName, who, dolist)
     CellDef *celldef;
     CellUse *celluse;
     
+    if (!dolist)
+    {
+	switch (who)
+	{
+	    case ALLCELLS:
+		TxPrintf("Cell currently loaded:\n");
+		break;
+	    case MODIFIED:
+		TxPrintf("Modified cells:\n");
+		break;
+	    case TOPCELLS:
+		TxPrintf("Top level cells are:\n");
+		break;
+	}
+    }
+
     switch (who)
     {
 	case ALLCELLS:
+	case MODIFIED:
 	    /*
 	     * Print the name of all the 'known' cells.
+	     * If "MODIFIED", print only those cells that have the
+	     * CDMODIFIED flag set.
 	     */
 
-	    if (!dolist) TxPrintf("Cell currently loaded:\n");
 	    HashStartSearch(&hs);
 	    while( (entry = HashNext(&dbCellDefTable, &hs)) != NULL)
 	    {
 		celldef = (CellDef *) HashGetValue(entry);
 		if (celldef != (CellDef *) NULL)
 		{
-		    if ( (celldef->cd_flags & CDINTERNAL) != CDINTERNAL)
+		    if (((celldef->cd_flags & CDINTERNAL) != CDINTERNAL) &&
+				((who != MODIFIED) ||
+				(celldef->cd_flags & CDMODIFIED)))
 		    {
 			if (celldef->cd_name != NULL)
 			{
@@ -658,7 +678,6 @@ DBCellPrint(CellName, who, dolist)
 	     * Print the name of all the 'top' cells.
 	     */
 
-	    if (!dolist) TxPrintf("Top level cells are:\n");
 	    HashStartSearch(&hs);
 	    while( (entry = HashNext(&dbCellDefTable, &hs)) != NULL)
 	    {

@@ -591,13 +591,15 @@ CmdCellname(w, cmd)
 	"property	list or set cell definition properties",
 	"rename		rename the indicated cell",
 	"writeable	make the cell definition read-only or read-write",
+	"modified	true if modified, false if not",
 	NULL
     };
     typedef enum { IDX_CHILDREN, IDX_PARENTS, IDX_EXISTS, IDX_SELF,
 		   IDX_INSTANCE, IDX_CHILDINST, IDX_CELLDEF, IDX_ALLCELLS,
 		   IDX_TOPCELLS, IDX_IN_WINDOW, IDX_CREATE,
 		   IDX_DELETE, IDX_FILEPATH, IDX_FLAGS, IDX_LOCK, IDX_UNLOCK,
-		   IDX_PROPERTY, IDX_RENAME, IDX_READWRITE } optionType;
+		   IDX_PROPERTY, IDX_RENAME, IDX_READWRITE,
+		   IDX_MODIFIED } optionType;
 
     if (strstr(cmd->tx_argv[0], "in"))
 	func = DBUsePrint;
@@ -655,7 +657,7 @@ CmdCellname(w, cmd)
 		TxError("Instances do not have a top level.  Use \"cellname\"?\n");
 		return;
 	    case IDX_IN_WINDOW: case IDX_READWRITE: case IDX_FLAGS:
-	    case IDX_PROPERTY: case IDX_FILEPATH:
+	    case IDX_PROPERTY: case IDX_FILEPATH: case IDX_MODIFIED:
 		TxError("Function unimplemented for instances.\n");
 		return;
 	    case IDX_DELETE:
@@ -698,6 +700,9 @@ CmdCellname(w, cmd)
 	    break;
 	case IDX_PARENTS:
 	    (*func)(cellname, PARENTS, dolist);
+	    break;
+	case IDX_MODIFIED:
+	    (*func)(cellname, MODIFIED, dolist);
 	    break;
 	case IDX_PROPERTY:
 	    if (cellname == NULL)
