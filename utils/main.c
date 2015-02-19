@@ -194,7 +194,7 @@ MainExit(errNum)
     // various cleanup activities such as saving the command-line
     // history file before the final (!) exit.
 
-    if (RuntimeFlags & MAIN_TK_CONSOLE)
+    if (TxTkConsole)
 	Tcl_Eval(magicinterp, "catch {tkcon eval quit}\n");
 #endif
 
@@ -390,12 +390,6 @@ mainDoArgs(argc, argv)
     }
 
     return 0;
-
-badfopt:
-    TxError("-F requires load and save file names, e.g.,");
-    TxError(" \"-F magic magicsave\"\n");
-exitnow:
-    return 1;
 }
 
 /*

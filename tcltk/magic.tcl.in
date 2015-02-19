@@ -220,7 +220,9 @@ if {$do_wrapper} {
   lappend argafter "-nowindow" ;# Set no-initial-window option in magic.
 }
 unset x i do_wrapper
-eval $argafter 			;# magic::initialize ${argv}
+if {[catch {eval $argafter}]}  {		;# magic::initialize ${argv}
+   exit
+}
 
 #----------------------------------------------------------------------
 # Check for presence of padlist manager script and include it

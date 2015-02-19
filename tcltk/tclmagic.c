@@ -517,6 +517,13 @@ _magic_initialize(ClientData clientData,
     if ((consoleinterp = Tcl_GetMaster(interp)) == NULL)
 	consoleinterp = interp;
 
+    // Force tkcon to send output to terminal during initialization
+    if (TxTkConsole)
+    {
+	Tcl_Eval(consoleinterp, "rename ::puts ::unused_puts\n");
+	Tcl_Eval(consoleinterp, "rename ::tkcon_tcl_puts ::puts\n");
+    }
+
     /* Did we start in the same interpreter as we initialized? */
     if (magicinterp != interp)
     {
@@ -528,6 +535,13 @@ _magic_initialize(ClientData clientData,
 
     if (mainInitBeforeArgs(argc, argv) != 0) goto magicfatal;
     if (mainDoArgs(argc, argv) != 0) goto magicfatal;
+
+    // Redirect output back to the console
+    if (TxTkConsole)
+    {
+	Tcl_Eval(consoleinterp, "rename ::puts ::tkcon_tcl_puts\n");
+	Tcl_Eval(consoleinterp, "rename ::unused_puts ::puts\n");
+    }
 
     if (TxTkConsole)
 	TxPrintf("Using Tk console window\n");
