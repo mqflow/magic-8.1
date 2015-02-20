@@ -93,11 +93,7 @@ global char	*SysLibPath = NULL;	/* Used to find color maps, styles, */
  * (see utils.h for explanation of individual flags).
  */
 
-#ifdef MAGIC_WRAPPER
-global short RuntimeFlags = MAIN_MAKE_WINDOW | MAIN_TK_CONSOLE;
-#else
 global short RuntimeFlags = MAIN_MAKE_WINDOW;
-#endif
 
 /*
  * See the file main.h for a description of the information kept

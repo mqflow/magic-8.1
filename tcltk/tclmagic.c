@@ -518,10 +518,11 @@ _magic_initialize(ClientData clientData,
 	consoleinterp = interp;
 
     // Force tkcon to send output to terminal during initialization
-    if (TxTkConsole)
+    else
     {
-	Tcl_Eval(consoleinterp, "rename ::puts ::unused_puts\n");
-	Tcl_Eval(consoleinterp, "rename ::tkcon_tcl_puts ::puts\n");
+	RuntimeFlags |= MAIN_TK_CONSOLE;
+    	Tcl_Eval(consoleinterp, "rename ::puts ::unused_puts\n");
+    	Tcl_Eval(consoleinterp, "rename ::tkcon_tcl_puts ::puts\n");
     }
 
     /* Did we start in the same interpreter as we initialized? */
@@ -539,8 +540,8 @@ _magic_initialize(ClientData clientData,
     // Redirect output back to the console
     if (TxTkConsole)
     {
-	Tcl_Eval(consoleinterp, "rename ::puts ::tkcon_tcl_puts\n");
-	Tcl_Eval(consoleinterp, "rename ::unused_puts ::puts\n");
+    	Tcl_Eval(consoleinterp, "rename ::puts ::tkcon_tcl_puts\n");
+    	Tcl_Eval(consoleinterp, "rename ::unused_puts ::puts\n");
     }
 
     if (TxTkConsole)
