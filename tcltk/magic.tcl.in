@@ -198,11 +198,11 @@ for {set i 0} {$i < $argc} {incr i 1} {
       }
       ^--version {
 	 puts stdout "MAGIC_VERSION.MAGIC_REVISION"
-	 exit
+	 exit 0
       }
       ^--prefix {
 	 puts stdout $CAD_ROOT
-	 exit
+	 exit 0
       }
       ^-D -
       ^-n* {
@@ -221,7 +221,7 @@ if {$do_wrapper} {
 }
 unset x i do_wrapper
 if {[catch {eval $argafter}]}  {		;# magic::initialize ${argv}
-   exit
+   exit 1
 }
 
 #----------------------------------------------------------------------

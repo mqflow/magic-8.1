@@ -30,6 +30,7 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
 #endif
 
 #include "utils/magic.h"
+#include "utils/main.h"
 #include "utils/utils.h"
 #include "utils/hash.h"
 #include "utils/malloc.h"
@@ -494,7 +495,11 @@ MacroKey(str, verbose)
 	return (int)str[1] - 'A' + 1;
     }
     if (warn)
-	TxError("Extended macros are unavailable with this device type.\n");
+    {
+	if (strcasecmp(MainDisplayType, "NULL") || (TxTkConsole == TRUE))
+	    TxPrintf("Extended macros are unavailable"
+			" with graphics type \"%s\".\n", MainDisplayType);
+    }
     warn = 0;
     *verbose = 0;
     return(0);

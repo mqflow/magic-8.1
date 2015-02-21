@@ -534,7 +534,6 @@ _magic_initialize(ClientData clientData,
 		"to handle this.\n");
 	magicinterp = interp;
     }
-    TxPrintf("Starting magic under Tcl interpreter\n");
 
     if (mainInitBeforeArgs(argc, argv) != 0) goto magicfatal;
     if (mainDoArgs(argc, argv) != 0) goto magicfatal;
@@ -546,6 +545,11 @@ _magic_initialize(ClientData clientData,
     	Tcl_Eval(consoleinterp, "rename ::unused_puts ::puts\n");
     }
 
+    /* Identify version and revision */
+
+    TxPrintf("\nMagic %s revision %s - Compiled on %s.\n", MagicVersion,
+                MagicRevision, MagicCompileTime);
+    TxPrintf("Starting magic under Tcl interpreter\n");
     if (TxTkConsole)
 	TxPrintf("Using Tk console window\n");
     else

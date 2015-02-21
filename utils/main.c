@@ -462,10 +462,6 @@ mainInitBeforeArgs(argc, argv)
     LispInit();
 #endif
 
-    /* Identify version first thing */
-    TxPrintf("\nMagic %s revision %s - Compiled on %s.\n", MagicVersion,
-		MagicRevision, MagicCompileTime);
-
     /*
      * Get preliminary info on the graphics display.
      * This may be overriden later.
