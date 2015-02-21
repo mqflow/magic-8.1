@@ -58,6 +58,8 @@ Tcl_Interp *consoleinterp;
 
 HashTable txTclTagTable;
 
+Tcl_ChannelType inChannel;
+
 /* Forward declarations */
 
 int TerminalInputProc(ClientData, char *, int, int *);
@@ -521,8 +523,8 @@ _magic_initialize(ClientData clientData,
     else
     {
 	RuntimeFlags |= MAIN_TK_CONSOLE;
-	Tcl_Eval(consoleinterp, "rename ::puts ::unused_puts\n");
-	Tcl_Eval(consoleinterp, "rename ::tkcon_tcl_puts ::puts\n");
+    	Tcl_Eval(consoleinterp, "rename ::puts ::unused_puts\n");
+    	Tcl_Eval(consoleinterp, "rename ::tkcon_tcl_puts ::puts\n");
     }
 
     /* Did we start in the same interpreter as we initialized? */
@@ -540,8 +542,8 @@ _magic_initialize(ClientData clientData,
     // Redirect output back to the console
     if (TxTkConsole)
     {
-	Tcl_Eval(consoleinterp, "rename ::puts ::tkcon_tcl_puts\n");
-	Tcl_Eval(consoleinterp, "rename ::unused_puts ::puts\n");
+    	Tcl_Eval(consoleinterp, "rename ::puts ::tkcon_tcl_puts\n");
+    	Tcl_Eval(consoleinterp, "rename ::unused_puts ::puts\n");
     }
 
     if (TxTkConsole)
@@ -602,6 +604,14 @@ magicfatal:
 }
 
 /*--------------------------------------------------------------*/
+
+typedef struct FileState {
+    Tcl_Channel channel;
+    int fd;
+    int validMask;
+} FileState;
+
+/*--------------------------------------------------------------*/
 /* Post-initialization:  read in the magic startup files and	*/
 /* load any initial layout.  Note that this is not done via	*/
 /* script, but probably should be.				*/
@@ -611,8 +621,6 @@ static int
 _magic_startup(ClientData clientData,
         Tcl_Interp *interp, int argc, char *argv[])
 {
-    Tcl_ChannelType *inChannel;
-
     /* Execute contents of startup files and load any initial cell */
 
     if (mainInitFinal() != 0)
@@ -636,11 +644,31 @@ _magic_startup(ClientData clientData,
     }
     else
     {
+	Tcl_Channel oldchannel;
+	Tcl_ChannelType *stdChannel;
+	FileState *fsPtr, *fsOrig;
+
 	/* Use the terminal.				  */
 	/* Replace the input proc for stdin with our own. */
 
-	inChannel = (Tcl_ChannelType *)Tcl_GetChannelType(Tcl_GetStdChannel(TCL_STDIN));
-	inChannel->inputProc = TerminalInputProc;
+	oldchannel = Tcl_GetStdChannel(TCL_STDIN);	// Get existing stdin
+	Tcl_GetChannelHandle(oldchannel, TCL_READABLE, (ClientData *)fsOrig);
+
+	/* Copy the structure from the old to the new channel */
+	stdChannel = (Tcl_ChannelType *)Tcl_GetChannelType(oldchannel);
+	memcpy(&inChannel, stdChannel, sizeof(Tcl_ChannelType));
+	inChannel.inputProc = TerminalInputProc;
+
+	fsPtr = (FileState *)Tcl_Alloc(sizeof(FileState));
+	fsPtr->validMask = TCL_READABLE | TCL_EXCEPTION;
+	fsPtr->fd = fileno(stdin);
+	// fsPtr->fd = fsOrig->fd;
+	fsPtr->channel = Tcl_CreateChannel(&inChannel, "stdin",
+	 	(ClientData)fsPtr, TCL_READABLE);
+
+	Tcl_UnregisterChannel(NULL, oldchannel);	// Close stdin
+	Tcl_SetStdChannel(fsPtr->channel, TCL_STDIN);	// Apply new stdin
+	Tcl_RegisterChannel(NULL, fsPtr->channel);
     }
 
     return TCL_OK;
@@ -1005,16 +1033,6 @@ Tcl_escape(instring)
 }
 
 /*--------------------------------------------------------------*/
-/* Provide input to Tcl from outside the terminal window by	*/
-/* stacking the "stdin" channel.				*/
-/*--------------------------------------------------------------*/
-
-typedef struct {
-    Tcl_Channel channel;	/* This is all the info we need */
-    int fd;
-} FileState;
-
-/*--------------------------------------------------------------*/
 
 int
 TerminalInputProc(instanceData, buf, toRead, errorCodePtr)
@@ -1023,7 +1041,7 @@ TerminalInputProc(instanceData, buf, toRead, errorCodePtr)
     int toRead;
     int *errorCodePtr;
 {
-    FileState *fsPtr = (FileState *) instanceData;
+    FileState *fsPtr = (FileState *)instanceData;
     int bytesRead, i, tlen;
     char *locbuf;
 
