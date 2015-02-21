@@ -96,6 +96,12 @@ typedef struct cifrstyle
 				 * So if crs_multiplier = 10, CIF units
 				 * are in nanometers (millimicrons).
 				 */
+    int crs_gridLimit;		/* Input is considered off-grid if on
+				 * a pitch less than crs_gridLimit CIF
+				 * units, and input will be snapped to
+				 * grid rather than scaling the grid
+				 * to accomodate the data.  0 = no limit.
+				 */
 
     TileType crs_labelLayer[MAXCIFRLAYERS];
 				/* Gives the Magic layer to use for labels

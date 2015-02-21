@@ -428,17 +428,18 @@ CIFTechLimitScale(ns, ds)
     int ns, ds;
 {
     int gridup, scaledown;
+    int scale, limit, expand;
 
-    /* If no output style is active, it's okay to refine the	*/
-    /* grid arbitrarily.					*/
+    scale = CIFCurStyle->cs_scaleFactor;
+    limit = CIFCurStyle->cs_gridLimit;
+    expand = CIFCurStyle->cs_expander;
 
-    if (CIFCurStyle == NULL) return FALSE;
+    gridup = limit * expand * ds;
+    scaledown = scale * ns * 10;
 
-    gridup = CIFCurStyle->cs_gridLimit * ds;
-    if (gridup == 0) return FALSE;
-
-    scaledown = CIFCurStyle->cs_scaleFactor * ns;
+    if ((scaledown / gridup) == 0) return TRUE;
     if ((scaledown % gridup) != 0) return TRUE;
+
     return FALSE;
 }
 

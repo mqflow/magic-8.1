@@ -62,7 +62,49 @@ CIFOp *cifCurReadOp;			/* Last geometric operation seen. */
 void cifReadStyleInit();
 void CIFReadLoadStyle();
 
-
+/*
+ * ----------------------------------------------------------------------------
+ *
+ * CIFReadTechLimitScale --
+ *
+ *	Determine if the scalefactor (ns / ds), applied to the current
+ *	grid scaling, would result in a grid finer than the minimum
+ *	resolution allowed by the process, as set by the "gridlimit"
+ *	statement in the "cifinput" section.
+ *
+ *	Note that even if the scalefactor is larger than the minimum
+ *	grid, it must be a MULTIPLE of the minimum grid, or else geometry
+ *	can be generated off-grid.
+ *
+ * Results:
+ *	TRUE if scaling by (ns / ds) would violate minimum grid resolution,
+ *	FALSE if not.
+ *
+ * Side effects:
+ *	None.
+ *
+ * ----------------------------------------------------------------------------
+ */
+
+bool
+CIFReadTechLimitScale(ns, ds)
+    int ns, ds;
+{
+    int gridup, scaledown;
+    int scale, limit, mult;
+
+    scale = cifCurReadStyle->crs_scaleFactor;
+    limit = cifCurReadStyle->crs_gridLimit;
+    mult = cifCurReadStyle->crs_multiplier;
+
+    gridup = limit * mult * ds;
+    scaledown = scale * ns * 10;
+
+    if ((scaledown / gridup) == 0) return TRUE;
+    if ((scaledown % gridup) != 0) return TRUE;
+    return FALSE;
+}
+
 /*
  * ----------------------------------------------------------------------------
  *
@@ -313,6 +355,8 @@ cifReadStyleInit()
     cifCurReadStyle->crs_cifLayers = DBZeroTypeBits;
     cifCurReadStyle->crs_nLayers = 0;
     cifCurReadStyle->crs_scaleFactor = 0;
+    cifCurReadStyle->crs_multiplier = 1;
+    cifCurReadStyle->crs_gridLimit = 0;
     HashInit(&(cifCurReadStyle->cifCalmaToCif), 64,
       sizeof (CalmaLayerType) / sizeof (unsigned));
     for (i = 0; i < MAXCIFRLAYERS; i++)
@@ -583,6 +627,27 @@ CIFReadTechLine(sectionName, argc, argv)
 	    goto errorReturn;
 	}
 	return TRUE;
+    }
+
+    /* Process "gridlimit" lines. */
+    
+    if (strncmp(argv[0], "grid", 4) == 0)
+    {
+        if (StrIsInt(argv[1]))
+        {
+            cifCurReadStyle->crs_gridLimit = atoi(argv[1]);
+            if (cifCurReadStyle->crs_gridLimit < 0)
+            {
+                TechError("Grid limit must be a positive integer.\n");
+                cifCurReadStyle->crs_gridLimit = 0;
+            }
+        }
+        else
+	{
+            TechError("Unable to parse grid limit value.\n");
+	    goto errorReturn;
+	}
+        return TRUE;
     }
 
     /* Process "variant" lines next. */
@@ -1225,7 +1290,7 @@ cifParseCalmaNums(str, numArray, numNums)
 /*
  * ----------------------------------------------------------------------------
  *
- * CIFTechInputScale(n, d)
+ * CIFTechInputScale(n, d, opt)
  *
  *   Scale all CIF input scale factors to make them equivalent
  *   to reducing the magic internal unit spacing by a factor of n/d.
