@@ -592,16 +592,13 @@ CmdBox(w, cmd)
     if (needBox)
     {
 	if (refEdit)
-	{
-	    if (!ToolGetEditBox(&editbox)) return;
-	}
-	else
-	{
-	    if (!ToolGetBox(&rootBoxDef, &rootBox))
-	    {
-		TxError("Box tool must be present\n");
+	    if (!ToolGetEditBox(&editbox))
 		return;
-	    }
+
+	if (!ToolGetBox(&rootBoxDef, &rootBox))
+	{
+	    TxError("Box tool must be present\n");
+	    return;
 	}
     }
     else if (w == NULL)
@@ -735,7 +732,7 @@ CmdBox(w, cmd)
 	    }
 	    else if (argc != 3) goto badusage;
 	    width = cmdParseCoord(w, cmd->tx_argv[2], TRUE, TRUE);
-	    rootBox.r_xtop = rootBox.r_xbot + width;
+	    boxptr->r_xtop = boxptr->r_xbot + width;
 	    break;
 
 	case BOX_HEIGHT:
@@ -755,7 +752,7 @@ CmdBox(w, cmd)
 	    }
 	    else if (argc != 3) goto badusage;
 	    height = cmdParseCoord(w, cmd->tx_argv[2], TRUE, FALSE);
-	    rootBox.r_ytop = rootBox.r_ybot + height;
+	    boxptr->r_ytop = boxptr->r_ybot + height;
 	    break;
 
 	case BOX_SIZE:
@@ -778,8 +775,8 @@ CmdBox(w, cmd)
 	    else if (argc != 4) goto badusage;
 	    width = cmdParseCoord(w, cmd->tx_argv[2], TRUE, TRUE);
 	    height = cmdParseCoord(w, cmd->tx_argv[3], TRUE, FALSE);
-	    rootBox.r_xtop = rootBox.r_xbot + width;
-	    rootBox.r_ytop = rootBox.r_ybot + height;
+	    boxptr->r_xtop = boxptr->r_xbot + width;
+	    boxptr->r_ytop = boxptr->r_ybot + height;
 	    break;
 
 	case BOX_POSITION:
@@ -798,8 +795,8 @@ CmdBox(w, cmd)
 		return;
 	    }
 	    else if (argc != 4) goto badusage;
-	    width = rootBox.r_xtop - rootBox.r_xbot;
-	    height = rootBox.r_ytop - rootBox.r_ybot;
+	    width = boxptr->r_xtop - boxptr->r_xbot;
+	    height = boxptr->r_ytop - boxptr->r_ybot;
 	    ll.p_x = cmdParseCoord(w, cmd->tx_argv[2], FALSE, TRUE);
 	    ll.p_y = cmdParseCoord(w, cmd->tx_argv[3], FALSE, FALSE);
 	    boxptr->r_xbot = ll.p_x;
@@ -832,44 +829,44 @@ CmdBox(w, cmd)
 	    switch (direction)
 	    {
 		case GEO_NORTH:
-		    rootBox.r_ybot += distancey;
-		    rootBox.r_ytop += distancey;
+		    boxptr->r_ybot += distancey;
+		    boxptr->r_ytop += distancey;
 		    break;
 		case GEO_SOUTH:
-		    rootBox.r_ybot -= distancey;
-		    rootBox.r_ytop -= distancey;
+		    boxptr->r_ybot -= distancey;
+		    boxptr->r_ytop -= distancey;
 		    break;
 		case GEO_EAST:
-		    rootBox.r_xbot += distancex;
-		    rootBox.r_xtop += distancex;
+		    boxptr->r_xbot += distancex;
+		    boxptr->r_xtop += distancex;
 		    break;
 		case GEO_WEST:
-		    rootBox.r_xbot -= distancex;
-		    rootBox.r_xtop -= distancex;
+		    boxptr->r_xbot -= distancex;
+		    boxptr->r_xtop -= distancex;
 		    break;
 		case GEO_NORTHEAST:
-		    rootBox.r_ybot += distancey;
-		    rootBox.r_ytop += distancey;
-		    rootBox.r_xbot += distancex;
-		    rootBox.r_xtop += distancex;
+		    boxptr->r_ybot += distancey;
+		    boxptr->r_ytop += distancey;
+		    boxptr->r_xbot += distancex;
+		    boxptr->r_xtop += distancex;
 		    break;
 		case GEO_NORTHWEST:
-		    rootBox.r_ybot += distancey;
-		    rootBox.r_ytop += distancey;
-		    rootBox.r_xbot -= distancex;
-		    rootBox.r_xtop -= distancex;
+		    boxptr->r_ybot += distancey;
+		    boxptr->r_ytop += distancey;
+		    boxptr->r_xbot -= distancex;
+		    boxptr->r_xtop -= distancex;
 		    break;
 		case GEO_SOUTHEAST:
-		    rootBox.r_ybot -= distancey;
-		    rootBox.r_ytop -= distancey;
-		    rootBox.r_xbot += distancex;
-		    rootBox.r_xtop += distancex;
+		    boxptr->r_ybot -= distancey;
+		    boxptr->r_ytop -= distancey;
+		    boxptr->r_xbot += distancex;
+		    boxptr->r_xtop += distancex;
 		    break;
 		case GEO_SOUTHWEST:
-		    rootBox.r_ybot -= distancey;
-		    rootBox.r_ytop -= distancey;
-		    rootBox.r_xbot -= distancex;
-		    rootBox.r_xtop -= distancex;
+		    boxptr->r_ybot -= distancey;
+		    boxptr->r_ytop -= distancey;
+		    boxptr->r_xbot -= distancex;
+		    boxptr->r_xtop -= distancex;
 		    break;
 	    }
 	    break;
@@ -878,38 +875,38 @@ CmdBox(w, cmd)
 	    switch (direction)
 	    {
 		case GEO_NORTH:
-		    rootBox.r_ytop += distancey;
+		    boxptr->r_ytop += distancey;
 		    break;
 		case GEO_SOUTH:
-		    rootBox.r_ybot -= distancey;
+		    boxptr->r_ybot -= distancey;
 		    break;
 		case GEO_EAST:
-		    rootBox.r_xtop += distancex;
+		    boxptr->r_xtop += distancex;
 		    break;
 		case GEO_WEST:
-		    rootBox.r_xbot -= distancex;
+		    boxptr->r_xbot -= distancex;
 		    break;
 		case GEO_NORTHEAST:
-		    rootBox.r_ytop += distancey;
-		    rootBox.r_xtop += distancex;
+		    boxptr->r_ytop += distancey;
+		    boxptr->r_xtop += distancex;
 		    break;
 		case GEO_NORTHWEST:
-		    rootBox.r_ytop += distancey;
-		    rootBox.r_xbot -= distancex;
+		    boxptr->r_ytop += distancey;
+		    boxptr->r_xbot -= distancex;
 		    break;
 		case GEO_SOUTHEAST:
-		    rootBox.r_ybot -= distancey;
-		    rootBox.r_xtop += distancex;
+		    boxptr->r_ybot -= distancey;
+		    boxptr->r_xtop += distancex;
 		    break;
 		case GEO_SOUTHWEST:
-		    rootBox.r_ybot -= distancey;
-		    rootBox.r_xbot -= distancex;
+		    boxptr->r_ybot -= distancey;
+		    boxptr->r_xbot -= distancex;
 		    break;
 		case GEO_CENTER:
-		    rootBox.r_ytop += distancey;
-		    rootBox.r_ybot -= distancey;
-		    rootBox.r_xtop += distancex;
-		    rootBox.r_xbot -= distancex;
+		    boxptr->r_ytop += distancey;
+		    boxptr->r_ybot -= distancey;
+		    boxptr->r_xtop += distancex;
+		    boxptr->r_xbot -= distancex;
 		    break;
 	    }
 	    break;
@@ -939,38 +936,38 @@ CmdBox(w, cmd)
 	    switch (direction)
 	    {
 		case GEO_NORTH:
-		    rootBox.r_ytop -= distancey;
+		    boxptr->r_ytop -= distancey;
 		    break;
 		case GEO_SOUTH:
-		    rootBox.r_ybot += distancey;
+		    boxptr->r_ybot += distancey;
 		    break;
 		case GEO_EAST:
-		    rootBox.r_xtop -= distancex;
+		    boxptr->r_xtop -= distancex;
 		    break;
 		case GEO_WEST:
-		    rootBox.r_xbot += distancex;
+		    boxptr->r_xbot += distancex;
 		    break;
 		case GEO_NORTHEAST:
-		    rootBox.r_ytop -= distancey;
-		    rootBox.r_xtop -= distancex;
+		    boxptr->r_ytop -= distancey;
+		    boxptr->r_xtop -= distancex;
 		    break;
 		case GEO_NORTHWEST:
-		    rootBox.r_ytop -= distancey;
-		    rootBox.r_xbot += distancex;
+		    boxptr->r_ytop -= distancey;
+		    boxptr->r_xbot += distancex;
 		    break;
 		case GEO_SOUTHEAST:
-		    rootBox.r_ybot += distancey;
-		    rootBox.r_xtop -= distancex;
+		    boxptr->r_ybot += distancey;
+		    boxptr->r_xtop -= distancex;
 		    break;
 		case GEO_SOUTHWEST:
-		    rootBox.r_ybot += distancey;
-		    rootBox.r_xbot += distancex;
+		    boxptr->r_ybot += distancey;
+		    boxptr->r_xbot += distancex;
 		    break;
 		case GEO_CENTER:
-		    rootBox.r_ytop -= distancey;
-		    rootBox.r_xtop -= distancex;
-		    rootBox.r_ybot += distancey;
-		    rootBox.r_xbot += distancex;
+		    boxptr->r_ytop -= distancey;
+		    boxptr->r_xtop -= distancex;
+		    boxptr->r_ybot += distancey;
+		    boxptr->r_xbot += distancex;
 		    break;
 	    }
 	    break;
@@ -1035,6 +1032,13 @@ badusage:
 	    }
 	    return;
     }
+
+    /*----------------------------------------------------------*/
+    /* Return to root coordinates, if working in edit coords	*/
+    /*----------------------------------------------------------*/
+
+    if (refEdit)
+	GeoTransRect(&EditToRootTransform, &editbox, &rootBox);
 
     /*----------------------------------------------------------*/
     /* Change the position of the box in the layout window	*/
