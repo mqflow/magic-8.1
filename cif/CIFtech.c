@@ -434,6 +434,8 @@ CIFTechLimitScale(ns, ds)
     limit = CIFCurStyle->cs_gridLimit;
     expand = CIFCurStyle->cs_expander;
 
+    if (limit == 0) limit = 1;
+
     gridup = limit * expand * ds;
     scaledown = scale * ns * 10;
 
