@@ -1358,6 +1358,28 @@ extOutputTrans(def, transList, outFile)
 	arg.fra_each = (int (*)()) NULL;
 	(void) ExtFindNeighbors(reg->treg_tile, arg.fra_pNum, &arg);
 
+	/* Are the terminal types on a compeletely different	*/
+	/* plane than the top type?  If so, do an area search	*/
+	/* on that plane in the area under the device node.	*/
+
+	if (extTransRec.tr_nterm == 0)
+	{
+	    TileTypeBitMask *tmask;
+
+	    tmask = &ExtCurStyle->exts_transSDTypes[t][0];
+	    if (!TTMaskIntersect(tmask, &DBPlaneTypes[reg->treg_pnum]))
+	    {
+		/* WIP */
+		node = NULL;
+		extTransFindSubs(reg->treg_tile, t, tmask, def, &node);
+		if (node != NULL)
+		{
+		    extTransRec.tr_nterm++;
+		    extTransRec.tr_termnode[extTransRec.tr_nterm - 1] = node;
+		}
+	    }
+	}
+
 	/*
 	 * For types that require a minimum number of terminals,
 	 * check to make sure that they all exist.  If they don't,
