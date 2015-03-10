@@ -93,8 +93,10 @@ CIFReadTechLimitScale(ns, ds)
     int gridup, scaledown;
     int scale, limit, mult;
 
-    scale = cifCurReadStyle->crs_scaleFactor;
     limit = cifCurReadStyle->crs_gridLimit;
+    if (limit == 0) return FALSE;	/* No limit */
+
+    scale = cifCurReadStyle->crs_scaleFactor;
     mult = cifCurReadStyle->crs_multiplier;
 
     gridup = limit * mult * ds;
