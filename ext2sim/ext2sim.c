@@ -999,6 +999,13 @@ simdevVisit(dev, hierName, scale, trans)
     if (dev->dev_nterm < 1)
 	return 0;
 
+    /* If one terminal, can't do much of anything, either, 	*/
+    /* except maybe with a subcircuit device.  That's not	*/
+    /* supported by ext2sim, though. . .			*/
+
+    if (dev->dev_nterm < 2)
+	return 0;
+
     /* Merged devices */
     if ((esMergeDevsA || esMergeDevsC) && devIsKilled(esFMIndex++))
 	return 0;
