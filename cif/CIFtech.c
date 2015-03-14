@@ -430,6 +430,8 @@ CIFTechLimitScale(ns, ds)
     int gridup, scaledown;
     int scale, limit, expand;
 
+    if (CIFCurStyle == NULL) return FALSE;
+
     scale = CIFCurStyle->cs_scaleFactor;
     limit = CIFCurStyle->cs_gridLimit;
     expand = CIFCurStyle->cs_expander;
