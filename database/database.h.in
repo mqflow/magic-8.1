@@ -836,7 +836,6 @@ extern int DBTreeSrLabels();
 extern int DBTreeSrCells();
 extern int DBSrRoots();
 extern int DBCellEnum();
-extern int DBSrCellUses();
 extern int DBArraySr();
 extern bool DBNearestLabel();
 extern int DBSrLabelLoc();
