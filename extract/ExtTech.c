@@ -1834,7 +1834,7 @@ ExtTechLine(sectionName, argc, argv)
 		    ExtCurStyle->exts_transSDTypes[t] = (TileTypeBitMask *)
 				mallocMagic(2 * sizeof(TileTypeBitMask));
 		    ExtCurStyle->exts_transSDTypes[t][0] = termtypes[0];
-		    ExtCurStyle->exts_transSDTypes[t][1] = DBSpaceBits;
+		    ExtCurStyle->exts_transSDTypes[t][1] = DBZeroTypeBits;
 		    ExtCurStyle->exts_transSDCount[t] = nterm;
 		    ExtCurStyle->exts_transSDCap[t] = gscap;
 		    ExtCurStyle->exts_transGateCap[t] = gccap;
@@ -1919,7 +1919,7 @@ ExtTechLine(sectionName, argc, argv)
 	    {
 		case DEV_BJT:
 		    DBTechNoisyNameMask(argv[4], &termtypes[0]); /* emitter */
-		    termtypes[1] = DBSpaceBits;
+		    termtypes[1] = DBZeroTypeBits;
 		    DBTechNoisyNameMask(argv[5], &subsTypes);	 /* collector */
 		    nterm = 1;	/* emitter is the only "terminal type" expected */
 		    break;
@@ -1933,14 +1933,14 @@ ExtTechLine(sectionName, argc, argv)
 			TTMaskAndMask3(&termtypes[2], &termtypes[0], &termtypes[1]);
 
 			if (TTMaskEqual(&termtypes[0], &termtypes[1]))
-			    termtypes[1] = DBSpaceBits;	/* Make it symmetric */
+			    termtypes[1] = DBZeroTypeBits;	/* Make it symmetric */
 			else if (!TTMaskIsZero(&termtypes[2]))
 			{
 			    TechError("Device mosfet %s has overlapping drain"
 				" and source types!\n", transName);
 			    /* Should this device be disabled? */
 			}
-			termtypes[2] = DBSpaceBits;
+			termtypes[2] = DBZeroTypeBits;
 			if (strcmp(argv[6], "None"))
 		    	DBTechNoisyNameMask(argv[6], &subsTypes);   /* substrate */
 			subsName = argv[7];
@@ -1954,7 +1954,7 @@ ExtTechLine(sectionName, argc, argv)
 			/* Normal symmetric device with swappable source/drain */
 			
 			DBTechNoisyNameMask(argv[4], &termtypes[0]); /* source/drain */
-			termtypes[1] = DBSpaceBits;
+			termtypes[1] = DBZeroTypeBits;
 			if (strcmp(argv[5], "None"))
 			    DBTechNoisyNameMask(argv[5], &subsTypes);   /* substrate */
 			if (argc > 6) subsName = argv[6];
@@ -1967,7 +1967,7 @@ ExtTechLine(sectionName, argc, argv)
 
 		case DEV_DIODE:
 		    DBTechNoisyNameMask(argv[4], &termtypes[0]); /* negative types */
-		    termtypes[1] = DBSpaceBits;
+		    termtypes[1] = DBZeroTypeBits;
 		    nterm = 1;
 		    if ((argc > 4) && strcmp(argv[4], "None"))
 			DBTechNoisyNameMask(argv[4], &subsTypes);   /* substrate */
@@ -1978,7 +1978,7 @@ ExtTechLine(sectionName, argc, argv)
 
 		case DEV_RES:
 		    DBTechNoisyNameMask(argv[4], &termtypes[0]); /* terminals */
-		    termtypes[1] = DBSpaceBits;
+		    termtypes[1] = DBZeroTypeBits;
 		    nterm = 2;
 		    if ((argc > 5) && strcmp(argv[5], "None"))
 			DBTechNoisyNameMask(argv[5], &subsTypes);   /* substrate */
@@ -1989,7 +1989,7 @@ ExtTechLine(sectionName, argc, argv)
 
 		case DEV_CAP:
 		    DBTechNoisyNameMask(argv[4], &termtypes[0]); /* bottom */
-		    termtypes[1] = DBSpaceBits;
+		    termtypes[1] = DBZeroTypeBits;
 
 		    gccap = aToCap(argv[argc - 1]);		/* area cap */
 		    if ((argc > 6) && StrIsNumeric(argv[argc - 2]))
@@ -2062,7 +2062,7 @@ ExtTechLine(sectionName, argc, argv)
 		    /* terminals */
 		    for (i = iterm; i < iterm + nterm; i++)
 			DBTechNoisyNameMask(argv[iterm], &termtypes[i - iterm]);
-		    termtypes[nterm] = DBSpaceBits;
+		    termtypes[nterm] = DBZeroTypeBits;
 
 		    if (nterm == 0) i++;
 
@@ -2129,7 +2129,7 @@ ExtTechLine(sectionName, argc, argv)
 
 		    nterm = 2;
 		    DBTechNoisyNameMask(argv[4], &termtypes[0]);	/* terminals */
-		    termtypes[1] = DBSpaceBits;
+		    termtypes[1] = DBZeroTypeBits;
 
 		    if ((argc > 5) && strcmp(argv[5], "None"))
 			DBTechNoisyNameMask(argv[5], &subsTypes);   /* substrate */
@@ -2146,13 +2146,13 @@ ExtTechLine(sectionName, argc, argv)
 		{
 		    TTMaskSetMask(ExtCurStyle->exts_transConn + t, &types1);
 
-		    for (i = 0; !TTMaskHasType(&termtypes[i], TT_SPACE); i++);
+		    for (i = 0; !TTMaskIsZero(&termtypes[i]); i++);
 		    ExtCurStyle->exts_transSDTypes[t] = (TileTypeBitMask *)
 					mallocMagic((i + 1) * sizeof(TileTypeBitMask));
 			
-		    for (i = 0; !TTMaskHasType(&termtypes[i], TT_SPACE); i++)
+		    for (i = 0; !TTMaskIsZero(&termtypes[i]); i++)
 			ExtCurStyle->exts_transSDTypes[t][i] = termtypes[i];
-		    ExtCurStyle->exts_transSDTypes[t][i] = DBSpaceBits;
+		    ExtCurStyle->exts_transSDTypes[t][i] = DBZeroTypeBits;
 
 		    ExtCurStyle->exts_transSDCount[t] = nterm;
 		    ExtCurStyle->exts_transSDCap[t] = gscap;

@@ -1251,7 +1251,7 @@ extGetNativeResistClass(type, term)
     for (i = 0;; i++)
     {
 	rmask = &ExtCurStyle->exts_transSDTypes[type][i];
-	if (TTMaskHasType(rmask, TT_SPACE)) break;
+	if (TTMaskIsZero(rmask)) break;
 	tmask = rmask;
 	if (i == term) break;
     }
@@ -1362,22 +1362,32 @@ extOutputTrans(def, transList, outFile)
 	/* plane than the top type?  If so, do an area search	*/
 	/* on that plane in the area under the device node.	*/
 
-	if (extTransRec.tr_nterm == 0)
+	/* Devices may define one terminal per plane, but this	*/
+	/* method cannot handle several different layer types	*/
+	/* on one plane under the device identifier layer	*/
+	/* acting as separate device nodes.  If any terminal	*/
+	/* search fails, give up and proceed with the reduced	*/
+	/* number of terminals.					*/
+
+	while (extTransRec.tr_nterm < nsd)
 	{
 	    TileTypeBitMask *tmask;
 
-	    tmask = &ExtCurStyle->exts_transSDTypes[t][0];
+	    tmask = &ExtCurStyle->exts_transSDTypes[t][extTransRec.tr_nterm];
+	    if (TTMaskIsZero(tmask)) break;
 	    if (!TTMaskIntersect(tmask, &DBPlaneTypes[reg->treg_pnum]))
 	    {
-		/* WIP */
 		node = NULL;
 		extTransFindSubs(reg->treg_tile, t, tmask, def, &node);
-		if (node != NULL)
-		{
-		    extTransRec.tr_nterm++;
-		    extTransRec.tr_termnode[extTransRec.tr_nterm - 1] = node;
-		}
+		if (node == NULL) break;
+		extTransRec.tr_termnode[extTransRec.tr_nterm++] = node;
 	    }
+	    else if (TTMaskHasType(tmask, TT_SPACE)) {
+		/* Device node is specified as being the substrate */
+		if (glob_subsnode == NULL) break;
+		extTransRec.tr_termnode[extTransRec.tr_nterm++] = glob_subsnode;
+	    }
+	    else break;
 	}
 
 	/*
@@ -1905,7 +1915,7 @@ extOutputTrans(def, transList, outFile)
 	/* device is asymmetric, in which case source and drain do not	*/
 	/* permute, and the terminal order is fixed.			*/
 
-	if (TTMaskHasType(&ExtCurStyle->exts_transSDTypes[t][1], TT_SPACE))
+	if (TTMaskIsZero(&ExtCurStyle->exts_transSDTypes[t][1]))
 	    ExtSortTerminals(&extTransRec, ll); 
 
 	/* each non-gate terminal */
@@ -2084,9 +2094,15 @@ extTransPerimFunc(bp)
     else
         toutside = TiGetTypeExact(bp->b_outside);
 
-    for (i = 0; !TTMaskHasType(&ExtCurStyle->exts_transSDTypes[tinside][i], TT_SPACE);
-		i++)
+    for (i = 0; !TTMaskIsZero(&ExtCurStyle->exts_transSDTypes[tinside][i]); i++)
     {
+	/* TT_SPACE is allowed, for declaring that a device terminal is	*/
+	/* the substrate.  However, it should not be in the plane of	*/
+	/* the device identifier layer, so space tiles should never be	*/
+	/* flagged during a device perimeter search.			*/
+
+	if (toutside == TT_SPACE) break;
+
 	if (TTMaskHasType(&ExtCurStyle->exts_transSDTypes[tinside][i], toutside))
 	{
 	    /*
@@ -2094,7 +2110,7 @@ extTransPerimFunc(bp)
 	     * already in our table; add it if it wasn't already there.
 	     * Asymmetric devices must have terminals in order.
 	     */
-	    if (TTMaskHasType(&ExtCurStyle->exts_transSDTypes[tinside][1], TT_SPACE))
+	    if (TTMaskIsZero(&ExtCurStyle->exts_transSDTypes[tinside][1]))
 	    {
 		for (thisterm = 0; thisterm < extTransRec.tr_nterm; thisterm++)
 		    if (extTransRec.tr_termnode[thisterm] == diffNode)
@@ -2343,8 +2359,7 @@ extSpecialPerimFunc(bp, sense)
 
     /* Check all terminal classes for a matching type */
     needSurvey = FALSE;
-    for (i = 0; !TTMaskHasType(&ExtCurStyle->exts_transSDTypes[tinside][i], TT_SPACE);
-		i++)
+    for (i = 0; !TTMaskIsZero(&ExtCurStyle->exts_transSDTypes[tinside][i]); i++)
     {
 	if (TTMaskHasType(&ExtCurStyle->exts_transSDTypes[tinside][i], toutside))
 	{
