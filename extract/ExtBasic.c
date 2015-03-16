@@ -2370,6 +2370,10 @@ extSpecialPerimFunc(bp, sense)
 
     if (!sense || needSurvey)
     {
+	if (toutside == TT_SPACE)
+	    if (glob_subsnode != NULL)
+		diffNode = glob_subsnode;
+
 	/*
 	 * Since we're repeating the search, all terminals should be there.
 	 */
@@ -2382,6 +2386,7 @@ extSpecialPerimFunc(bp, sense)
 		    break;
 	    if (thisterm >= extTransRec.tr_nterm)
 	    {
+		if (toutside == TT_SPACE)
 		TxError("Internal Error in Transistor Perimeter Boundary Search!\n");
 		return 1;
 	    }

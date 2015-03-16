@@ -185,8 +185,8 @@ static keydesc devTable[] = {
     "bjt",		DEV_BJT,		5,	5,
 "name base-types emitter-types collector-types",
 
-    "capacitor",	DEV_CAP,		5,	8,
-"name top-types bottom-types [sub-types|None sub-node] [perimcap] areacap",
+    "capacitor",	DEV_CAP,		4,	8,
+"name top-types bottom-types [sub-types|None sub-node] [[perimcap] areacap]",
 
     "resistor",		DEV_RES,		4,	6,
 "name|None res-types terminal-types [sub-types|None sub-node]",
@@ -1991,7 +1991,8 @@ ExtTechLine(sectionName, argc, argv)
 		    DBTechNoisyNameMask(argv[4], &termtypes[0]); /* bottom */
 		    termtypes[1] = DBZeroTypeBits;
 
-		    gccap = aToCap(argv[argc - 1]);		/* area cap */
+		    if (argc > 5)
+			gccap = aToCap(argv[argc - 1]);		/* area cap */
 		    if ((argc > 6) && StrIsNumeric(argv[argc - 2]))
 		    {
 			gscap = aToCap(argv[argc - 2]);		/* perimeter cap */
