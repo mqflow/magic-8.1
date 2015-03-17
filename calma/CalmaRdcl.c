@@ -48,8 +48,6 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
 
 int calmaNonManhattan;
 
-extern void CIFPaintCurrent();
-
 extern HashTable calmaDefInitHash;
 
 /* forward declarations */
@@ -390,9 +388,9 @@ calmaParseStructure(filename)
      * cell by painting when instanced.  But---if this cell was
      * instanced before it was defined, then it can't be flattened.
      */
-    if (CalmaFlattenUses && (!was_called) && (npaths < 10) && (nsrefs == 0))
+    if (CalmaFlattenUses && (!was_called) && (npaths < 10))
     {
-	TxPrintf("Flattening cell %s\n", cifReadCellDef->cd_name);
+	TxPrintf("Saving contents of cell %s\n", cifReadCellDef->cd_name);
 	cifReadCellDef->cd_client = (ClientData) calmaExact();
 	cifReadCellDef->cd_flags |= CDFLATGDS;
     }
@@ -403,7 +401,31 @@ calmaParseStructure(filename)
 	 * the appropriate cell of the database.
 	 */
 
-	CIFPaintCurrent();
+	if (CIFPaintCurrent())
+	{
+	    /* CIFPaintCurrent returned 1, meaning that the processing	*/
+	    /* generated non-null geometry on one of the "fault" types.	*/
+	    /* Treat this like CalmaFlattenUses, and pull all geometry	*/
+	    /* up to the next hierarchical level.			*/
+
+	    if (!was_called)
+	    {
+		TxPrintf("Saving contents of %s\n", cifReadCellDef->cd_name);
+		cifReadCellDef->cd_client = (ClientData) calmaExact();
+		cifReadCellDef->cd_flags |= CDFLATGDS;
+	    }
+	    else
+	    {
+		int pNum;
+
+		TxError("Cell geometry fault in cell %s\n", cifReadCellDef->cd_name);
+		TxError("Cannot flatten geometry because "
+				"cell was instanced prior to definition.\n");
+
+		for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
+		    DBClearPaintPlane(cifCurReadPlanes[pNum]);
+	    }
+	}
     }
 
     DBAdjustLabelsNew(cifReadCellDef, &TiPlaneRect,
@@ -414,7 +436,7 @@ calmaParseStructure(filename)
     /* cell, or if the cell is read-only, or if "calma drcnocheck true"	*/
     /* has been issued.							*/
 
-    if (!CalmaFlattenUses || (npaths >= 10) || (nsrefs != 0))
+    if (!(cifReadCellDef->cd_flags & CDFLATGDS))
 	if (!CalmaReadOnly && !CalmaNoDRCCheck)
 	    DRCCheckThis(cifReadCellDef, TT_CHECKPAINT, &cifReadCellDef->cd_bbox);
 
@@ -842,6 +864,9 @@ calmaElementSref()
 	GDSCopyRec gdsCopyRec;
 	int pNum;
 
+	HashSearch hs;
+	HashEntry *entry;
+
 	/* To do:  Deal with arrays by modifying trans and	*/
 	/* looping over X and Y					*/
 
@@ -875,12 +900,27 @@ calmaElementSref()
 		}
 	    }
 	}
+
+	/* Pull subcells from the cell being flattened */
+
+	HashStartSearch(&hs);
+	while ((entry = HashNext(&def->cd_idHash, &hs)) != NULL)
+	{
+	    CellUse *gdsuse;
+
+	    gdsuse = (CellUse *)HashGetValue(entry);
+	    use = DBCellNewUse(def, (useid) ? useid : (char *) NULL);
+	    DBLinkCell(use, cifReadCellDef);		// Hash the ID
+	    DBSetTrans(use, &gdsuse->cu_transform);
+	    DBPlaceCell(use, cifReadCellDef);
+	}
     }
     else
     {
 	use = DBCellNewUse(def, (useid) ? useid : (char *) NULL);
 	if (isArray)
 	    DBMakeArray(use, &GeoIdentityTransform, xlo, ylo, xhi, yhi, xsep, ysep);
+	DBLinkCell(use, cifReadCellDef);		// Hash the ID
 	DBSetTrans(use, &trans);
 	DBPlaceCell(use, cifReadCellDef);
     }

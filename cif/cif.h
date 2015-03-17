@@ -65,6 +65,7 @@ extern float CIFGetOutputScale();
 extern float CIFGetInputScale();
 extern int CIFGetDefaultContactSize();
 
+extern int CIFPaintCurrent();
 extern void CIFSeeLayer();
 extern void CIFPaintLayer();
 extern void CIFSeeHierLayer();

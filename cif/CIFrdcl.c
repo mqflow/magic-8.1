@@ -483,6 +483,23 @@ CIFParseStart()
     return TRUE;
 }
 
+
+/*
+ * ----------------------------------------------------------------------------
+ * checkFaultFunc ---
+ *
+ *	Callback function for checking if any paint has been generated
+ *	on the CIF target plane for a "fault" layer.
+ * ----------------------------------------------------------------------------
+ */
+
+int checkFaultFunc(tile, clientData)
+    Tile *tile;
+    ClientData clientData;
+{
+    return 1;
+}
+
 /*
  * ----------------------------------------------------------------------------
  *
@@ -493,7 +510,8 @@ CIFParseStart()
  *	CIF cell.
  *
  * Results:
- *	None.
+ *	Return 0 on normal processing, 1 if any "fault" layer
+ *	returned any geometry.
  *
  * Side effects:
  *	Lots of information gets added to the current Magic cell.
@@ -501,16 +519,38 @@ CIFParseStart()
  * ----------------------------------------------------------------------------
  */
 
-void
+int
 CIFPaintCurrent()
 {
     Plane *plane, *swapplane;
     int i;
+    int checkFault();
 
-    for (i = 0; i < cifCurReadStyle->crs_nLayers; i += 1)
+    for (i = 0; i < cifCurReadStyle->crs_nLayers; i++)
+    {
+	if (cifCurReadStyle->crs_layers[i]->crl_flags & CIFR_FAULTLAYER)
+	{
+	    plane = CIFGenLayer(cifCurReadStyle->crs_layers[i]->crl_ops,
+			&TiPlaneRect, (CellDef *) NULL, cifCurReadPlanes);
+	
+	    if (DBSrPaintArea((Tile *)NULL, plane, &TiPlaneRect,
+			&CIFSolidBits, checkFaultFunc, (ClientData)NULL))
+	    {
+		/* Clean up before returning */
+		DBFreePaintPlane(plane);
+		TiFreePlane(plane);
+		return 1;
+	    }
+	}
+    }
+
+    for (i = 0; i < cifCurReadStyle->crs_nLayers; i++)
     {
 	TileType type;
 	extern int cifPaintCurrentFunc();	/* Forward declaration. */
+
+	if (cifCurReadStyle->crs_layers[i]->crl_flags & CIFR_FAULTLAYER)
+	    continue;
 
 	plane = CIFGenLayer(cifCurReadStyle->crs_layers[i]->crl_ops,
 	    &TiPlaneRect, (CellDef *) NULL, cifCurReadPlanes);
@@ -544,6 +584,8 @@ CIFPaintCurrent()
 
     for (i = 0; i < MAXCIFRLAYERS; i++)
 	DBClearPaintPlane(cifCurReadPlanes[i]);
+
+    return 0;
 }
 
 /* Below is the search function invoked for each CIF tile type
@@ -1239,9 +1281,9 @@ CIFReadCellCleanup(type)
 	    else
 	    {
 		if (type == 0)
-		    CIFReadError("CIF read:  Removed flattened cell %s\n", savename);
+		    TxPrintf("CIF read:  Removed flattened cell %s\n", savename);
 		else
-		    calmaReadError("GDS read:  Removed flattened cell %s\n", savename);
+		    TxPrintf("GDS read:  Removed flattened cell %s\n", savename);
 	    }
 	    UndoEnable();
 	    freeMagic(savename);

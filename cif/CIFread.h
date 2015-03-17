@@ -52,13 +52,19 @@ typedef struct
  *		a single OR operation, so it can be handled specially.
  * CIFR_TEMPLAYER: Means this layer is a temporary CIF layer, and that
  *		the "crl_magicType" should be interpreted as a CIF layer.
+ * CIFR_FAULTLAYER: Means that this layer is not a match for any other
+ *		known layer or templayer, and is probably an incomplete
+ *		subset of layers that is not suited to magic's database.
+ *		Special handling can be declared to force all cells
+ *		producing non-empty fault layers to be flattened.
  * CIFR_TEXTLABELS: Means this layer is used for text-only layers, not to
  *		be moved or electrically connected to any other layer.
  */
 
 #define CIFR_SIMPLE 1
 #define CIFR_TEMPLAYER 2
-#define CIFR_TEXTLABELS 4
+#define CIFR_FAULTLAYER 4
+#define CIFR_TEXTLABELS 8
 
 /* The following structure defines a complete CIF read-in style.
  * The constant MAXCIFRLAYERS must be less than TT_MAXTYPES, and
