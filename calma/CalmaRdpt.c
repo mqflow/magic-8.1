@@ -846,6 +846,8 @@ calmaElementText()
 	if (cifnum >= 0 && (cifCurReadStyle->crs_layers[cifnum]->crl_flags
 			& CIFR_TEXTLABELS))
 	    flags = LABEL_STICKY;
+	else if (cifCurReadStyle->crs_flags & CRF_NO_RECONNECT_LABELS)
+	    flags = LABEL_STICKY;
 	else
 	    flags = 0;
 
