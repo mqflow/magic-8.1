@@ -901,7 +901,6 @@ calmaElementSref()
 	    }
 	}
 
-#if 1
 	HashStartSearch(&hs);
 	while ((entry = HashNext(&def->cd_idHash, &hs)) != NULL)
 	{
@@ -916,18 +915,15 @@ calmaElementSref()
 		DBSetTrans(use, &gdsuse->cu_transform);
 		DBPlaceCell(use, cifReadCellDef);
 	    }
-	    else
-		calmaReadError("Error: NULL use in celldef %s?\n", def->cd_name);
+	    // else calmaReadError("Error: NULL use in celldef %s?\n", def->cd_name);
 	}
-#endif
-
     }
     else
     {
 	use = DBCellNewUse(def, (useid) ? useid : (char *) NULL);
 	if (isArray)
 	    DBMakeArray(use, &GeoIdentityTransform, xlo, ylo, xhi, yhi, xsep, ysep);
-	// DBLinkCell(use, cifReadCellDef);		// Hash the ID
+	DBLinkCell(use, cifReadCellDef);		// Hash the ID
 	DBSetTrans(use, &trans);
 	DBPlaceCell(use, cifReadCellDef);
     }
