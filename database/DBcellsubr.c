@@ -193,7 +193,7 @@ DBCellClearDef(cellDef)
 	    || TR(tile) != plane->pl_right
 	    || RT(tile) != plane->pl_top)
     {
-	DBClearCellPlane(plane);
+	DBClearCellPlane(plane, cellDef);
     }
 
     /* Reduce clutter by reinitializing the id hash table */
@@ -241,13 +241,14 @@ DBCellClearDef(cellDef)
  */
 
 void
-DBClearCellPlane(plane)
+DBClearCellPlane(plane, def)
     Plane *plane;
+    CellDef *def;
 {
     Tile *newCenterTile;
 
     /* Free all tiles from plane, and delete all uses */
-    DBFreeCellPlane(plane);
+    DBFreeCellPlane(plane, def);
 
     /* Allocate a new central space tile with a NULL body */
     newCenterTile = TiAlloc();

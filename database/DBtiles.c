@@ -806,16 +806,39 @@ enumerate:
  */
 
 void
-DBFreeCellPlane(plane)
+DBFreeCellPlane(plane, def)
     Plane *plane;	/* Plane whose storage is to be freed */
+    CellDef *def;
 {
     int dbFreeCellFunc();
+    HashSearch hs;
+    HashEntry *he;
 
     /* Don't let this search be interrupted. */
 
     SigDisableInterrupts();
     (void) TiSrArea((Tile *) NULL, plane, &TiPlaneRect,
-	    dbFreeCellFunc, (ClientData) NULL);
+	    dbFreeCellFunc, (ClientData)def);
+
+    /* Go through the cell ID hash and delete the cell uses */
+   
+    HashStartSearch(&hs);
+    while ((he = HashNext(&def->cd_idHash, &hs)) != NULL)
+    {
+	CellUse *use;
+
+	use = (CellUse *)HashGetValue(he);
+	if (use != NULL)
+	{
+	    use->cu_parent = (CellDef *) NULL;
+	    DBCellDeleteUse(use);
+	}
+    }
+
+    /* Clear out and reinitialize the hash table */
+    HashKill(&def->cd_idHash);
+    HashInit(&def->cd_idHash, 16, HT_STRINGKEYS);
+
     SigEnableInterrupts();
 }
 
@@ -827,12 +850,14 @@ DBFreeCellPlane(plane)
  */
 
 int
-dbFreeCellFunc(tile)
+dbFreeCellFunc(tile, clientdata)
     Tile *tile;
+    ClientData clientdata;
 {
     CellTileBody *body;
     CellUse *use;
     Rect *bbox;
+    CellDef *def = (CellDef *)clientdata;
 
     for (body = (CellTileBody *) TiGetBody(tile);
 	    body != NULL;
@@ -845,8 +870,25 @@ dbFreeCellFunc(tile)
 	if ((BOTTOM(tile) <= bbox->r_ybot) && (RIGHT(tile) >= bbox->r_xtop))
 	{
 	    /* The parent must be null before DBCellDeleteUse will work */
-	    use->cu_parent = (CellDef *) NULL;
-	    (void) DBCellDeleteUse(use);
+	    // use->cu_parent = (CellDef *) NULL;
+
+	    /* The use may be called multiple times.  Do not delete it.	*/
+	    /* Just make sure it exists in the cell ID hash, so that	*/
+	    /* the cells can be deleted by hash enumeration.  If it has	*/
+	    /* no cell ID, then create a random hash key for the cell.	*/
+
+	    if (use->cu_id == NULL) {
+		char tname[11];
+		int i;
+		for (i = 0; i < 10; i++)
+		    tname[i] = (char)((rand() % 90) + 33);
+		tname[10] = '\0';
+		HashFind(&def->cd_idHash, tname);
+	    }
+	    else
+		HashFind(&def->cd_idHash, use->cu_id);
+
+	    // DBCellDeleteUse(use);		// Do not do this!
 	}
 	freeMagic((char *)body);
     }
