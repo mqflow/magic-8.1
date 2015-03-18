@@ -43,7 +43,8 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
 #ifndef MAGIC_WRAPPER
 /* This must match the definition for extDevTable in extract/ExtBasic.c */
 char *extDevTable[] = {"fet", "mosfet", "asymmetric", "bjt", "devres",
-		"devcap", "diode", "subckt", "rsubckt", "msubckt", NULL};
+		"devcap", "diode", "pdiode", "ndiode", "subckt",
+		"rsubckt", "msubckt", NULL};
 #endif
 
 /*
@@ -290,6 +291,8 @@ readfile:
 			ac = 10;
 			break;
 		    case DEV_DIODE:
+		    case DEV_NDIODE:
+		    case DEV_PDIODE:
 			ac = 7;
 			break;
 		    case DEV_CAP:

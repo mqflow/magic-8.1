@@ -184,6 +184,8 @@ EFGetLengthAndWidth(dev, lptr, wptr)
 	case DEV_MSUBCKT:
 	case DEV_RSUBCKT:
 	case DEV_DIODE:
+	case DEV_PDIODE:
+	case DEV_NDIODE:
 	case DEV_CAP:
 	case DEV_RES:
 	    l = dev->dev_length;

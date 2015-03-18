@@ -337,6 +337,8 @@ spcdevHierVisit(hc, dev, scale)
 	    devchar = 'Q';
 	    break;
 	case DEV_DIODE:
+	case DEV_NDIODE:
+	case DEV_PDIODE:
 	    devchar = 'D';
 	    break;
 	case DEV_RES:
@@ -369,6 +371,8 @@ spcdevHierVisit(hc, dev, scale)
 		if (esDoResistorTee) fprintf(esSpiceF, "A");
 		break;
 	    case DEV_DIODE:
+	    case DEV_NDIODE:
+	    case DEV_PDIODE:
 		fprintf(esSpiceF, "%d", esDiodeNum++);
 		break;
 	    case DEV_CAP:
@@ -674,6 +678,7 @@ spcdevHierVisit(hc, dev, scale)
 	    break;
 
 	case DEV_DIODE:
+	case DEV_PDIODE:
 	    if (source == NULL) break;
 
 	    /* Diode is "Dnnn top bottom model"	*/
@@ -681,9 +686,33 @@ spcdevHierVisit(hc, dev, scale)
 	    spcdevOutNode(hc->hc_hierName,
 			gate->dterm_node->efnode_name->efnn_hier,
 			"diode_top", esSpiceF);
-	    spcdevOutNode(hc->hc_hierName,
+	    if (dev->dev_nterm > 1)
+		spcdevOutNode(hc->hc_hierName,
 			source->dterm_node->efnode_name->efnn_hier,
 			"diode_bot", esSpiceF);
+	    else if (subnode)
+		spcdevOutNode(hc->hc_hierName,
+			subnode->efnode_name->efnn_hier,
+			"diode_bot", esSpiceF);
+	    fprintf(esSpiceF, " %s", EFDevTypes[dev->dev_type]);
+	    break;
+
+	case DEV_NDIODE:
+	    if (source == NULL) break;
+
+	    /* Diode is "Dnnn bottom top model"	*/
+
+	    if (dev->dev_nterm > 1)
+		spcdevOutNode(hc->hc_hierName,
+			source->dterm_node->efnode_name->efnn_hier,
+			"diode_bot", esSpiceF);
+	    else if (subnode)
+		spcdevOutNode(hc->hc_hierName,
+			subnode->efnode_name->efnn_hier,
+			"diode_bot", esSpiceF);
+	    spcdevOutNode(hc->hc_hierName,
+			gate->dterm_node->efnode_name->efnn_hier,
+			"diode_top", esSpiceF);
 	    fprintf(esSpiceF, " %s", EFDevTypes[dev->dev_type]);
 	    break;
 

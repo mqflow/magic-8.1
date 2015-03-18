@@ -1765,6 +1765,8 @@ spcdevVisit(dev, hierName, scale, trans)
 	case DEV_MSUBCKT:
 	    break;
 	case DEV_DIODE:
+	case DEV_PDIODE:
+	case DEV_NDIODE:
 	    if ((dev->dev_nterm < 2) && (subnode == NULL))
 	    {
 		TxError("Diode has only one terminal\n");
@@ -1829,6 +1831,8 @@ spcdevVisit(dev, hierName, scale, trans)
 	    devchar = 'Q';
 	    break;
 	case DEV_DIODE:
+	case DEV_NDIODE:
+	case DEV_PDIODE:
 	    devchar = 'D';
 	    break;
 	case DEV_RES:
@@ -1865,6 +1869,8 @@ spcdevVisit(dev, hierName, scale, trans)
 		if (esDoResistorTee) fprintf(esSpiceF, "A");
 		break;
 	    case DEV_DIODE:
+	    case DEV_NDIODE:
+	    case DEV_PDIODE:
 		fprintf(esSpiceF, "%d", esDiodeNum++);
 		break;
 	    case DEV_CAP:
@@ -2203,6 +2209,7 @@ spcdevVisit(dev, hierName, scale, trans)
 	    break;
 
 	case DEV_DIODE:
+	case DEV_PDIODE:
 
 	    /* Diode is "Dnnn top bottom model"	*/
 
@@ -2214,6 +2221,22 @@ spcdevVisit(dev, hierName, scale, trans)
 	    else if (subnode)
 		spcdevOutNode(hierName, subnode->efnode_name->efnn_hier,
 			name, esSpiceF); 
+
+	    fprintf(esSpiceF, " %s", EFDevTypes[dev->dev_type]);
+	    break;
+
+	case DEV_NDIODE:
+
+	    /* Diode is "Dnnn bottom top model"	*/
+
+	    if (dev->dev_nterm > 1)
+		spcdevOutNode(hierName, source->dterm_node->efnode_name->efnn_hier,
+			name, esSpiceF);
+	    else if (subnode)
+		spcdevOutNode(hierName, subnode->efnode_name->efnn_hier,
+			name, esSpiceF); 
+	    spcdevOutNode(hierName, gate->dterm_node->efnode_name->efnn_hier,
+			name, esSpiceF);
 
 	    fprintf(esSpiceF, " %s", EFDevTypes[dev->dev_type]);
 	    break;
@@ -3198,6 +3221,8 @@ parallelDevs(f1, f2)
 
 	case DEV_BJT:
 	case DEV_DIODE:
+	case DEV_NDIODE:
+	case DEV_PDIODE:
 	    break;
 
 	/* There is no way to merge subcircuit devices */

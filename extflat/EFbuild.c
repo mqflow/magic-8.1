@@ -595,6 +595,8 @@ efBuildDevice(def, class, type, r, argc, argv)
 	    argstart = 3;
 	    break;
 	case DEV_DIODE:
+	case DEV_NDIODE:
+	case DEV_PDIODE:
 	    argstart = 0;
 	    break;
 	case DEV_RES:
@@ -663,6 +665,8 @@ efBuildDevice(def, class, type, r, argc, argv)
 	case DEV_MSUBCKT:
 	case DEV_SUBCKT:
 	case DEV_DIODE:
+	case DEV_NDIODE:
+	case DEV_PDIODE:
 	    n = argc - argstart;
 	    if ((n % 3) == 1)
 	    {

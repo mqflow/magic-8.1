@@ -194,6 +194,12 @@ static keydesc devTable[] = {
     "diode",		DEV_DIODE,		4,	6,
 "name pos-types neg-types [sub-types|None sub-node]",
 
+    "pdiode",		DEV_PDIODE,		4,	6,
+"name pos-types neg-types [sub-types|None sub-node]",
+
+    "ndiode",		DEV_NDIODE,		4,	6,
+"name pos-types neg-types [sub-types|None sub-node]",
+
     "subcircuit",	DEV_SUBCKT,		3,	11,
 "name dev-types [N] [term1-types ... termN-types [sub-types|None sub-node]] [options]",
 
@@ -1966,6 +1972,8 @@ ExtTechLine(sectionName, argc, argv)
 		    break;
 
 		case DEV_DIODE:
+		case DEV_PDIODE:
+		case DEV_NDIODE:
 		    DBTechNoisyNameMask(argv[4], &termtypes[0]); /* negative types */
 		    termtypes[1] = DBZeroTypeBits;
 		    nterm = 1;

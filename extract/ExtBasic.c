@@ -54,7 +54,8 @@ static char sccsid[] = "@(#)ExtBasic.c	4.13 MAGIC (Berkeley) 12/5/85";
 
 #ifdef MAGIC_WRAPPER
 char *extDevTable[] = {"fet", "mosfet", "asymmetric", "bjt", "devres",
-	"devcap", "diode", "subckt", "rsubckt", "msubckt", NULL};
+	"devcap", "diode", "pdiode", "ndiode", "subckt", "rsubckt",
+	"msubckt", NULL};
 #endif
 
 /* --------------------- Data local to this file ---------------------- */
@@ -1636,6 +1637,8 @@ extOutputTrans(def, transList, outFile)
 		break;
 
 	    case DEV_DIODE:	/* Only handle the optional substrate node */
+	    case DEV_NDIODE:
+	    case DEV_PDIODE:
 		if (subsName != NULL)
 		    fprintf(outFile, " \"%s\"", subsName);
 		break;
