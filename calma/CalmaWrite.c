@@ -1131,8 +1131,6 @@ calmaWriteContacts(f)
     Rect area, cliprect;
     int halfwidth, halfsize;
     CIFOp *op;
-    HashSearch hs;
-    HashEntry *entry;
 
     /* Turn off generation of contact arrays for the duration of this	*/
     /* subroutine, so that the contact definitions themselves will get	*/

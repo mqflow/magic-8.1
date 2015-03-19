@@ -54,8 +54,8 @@ static char sccsid[] = "@(#)ExtBasic.c	4.13 MAGIC (Berkeley) 12/5/85";
 
 #ifdef MAGIC_WRAPPER
 char *extDevTable[] = {"fet", "mosfet", "asymmetric", "bjt", "devres",
-	"devcap", "diode", "pdiode", "ndiode", "subckt", "rsubckt",
-	"msubckt", NULL};
+	"devcap", "devcaprev", "diode", "pdiode", "ndiode", "subckt",
+	"rsubckt", "msubckt", NULL};
 #endif
 
 /* --------------------- Data local to this file ---------------------- */
@@ -1814,6 +1814,7 @@ extOutputTrans(def, transList, outFile)
 		break;
 
 	    case DEV_CAP:
+	    case DEV_CAPREV:
 		hasModel = strcmp(ExtCurStyle->exts_transName[t], "None");
 		if (hasModel)
 		{

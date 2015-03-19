@@ -304,6 +304,7 @@ spcdevHierVisit(hc, dev, scale)
     {
 	case DEV_RES:
 	case DEV_CAP:
+	case DEV_CAPREV:
 	    if (dev->dev_type == esNoModelType)
 		has_model = FALSE;
 	    break;
@@ -345,6 +346,7 @@ spcdevHierVisit(hc, dev, scale)
 	    devchar = 'R';
 	    break;
 	case DEV_CAP:
+	case DEV_CAPREV:
 	    devchar = 'C';
 	    break;
 	case DEV_SUBCKT:
@@ -376,6 +378,7 @@ spcdevHierVisit(hc, dev, scale)
 		fprintf(esSpiceF, "%d", esDiodeNum++);
 		break;
 	    case DEV_CAP:
+	    case DEV_CAPREV:
 		fprintf(esSpiceF, "%d", esCapNum++);
 		break;
 	    case DEV_SUBCKT:
@@ -761,6 +764,51 @@ spcdevHierVisit(hc, dev, scale)
 	    }
 	    break;
 
+	case DEV_CAPREV:
+	    if (source == NULL) break;
+
+	    /* Capacitor is "Cnnn bottom top value"	*/
+	    /* extraction sets top=source bottom=gate	*/
+	    /* extracted units are fF; output is in fF */
+
+	    spcdevOutNode(hc->hc_hierName,
+			gate->dterm_node->efnode_name->efnn_hier,
+			"cap_bot", esSpiceF);
+	    spcdevOutNode(hc->hc_hierName,
+			source->dterm_node->efnode_name->efnn_hier,
+			"cap_top", esSpiceF);
+
+	    sdM = getCurDevMult();
+
+	    /* SPICE has two capacitor types.  If the "name" (EFDevTypes) is */
+	    /* "None", the simple capacitor type is used, and a value given. */
+	    /* If not, the "semiconductor capacitor" is used, and L and W    */
+	    /* and the device name are output.				     */
+
+	    if (!has_model)
+	    {
+		fprintf(esSpiceF, " %ffF", (double)sdM *
+				(double)(dev->dev_cap));
+	    }
+	    else
+	    {
+		fprintf(esSpiceF, " %s", EFDevTypes[dev->dev_type]);
+
+		if (esScale < 0)
+		{
+		    fprintf(esSpiceF, " w=%g l=%g", w*scale, l*scale);
+		}
+		else
+		{
+		    fprintf(esSpiceF, " w=%gu l=%gu",
+			w * scale * esScale,
+			l * scale * esScale);
+		}
+		if (sdM != 1.0)
+		    fprintf(esSpiceF, " M=%g", sdM);
+	    }
+	    break;
+
 	case DEV_FET:
 	case DEV_MOSFET:
 	case DEV_ASYMMETRIC:
@@ -914,6 +962,7 @@ spcdevHierMergeVisit(hc, dev, scale)
 			m = esFMult[cfp->esFMIndex] + (fp->l / cfp->l);
 		    break;
 		case DEV_CAP:
+		case DEV_CAPREV:
 		    if (fp->dev->dev_type == esNoModelType)
 			m = esFMult[cfp->esFMIndex] + (fp->dev->dev_cap
 				/ cfp->dev->dev_cap);
@@ -1309,6 +1358,7 @@ mergeThem:
 		        m = esFMult[cfp->esFMIndex] + (fp->l / cfp->l);
 		    break;
 		case DEV_CAP:
+		case DEV_CAPREV:
 		    if (fp->dev->dev_type == esNoModelType)
 		        m = esFMult[cfp->esFMIndex] + (fp->dev->dev_cap
 				/ cfp->dev->dev_cap);

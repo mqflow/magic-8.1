@@ -1504,7 +1504,7 @@ DBCellDefFree(cellDef)
      */
 
     SigDisableInterrupts();
-    DBFreeCellPlane(cellDef->cd_planes[PL_CELL], cellDef);
+    DBFreeCellPlane(cellDef->cd_planes[PL_CELL]);
     TiFreePlane(cellDef->cd_planes[PL_CELL]);
 
     for (pNum = PL_PAINTBASE; pNum < DBNumPlanes; pNum++)

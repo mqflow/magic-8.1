@@ -188,6 +188,9 @@ static keydesc devTable[] = {
     "capacitor",	DEV_CAP,		4,	8,
 "name top-types bottom-types [sub-types|None sub-node] [[perimcap] areacap]",
 
+    "capreverse",	DEV_CAPREV,		4,	8,
+"name bottom-types top-types [sub-types|None sub-node] [[perimcap] areacap]",
+
     "resistor",		DEV_RES,		4,	6,
 "name|None res-types terminal-types [sub-types|None sub-node]",
 
@@ -198,7 +201,7 @@ static keydesc devTable[] = {
 "name pos-types neg-types [sub-types|None sub-node]",
 
     "ndiode",		DEV_NDIODE,		4,	6,
-"name pos-types neg-types [sub-types|None sub-node]",
+"name neg-types pos-types [sub-types|None sub-node]",
 
     "subcircuit",	DEV_SUBCKT,		3,	11,
 "name dev-types [N] [term1-types ... termN-types [sub-types|None sub-node]] [options]",
@@ -1996,6 +1999,7 @@ ExtTechLine(sectionName, argc, argv)
 		    break;
 
 		case DEV_CAP:
+		case DEV_CAPREV:
 		    DBTechNoisyNameMask(argv[4], &termtypes[0]); /* bottom */
 		    termtypes[1] = DBZeroTypeBits;
 

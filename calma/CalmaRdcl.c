@@ -563,6 +563,7 @@ calmaElementSref()
     CellUse *use;
     CellDef *def;
     int gdsCopyPaintFunc();	/* Forward reference */
+    int gdsPullUses();		/* Forward reference */
     /* Added by NP */
     char *useid = NULL, *arraystr = NULL;
     int propAttrType;
@@ -864,9 +865,6 @@ calmaElementSref()
 	GDSCopyRec gdsCopyRec;
 	int pNum;
 
-	HashSearch hs;
-	HashEntry *entry;
-
 	/* To do:  Deal with arrays by modifying trans and	*/
 	/* looping over X and Y					*/
 
@@ -900,30 +898,14 @@ calmaElementSref()
 		}
 	    }
 	}
+	DBCellEnum(def, gdsPullUses, (ClientData)cifReadCellDef);
 
-	HashStartSearch(&hs);
-	while ((entry = HashNext(&def->cd_idHash, &hs)) != NULL)
-	{
-	    CellUse *gdsuse;
-
-	    gdsuse = (CellUse *)HashGetValue(entry);
-	    if (gdsuse != NULL)
-	    {
-		use = DBCellNewUse(gdsuse->cu_def, gdsuse->cu_id ?
-				gdsuse->cu_id : (char *) NULL);
-		DBLinkCell(use, cifReadCellDef);		// Hash the ID
-		DBSetTrans(use, &gdsuse->cu_transform);
-		DBPlaceCell(use, cifReadCellDef);
-	    }
-	    // else calmaReadError("Error: NULL use in celldef %s?\n", def->cd_name);
-	}
     }
     else
     {
 	use = DBCellNewUse(def, (useid) ? useid : (char *) NULL);
 	if (isArray)
 	    DBMakeArray(use, &GeoIdentityTransform, xlo, ylo, xhi, yhi, xsep, ysep);
-	DBLinkCell(use, cifReadCellDef);		// Hash the ID
 	DBSetTrans(use, &trans);
 	DBPlaceCell(use, cifReadCellDef);
     }
@@ -934,6 +916,23 @@ calmaElementSref()
     if (arraystr != NULL) freeMagic(arraystr);
 }
 
+
+/* Callback function for copying subcells from one CIF cell into another */
+
+int
+gdsPullUses(use, clientdata)
+    CellUse *use;
+    ClientData clientdata;
+{
+    CellUse *newuse;
+    CellDef *cifreaddef = (CellDef *)clientdata;
+
+    newuse = DBCellNewUse(use->cu_def, use->cu_id ?
+				use->cu_id : (char *) NULL);
+    DBSetTrans(newuse, &use->cu_transform);
+    DBPlaceCell(newuse, cifreaddef);
+    return 0;
+}
 
 /* Callback function for copying paint from one CIF cell into another */
 

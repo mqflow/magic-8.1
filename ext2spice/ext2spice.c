@@ -1796,6 +1796,7 @@ spcdevVisit(dev, hierName, scale, trans)
     {
 	case DEV_RES:
 	case DEV_CAP:
+	case DEV_CAPREV:
 	    if (dev->dev_nterm < 1) 
 		return 0;
 	    if (dev->dev_type == esNoModelType)
@@ -1839,6 +1840,7 @@ spcdevVisit(dev, hierName, scale, trans)
 	    devchar = 'R';
 	    break;
 	case DEV_CAP:
+	case DEV_CAPREV:
 	    devchar = 'C';
 	    break;
 	case DEV_SUBCKT:
@@ -1874,6 +1876,7 @@ spcdevVisit(dev, hierName, scale, trans)
 		fprintf(esSpiceF, "%d", esDiodeNum++);
 		break;
 	    case DEV_CAP:
+	    case DEV_CAPREV:
 		fprintf(esSpiceF, "%d", esCapNum++);
 		break;
 	    case DEV_SUBCKT:
@@ -2250,6 +2253,45 @@ spcdevVisit(dev, hierName, scale, trans)
 	    spcdevOutNode(hierName, gate->dterm_node->efnode_name->efnn_hier,
 			name, esSpiceF);
 	    spcdevOutNode(hierName, source->dterm_node->efnode_name->efnn_hier,
+			name, esSpiceF);
+
+	    sdM = getCurDevMult();
+
+	    /* SPICE has two capacitor types.  If the "name" (EFDevTypes) is */
+	    /* "None", the simple capacitor type is used, and a value given. */
+	    /* If not, the "semiconductor capacitor" is used, and L and W    */
+	    /* and the device name are output.				     */
+
+	    if (!has_model)
+	    {
+		fprintf(esSpiceF, " %ffF", (double)sdM *
+				(double)(dev->dev_cap));
+	    }
+	    else
+	    {
+		fprintf(esSpiceF, " %s", EFDevTypes[dev->dev_type]);
+
+		if (esScale < 0)
+		    fprintf(esSpiceF, " w=%g l=%g", w*scale, l*scale);
+		else
+		    fprintf(esSpiceF, " w=%gu l=%gu",
+			w * scale * esScale,
+			l * scale * esScale);
+
+		if (sdM != 1.0)
+		    fprintf(esSpiceF, " M=%g", sdM);
+	    }
+	    break;
+
+	case DEV_CAPREV:
+
+	    /* Capacitor is "Cnnn bottom top value"	*/
+	    /* extraction sets top=source bottom=gate	*/
+	    /* extracted units are fF; output is in fF */
+
+	    spcdevOutNode(hierName, source->dterm_node->efnode_name->efnn_hier,
+			name, esSpiceF);
+	    spcdevOutNode(hierName, gate->dterm_node->efnode_name->efnn_hier,
 			name, esSpiceF);
 
 	    sdM = getCurDevMult();
@@ -3193,6 +3235,7 @@ parallelDevs(f1, f2)
 	/* not know when it is safe to do so.				*/
 
 	case DEV_CAP:
+	case DEV_CAPREV:
 	    if ((f1->g != f2->g) || (f1->s != f2->s))
 		return NOT_PARALLEL;
 
@@ -3407,6 +3450,7 @@ mergeThem:
 		        m = esFMult[cfp->esFMIndex] + (fp->l / cfp->l);
 		    break;
 		case DEV_CAP:
+		case DEV_CAPREV:
 		    if (fp->dev->dev_type == esNoModelType)
 		        m = esFMult[cfp->esFMIndex] + (fp->dev->dev_cap
 				/ cfp->dev->dev_cap);

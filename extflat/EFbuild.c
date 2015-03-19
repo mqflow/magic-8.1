@@ -601,6 +601,7 @@ efBuildDevice(def, class, type, r, argc, argv)
 	    break;
 	case DEV_RES:
 	case DEV_CAP:
+	case DEV_CAPREV:
 	    if (hasModel)
 		argstart = 2;
 	    break;
@@ -661,6 +662,7 @@ efBuildDevice(def, class, type, r, argc, argv)
     {
 	case DEV_RES:
 	case DEV_CAP:
+	case DEV_CAPREV:
 	case DEV_RSUBCKT:
 	case DEV_MSUBCKT:
 	case DEV_SUBCKT:
@@ -746,6 +748,7 @@ efBuildDevice(def, class, type, r, argc, argv)
 
 	    break;
 	case DEV_CAP:
+	case DEV_CAPREV:
 	    if (hasModel && StrIsInt(argv[0]) && StrIsInt(argv[1]))
 	    {
 		newdev->dev_length = atoi(argv[0]);

@@ -1029,12 +1029,15 @@ simdevVisit(dev, hierName, scale, trans)
 	    fprintf(esSimF, "b");	/* sim format extension */
 	    break;
 	case DEV_DIODE:
+	case DEV_PDIODE:
+	case DEV_NDIODE:
 	    fprintf(esSimF, "D");
 	    break;
 	case DEV_RES:
 	    fprintf(esSimF, "r");
 	    break;
 	case DEV_CAP:
+	case DEV_CAPREV:
 	    fprintf(esSimF, "c");	/* sim format extension */
 	    break;
 	default:
@@ -1060,7 +1063,8 @@ simdevVisit(dev, hierName, scale, trans)
         sprintf(name, "fet");
         simdevOutNode(hierName, subnode->efnode_name->efnn_hier, name, esSimF); 
     }
-    else if (dev->dev_class == DEV_DIODE && dev->dev_nterm == 1 && subnode)
+    else if ((dev->dev_class == DEV_DIODE || dev->dev_class == DEV_PDIODE ||
+		dev->dev_class == DEV_NDIODE) && dev->dev_nterm == 1 && subnode)
     {
         sprintf(name, "fet");
         simdevOutNode(hierName, subnode->efnode_name->efnn_hier, name, esSimF); 
@@ -1109,7 +1113,11 @@ simdevVisit(dev, hierName, scale, trans)
     else if (dev->dev_class == DEV_CAP) {	/* generate a capacitor */
        fprintf(esSimF, " %f", (double)(dev->dev_cap));
     }
-    else if (dev->dev_class != DEV_DIODE) {
+    else if (dev->dev_class == DEV_CAPREV) {	/* generate a capacitor */
+       fprintf(esSimF, " %f", (double)(dev->dev_cap));
+    }
+    else if ((dev->dev_class != DEV_DIODE) && (dev->dev_class != DEV_PDIODE)
+		&& (dev->dev_class != DEV_NDIODE)) {
 
        /*
         * Scale L and W appropriately by the same amount as distance
