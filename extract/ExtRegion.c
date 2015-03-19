@@ -250,7 +250,7 @@ ExtLabelRegions(def, connTo, nodeList, clipArea)
 	    // If it is not connected to TT_SPACE, then create a new
 	    // node region for it.
 
-	    if (GEO_LABEL_IN_AREA(clipArea, &lab->lab_rect) &&
+	    if (GEO_LABEL_IN_AREA(&lab->lab_rect, clipArea) &&
 				(lab->lab_type != TT_SPACE))
 	    {
 		NodeRegion *newNode;
