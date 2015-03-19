@@ -1732,14 +1732,28 @@ dbScaleCell(cellDef, scalen, scaled)
     /* Check consistency of several global pointers	*/
     /* WARNING:  This list may not be complete!		*/
 
-    /* Also scale the position of all labels */
+    /* Also scale the position of all labels. */
+    /* If labels are the rendered-font type, scale the size as well */
 
     if (cellDef->cd_labels)
     {
+	int i;
 	for (lab = cellDef->cd_labels; lab; lab = lab->lab_next)
 	{
 	    DBScalePoint(&lab->lab_rect.r_ll, scalen, scaled);
 	    DBScalePoint(&lab->lab_rect.r_ur, scalen, scaled);
+
+	    if (lab->lab_font >= 0)
+	    {
+		DBScalePoint(&lab->lab_offset, scalen, scaled);
+		DBScaleValue(&lab->lab_size, scalen, scaled);
+
+		DBScalePoint(&lab->lab_bbox.r_ll, scalen, scaled);
+		DBScalePoint(&lab->lab_bbox.r_ur, scalen, scaled);
+		
+		for (i = 0; i < 4; i++)
+		    DBScalePoint(&lab->lab_corners[i], scalen, scaled);
+	    }
 	}
     }
 
