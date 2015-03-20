@@ -191,9 +191,8 @@ drcPrintError (celldef, rect, cptr, scx)
 
     ASSERT (cptr != (DRCCookie *) NULL, "drcPrintError");
 
-    GeoTransRect(&scx->scx_trans, rect, &r);
     area = &scx->scx_area;
-    if ((area != NULL) && (!GEO_OVERLAP(area, &r))) return;
+    if ((area != NULL) && (!GEO_OVERLAP(area, rect))) return;
     DRCErrorCount += 1;
     h = HashFind(&DRCErrorTable, cptr->drcc_why);
     i = (spointertype) HashGetValue(h);
@@ -217,13 +216,12 @@ drcListError (celldef, rect, cptr, scx)
 {
     HashEntry *h;
     int i;
-    Rect *area, r;
+    Rect *area;
 
     ASSERT (cptr != (DRCCookie *) NULL, "drcListError");
 
-    GeoTransRect(&scx->scx_trans, rect, &r);
     area = &scx->scx_area;
-    if ((area != NULL) && (!GEO_OVERLAP(area, &r))) return;
+    if ((area != NULL) && (!GEO_OVERLAP(area, rect))) return;
     DRCErrorCount += 1;
     h = HashFind(&DRCErrorTable, cptr->drcc_why);
     i = (spointertype) HashGetValue(h);
@@ -255,9 +253,10 @@ drcListallError (celldef, rect, cptr, scx)
 
     ASSERT (cptr != (DRCCookie *) NULL, "drcListallError");
 
+    // Report in top-level coordinates
     GeoTransRect(&scx->scx_trans, rect, &r);
     area = &scx->scx_area;
-    if ((area != NULL) && (!GEO_OVERLAP(area, &r))) return;
+    if ((area != NULL) && (!GEO_OVERLAP(area, rect))) return;
     DRCErrorCount += 1;
     h = HashFind(&DRCErrorTable, cptr->drcc_why);
     lobj = (Tcl_Obj *) HashGetValue(h);
