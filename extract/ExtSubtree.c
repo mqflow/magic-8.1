@@ -187,7 +187,7 @@ extSubtree(parentUse, f)
 	    // the labels.
 
 	    for (lab = def->cd_labels; lab; lab = lab->lab_next)
-		if (GEO_OVERLAP(&lab->lab_rect, &r))
+		if (GEO_OVERLAP(&lab->lab_rect, &r) || GEO_TOUCH(&lab->lab_rect, &r))
 		    result |= GeoIncludeAll(&lab->lab_rect, &ha.ha_interArea);
 
 	    if (result)
