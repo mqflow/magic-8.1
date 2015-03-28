@@ -97,8 +97,12 @@ extHierSubstrate(ha, use, x, y)
     node1 = nn ? nn->nn_node : extHierNewNode(he);
 
     /* Find the child's substrate node */
-
     nodeList = extFindNodes(use->cu_def, (Rect *) NULL, TRUE);
+
+    /* Make sure substrate labels are represented */
+    ExtLabelRegions(use->cu_def, ExtCurStyle->exts_nodeConn, &nodeList,
+			&TiPlaneRect);
+
     ExtResetTiles(use->cu_def, extUnInit);
 
     name2 = extNodeName(temp_subsnode);
