@@ -59,6 +59,71 @@ int extHierConnectFunc1();
 int extHierConnectFunc2();
 Node *extHierNewNode();
 
+
+/*----------------------------------------------*/
+/* extHierSubstrate				*/
+/*						*/
+/* Find the substrate node of a child cell and	*/
+/* make a connection between parent and child	*/
+/* substrates.  If either of the substrate 	*/
+/* nodes is already in the hash table, then the	*/
+/* table will be updated as necessary.		*/
+/*----------------------------------------------*/
+
+void
+extHierSubstrate(ha, use)
+    HierExtractArg *ha; 	// Contains parent def and hash table
+    CellUse *use;		// Child use
+{
+    NodeRegion *nodeList;
+    HashTable *table = &ha->ha_connHash;
+    HashEntry *he;
+    NodeName *nn;
+    Node *node1, *node2;
+    char *name1, *name2, *childname;
+    CellDef *def;
+
+    NodeRegion *extFindNodes();
+
+    def = (CellDef *)ha->ha_parentUse->cu_def;
+
+    /* Register the name of the parent's substrate */
+    /* The parent def's substrate node is in glob_subsnode */
+
+    name1 = extNodeName(glob_subsnode);
+    he = HashFind(table, name1);
+    nn = (NodeName *) HashGetValue(he);
+    node1 = nn ? nn->nn_node : extHierNewNode(he);
+
+    /* Find the child's substrate node */
+
+    nodeList = extFindNodes(use->cu_def, (Rect *) NULL, TRUE);
+    ExtResetTiles(use->cu_def, extUnInit);
+
+    name2 = extNodeName(temp_subsnode);
+    childname = mallocMagic(strlen(name2) + strlen(use->cu_id) + 2);
+    sprintf(childname, "%s/%s", use->cu_id, name2);
+    he = HashFind(table, childname);
+    nn = (NodeName *) HashGetValue(he);
+    node2 = nn ? nn->nn_node : extHierNewNode(he);
+
+    freeMagic(childname);
+
+    if (node1 != node2)
+    {
+       /*
+        * Both sets of names will now point to node1.
+        */
+	for (nn = node2->node_names; nn->nn_next; nn = nn->nn_next)
+		nn->nn_node = node1;
+	nn->nn_node = node1;
+	nn->nn_next = node1->node_names;
+	node1->node_names = node2->node_names;
+	freeMagic((char *) node2);
+    }
+    freeMagic(nodeList);
+}
+
 /*
  * ----------------------------------------------------------------------------
  *

@@ -355,7 +355,7 @@ extSubtreeInteraction(ha)
 #ifdef	notdef
     extCopyPaint(ha->ha_parentUse->cu_def, &ha->ha_interArea, oneDef);
 #endif	/* notdef */
-    oneFlat->et_nodes = extFindNodes(oneDef, &ha->ha_clipArea);
+    oneFlat->et_nodes = extFindNodes(oneDef, &ha->ha_clipArea, FALSE);
     if ((ExtOptions & (EXT_DOCOUPLING|EXT_DOADJUST))
 		   == (EXT_DOCOUPLING|EXT_DOADJUST))
     {
@@ -392,7 +392,7 @@ extSubtreeInteraction(ha)
 	 * Don't reset ha_lookNames, since we still need to be able to
 	 * refer to nodes in the parent.
 	 */
-	ha->ha_cumFlat.et_nodes = extFindNodes(cumDef, &ha->ha_clipArea);
+	ha->ha_cumFlat.et_nodes = extFindNodes(cumDef, &ha->ha_clipArea, FALSE);
 	ExtLabelRegions(cumDef, ExtCurStyle->exts_nodeConn,
 			&(ha->ha_cumFlat.et_nodes), &ha->ha_clipArea);
 	if (ExtOptions & EXT_DOCOUPLING)
@@ -619,7 +619,7 @@ extSubtreeFunc(scx, ha)
      * hard way.
      */
     oneDef = oneFlat->et_use->cu_def;
-    oneFlat->et_nodes = extFindNodes(oneDef, &ha->ha_clipArea),
+    oneFlat->et_nodes = extFindNodes(oneDef, &ha->ha_clipArea, FALSE);
     ExtLabelRegions(oneDef, ExtCurStyle->exts_nodeConn,
 		&(oneFlat->et_nodes), &ha->ha_clipArea);
     if ((ExtOptions & (EXT_DOCOUPLING|EXT_DOADJUST))
@@ -673,52 +673,17 @@ extSubtreeFunc(scx, ha)
 	 */
 	ha->ha_cumFlat.et_nodes =
 	    (NodeRegion *) ExtFindRegions(cumUse->cu_def, &TiPlaneRect,
-				&DBAllButSpaceBits, ExtCurStyle->exts_nodeConn, extUnInit,
-				extHierLabFirst, (int (*)()) NULL);
+				&DBAllButSpaceBits, ExtCurStyle->exts_nodeConn,
+				extUnInit, extHierLabFirst, (int (*)()) NULL);
 	ExtLabelRegions(cumUse->cu_def, ExtCurStyle->exts_nodeConn,
 			&(ha->ha_cumFlat.et_nodes), &TiPlaneRect);
     }
 
-    /* Process substrate connection 				*/
-    /* save_subsnode connects to glob_subsnode 			*/
-    /* (node names get chained together, one node gets removed)	*/
-
-    if (save_subsnode != NULL && glob_subsnode != NULL &&
-		save_subsnode->nreg_labels != NULL &&
-		glob_subsnode->nreg_labels != NULL)
-    {
-	HashTable *table = &ha->ha_connHash;
-	HashEntry *he;
-	NodeName *nn;
-	Node *node1, *node2;
-
-	/* Register the name, like is done in extHierConnectFunc2 */
-	he = HashFind(table, save_subsnode->nreg_labels->ll_label->lab_text);
-	nn = (NodeName *) HashGetValue(he);
-	node1 = nn ? nn->nn_node : extHierNewNode(he);
-
-	he = HashFind(table, glob_subsnode->nreg_labels->ll_label->lab_text);
-	nn = (NodeName *) HashGetValue(he);
-	node2 = nn ? nn->nn_node : extHierNewNode(he);
-
-	if (node1 != node2)
-	{
-	    /*
-	     * Both sets of names will now point to node1.
-	     * We don't need to update node_cap since it
-	     * hasn't been computed yet.
-	     */
-	    for (nn = node2->node_names; nn->nn_next; nn = nn->nn_next)
-	        nn->nn_node = node1;
-	    nn->nn_node = node1;
-	    nn->nn_next = node1->node_names;
-	    node1->node_names = node2->node_names;
-	    freeMagic((char *) node2);
-	}
-    }
-
     /* Process connections; this updates ha->ha_connHash */
     extHierConnections(ha, &ha->ha_cumFlat, oneFlat);
+
+    /* Process substrate connection */
+    extHierSubstrate(ha, use);
 
     /* Free the cumulative node list we extracted above */
     if (ha->ha_cumFlat.et_nodes)

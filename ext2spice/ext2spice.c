@@ -224,6 +224,7 @@ CmdExtToSpice(w, cmd)
     char **argv = cmd->tx_argv;
     char **msg;
     char *resstr = NULL;
+    char *substr = NULL;
     bool err_result, locDoSubckt;
 
     short sd_rclass;
@@ -853,17 +854,16 @@ runexttospice:
 	EFVisitResists(spcresistVisit, (ClientData) NULL);
 	EFVisitSubcircuits(subcktVisit, (ClientData) NULL);
 
-	if (EFCompat == FALSE)
-	{
-	    /* Visit nodes to find the substrate node */
-	    EFVisitNodes(spcsubVisit, (ClientData)&resstr);
-	    if (resstr == NULL) resstr = StrDup((char **)NULL, "0");
-	}
+	/* Visit nodes to find the substrate node */
+	EFVisitNodes(spcsubVisit, (ClientData)&substr);
+	if (substr == NULL)
+	    substr = StrDup((char **)NULL, "0");
+
 	(void) sprintf( esSpiceCapFormat, "C%%d %%s %s %%.%dlffF%%s",
-			resstr, esCapAccuracy);
+			substr, esCapAccuracy);
 	EFVisitNodes(spcnodeVisit, (ClientData) NULL);
 
-	if (EFCompat == FALSE) freeMagic(resstr);
+	if (EFCompat == FALSE) freeMagic(substr);
 
 	if ((esDoSubckt == TRUE) || (locDoSubckt == TRUE))
 	    fprintf(esSpiceF, ".ends\n");

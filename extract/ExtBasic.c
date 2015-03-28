@@ -111,8 +111,8 @@ typedef struct LB1
 } LinkedBoundary;
 
 LinkedBoundary **extSpecialBounds;	/* Linked Boundary List */
-NodeRegion  	*glob_subsnode;		/* Global substrate node */
-static Label	*subsLabel = NULL;	/* Label used for substrate */
+NodeRegion *glob_subsnode = NULL;	/* Global substrate node */
+NodeRegion *temp_subsnode = NULL;	/* Last subsnode found */
 
 /* Structure used for finding substrate connections on implicitly-defined
  * substrates
@@ -211,7 +211,9 @@ extBasic(def, outFile)
      * Use a special-purpose version of ExtFindRegions for speed.
      */
     if (!SigInterruptPending)
-	nodeList = extFindNodes(def, (Rect *) NULL);
+	nodeList = extFindNodes(def, (Rect *) NULL, FALSE);
+
+    glob_subsnode = temp_subsnode;	// Keep a record of the def's substrate
 
     /* Assign the labels to their associated regions */
     if (!SigInterruptPending)
@@ -2816,7 +2818,6 @@ extTransEach(tile, pNum, arg)
     return (0);
 }
 
-
 /*
  * ----------------------------------------------------------------------------
  *
@@ -2841,11 +2842,12 @@ Stack *extNodeStack = NULL;
 Rect *extNodeClipArea = NULL;
 
 NodeRegion *
-extFindNodes(def, clipArea)
+extFindNodes(def, clipArea, subonly)
     CellDef *def;	/* Def whose nodes are being found */
     Rect *clipArea;	/* If non-NULL, ignore perimeter and area that extend
 			 * outside this rectangle.
 			 */
+    bool subonly;	/* If true, only find the substrate node, and return */
 {
     int extNodeAreaFunc();
     int extSubsFunc();
@@ -2856,9 +2858,6 @@ extFindNodes(def, clipArea)
     /* Reset perimeter and area prior to node extraction */
     for (n = 0; n < ExtCurStyle->exts_numResistClasses; n++)
 	extResistArea[n] = extResistPerim[n] = 0;
-
-    /* Also reset the substrate node pointer */
-    glob_subsnode = (NodeRegion *)NULL;
 
     extNodeClipArea = clipArea;
     if (extNodeStack == (Stack *) NULL)
@@ -2873,6 +2872,8 @@ extFindNodes(def, clipArea)
     /* to the substrate and push them onto the stack.  Then	 */
     /* call extNodeAreaFunc() on the first of these to generate	 */
     /* a single substrate node.					 */
+
+    temp_subsnode = (NodeRegion *)NULL;		// Reset for new search
 
     TTMaskZero(&subsTypesNonSpace);
     TTMaskSetMask(&subsTypesNonSpace, &ExtCurStyle->exts_globSubstrateTypes);
@@ -2892,46 +2893,32 @@ extFindNodes(def, clipArea)
 
     /* If there was a substrate connection, process it and everything	*/
     /* that was connected to it.  If not, then create a new node	*/
-    /* (named "0" by default) to represent the substrate.		*/
+    /* to represent the substrate.					*/
 
     if (!StackEmpty(extNodeStack))
     {
 	Tile *tile;
 	int tilePlaneNum;
+
 	POPTILE(tile, tilePlaneNum);
 	arg.fra_pNum = tilePlaneNum;
 	extNodeAreaFunc(tile, &arg);
-	glob_subsnode = (NodeRegion *)arg.fra_region;
+	temp_subsnode = (NodeRegion *)arg.fra_region;
     }
     else if (ExtCurStyle->exts_globSubstratePlane != -1)
     {
-	LabelList *ll;
+	NodeRegion *loc_subsnode;
 
 	extNodeAreaFunc((Tile *)NULL, (FindRegion *)&arg);
-	glob_subsnode = (NodeRegion *)arg.fra_region;
-	glob_subsnode->nreg_pnum = ExtCurStyle->exts_globSubstratePlane;
-	glob_subsnode->nreg_type = TT_SPACE;
-	glob_subsnode->nreg_ll.p_x = MINFINITY + 3;
-	glob_subsnode->nreg_ll.p_y = MINFINITY + 3;
-
-	if (subsLabel == NULL)
-	{
-	    subsLabel = (Label *) mallocMagic((unsigned) (sizeof (Label)));
-	    subsLabel->lab_type = TT_SPACE;
-	    subsLabel->lab_just = GEO_NORTH;
-	    subsLabel->lab_flags = LABEL_GENERATE;
-	    strcpy(subsLabel->lab_text, "0");
-	    subsLabel->lab_rect = TiPlaneRect;
-	    subsLabel->lab_next = (Label *)NULL;
-	}
-
-	ll = (LabelList *) mallocMagic((unsigned) (sizeof (LabelList)));
-	ll->ll_attr = LL_NOATTR;
-	ll->ll_next = (LabelList *) NULL;
-	ll->ll_label = subsLabel;
-
-	glob_subsnode->nreg_labels = ll;
+	loc_subsnode = (NodeRegion *)arg.fra_region;
+	loc_subsnode->nreg_pnum = ExtCurStyle->exts_globSubstratePlane;
+	loc_subsnode->nreg_type = TT_SPACE;
+	loc_subsnode->nreg_ll.p_x = MINFINITY + 3;
+	loc_subsnode->nreg_ll.p_y = MINFINITY + 3;
+	loc_subsnode->nreg_labels = NULL;
+	temp_subsnode = loc_subsnode;
     }
+    if (subonly == TRUE) return ((NodeRegion *) arg.fra_region);
 
     /* Second pass:  Find all other nodes */
 

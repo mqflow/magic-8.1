@@ -1010,8 +1010,8 @@ extern int extNumWarnings;	/* Number warning messages so far */
 extern CellUse *extParentUse;	/* Dummy use for def being extracted */
 extern ClientData extNbrUn;	/* Ditto */
 
-extern NodeRegion *save_subsnode;	/* Substrate node for cell def */
-extern NodeRegion *glob_subsnode;	/* Substrate connection to subcell */
+extern NodeRegion *glob_subsnode;	/* Substrate node for cell def */
+extern NodeRegion *temp_subsnode;	/* Substrate connection to subcell */
 
     /*
      * This is really a (Stack *), but we use the struct tag to avoid

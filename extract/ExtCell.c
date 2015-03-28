@@ -50,7 +50,6 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
  * been marked with their associated region.
  */
 ClientData extUnInit = (ClientData) CLIENTDEFAULT;
-NodeRegion *save_subsnode = (NodeRegion *)NULL;
 
 
 /* ------------------------ Data local to this file ------------------- */
@@ -234,7 +233,6 @@ extCellFile(def, f, doLength)
     /* Extract the mask information in this cell */
     reg = (NodeRegion *) NULL;
     if (!SigInterruptPending) reg = extBasic(def, f);
-    save_subsnode = glob_subsnode;
 
     /* Do hierarchical extraction */
     extParentUse->cu_def = def;
