@@ -605,7 +605,8 @@ extArrayInterFunc(use, trans, x, y, ha)
     /* Process connections */
     extHierConnections(ha, extArrayPrimary, oneFlat);
 
-    /* To do:  Handle glob_subsnode. . . */
+    /* Process substrate connection */
+    extHierSubstrate(ha, use, x, y);
 
     ha->ha_cumFlat.et_nodes = (NodeRegion *) NULL;
     if (ExtOptions & EXT_DOADJUST)

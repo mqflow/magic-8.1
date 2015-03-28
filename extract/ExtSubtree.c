@@ -683,7 +683,7 @@ extSubtreeFunc(scx, ha)
     extHierConnections(ha, &ha->ha_cumFlat, oneFlat);
 
     /* Process substrate connection */
-    extHierSubstrate(ha, use);
+    extHierSubstrate(ha, use, -1, -1);
 
     /* Free the cumulative node list we extracted above */
     if (ha->ha_cumFlat.et_nodes)

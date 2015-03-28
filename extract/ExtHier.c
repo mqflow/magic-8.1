@@ -71,9 +71,10 @@ Node *extHierNewNode();
 /*----------------------------------------------*/
 
 void
-extHierSubstrate(ha, use)
+extHierSubstrate(ha, use, x, y)
     HierExtractArg *ha; 	// Contains parent def and hash table
     CellUse *use;		// Child use
+    int x, y;			// Array subscripts, or -1 if not an array
 {
     NodeRegion *nodeList;
     HashTable *table = &ha->ha_connHash;
@@ -101,8 +102,18 @@ extHierSubstrate(ha, use)
     ExtResetTiles(use->cu_def, extUnInit);
 
     name2 = extNodeName(temp_subsnode);
-    childname = mallocMagic(strlen(name2) + strlen(use->cu_id) + 2);
-    sprintf(childname, "%s/%s", use->cu_id, name2);
+
+    if (x >= 0 && y >= 0)
+    {
+	/* Process array information */
+	childname = mallocMagic(strlen(name2) + strlen(use->cu_id) + 14);
+	sprintf(childname, "%s[%d,%d]/%s", use->cu_id, x, y, name2);
+    }
+    else
+    {
+	childname = mallocMagic(strlen(name2) + strlen(use->cu_id) + 2);
+	sprintf(childname, "%s/%s", use->cu_id, name2);
+    }
     he = HashFind(table, childname);
     nn = (NodeName *) HashGetValue(he);
     node2 = nn ? nn->nn_node : extHierNewNode(he);
