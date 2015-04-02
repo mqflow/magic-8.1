@@ -609,51 +609,50 @@ efBuildDevice(def, class, type, r, argc, argv)
 	case DEV_MSUBCKT:
 	case DEV_RSUBCKT:
 	    argstart = 0;
+    }
 
-	    /* Parse initial arguments for parameters */
-	    while ((pptr = strchr(argv[argstart], '=')) != NULL)
-	    {
-		pptr++;
-		switch(*argv[argstart])
+    /* Parse initial arguments for parameters */
+    while ((pptr = strchr(argv[argstart], '=')) != NULL)
+    {
+	pptr++;
+	switch(*argv[argstart])
+	{
+	    case 'a':
+		if ((pptr - argv[argstart]) == 2)
+		    devtmp.dev_area = atoi(pptr);
+		else
 		{
-		    case 'a':
-			if ((pptr - argv[argstart]) == 2)
-			    devtmp.dev_area = atoi(pptr);
-			else
-			{
-			    pn = *(argv[argstart] + 1) - '0';
-			    if (pn == 0)
-				devtmp.dev_area = atoi(pptr);
-			    /* Otherwise, punt */
-			}
-			break;
-		    case 'p':
-			if ((pptr - argv[argstart]) == 2)
-			    devtmp.dev_perim = atoi(pptr);
-			else
-			{
-			    pn = *(argv[argstart] + 1) - '0';
-			    if (pn == 0)
-				devtmp.dev_perim = atoi(pptr);
-			    /* Otherwise, punt */
-			}
-			break;
-		    case 'l':
-			devtmp.dev_length = atoi(pptr);
-			break;
-		    case 'w':
-			devtmp.dev_width = atoi(pptr);
-			break;
-		    case 'c':
-			devtmp.dev_cap = (float)atof(pptr);
-			break;
-		    case 'r':
-			devtmp.dev_res = (float)atof(pptr);
-			break;
+		    pn = *(argv[argstart] + 1) - '0';
+		    if (pn == 0)
+			devtmp.dev_area = atoi(pptr);
+		    /* Otherwise, punt */
 		}
-		argstart++;
-	    }
-	    break;
+		break;
+	    case 'p':
+		if ((pptr - argv[argstart]) == 2)
+		    devtmp.dev_perim = atoi(pptr);
+		else
+		{
+		    pn = *(argv[argstart] + 1) - '0';
+		    if (pn == 0)
+			devtmp.dev_perim = atoi(pptr);
+		    /* Otherwise, punt */
+		}
+		break;
+	    case 'l':
+		devtmp.dev_length = atoi(pptr);
+		break;
+	    case 'w':
+		devtmp.dev_width = atoi(pptr);
+		break;
+	    case 'c':
+		devtmp.dev_cap = (float)atof(pptr);
+		break;
+	    case 'r':
+		devtmp.dev_res = (float)atof(pptr);
+		break;
+	}
+	argstart++;
     }
 
     /* Check for optional substrate node */

@@ -1617,6 +1617,232 @@ topVisit(def)
 /*
  * ----------------------------------------------------------------------------
  *
+ * spcWriteParams ---
+ *
+ * Write parameters to a device line in SPICE output.  This is normally
+ * restricted to subcircuit devices but may include other devices to
+ * accomodate various extensions to the basic SPICE format.
+ *
+ * ----------------------------------------------------------------------------
+ */
+
+void
+spcWriteParams(dev, hierName, scale, l, w, sdM)
+    Dev *dev;		/* Dev being output */
+    HierName *hierName;	/* Hierarchical path down to this dev */
+    float scale;	/* Scale transform for output */
+    int l;		/* Device length, in internal units */
+    int w;		/* Device width, in internal units */
+    float sdM;		/* Device multiplier */
+{
+    bool hierD;
+    DevParam *plist;
+    int parmval;
+    EFNode *dnode, *subnodeFlat = NULL;
+
+    bool extHierSDAttr();
+
+    plist = efGetDeviceParams(EFDevTypes[dev->dev_type]);
+    while (plist != NULL)
+    {
+	switch (plist->parm_type[0])
+	{
+	    case 'a':
+		// Check for area of terminal node vs. device area
+		if (plist->parm_type[1] == '\0' || plist->parm_type[1] == '0')
+		{
+		    fprintf(esSpiceF, " %s=", plist->parm_name);
+		    parmval = dev->dev_area;
+		    if (esScale < 0)
+			fprintf(esSpiceF, "%g", parmval * scale * scale);
+		    else if (plist->parm_scale != 1.0)
+			fprintf(esSpiceF, "%g", parmval * scale * scale
+				* esScale * esScale * plist->parm_scale
+				* 1E-12);
+		    else
+			fprintf(esSpiceF, "%gp", parmval * scale * scale
+				* esScale * esScale);
+		}
+		else 
+		{
+		    int pn;
+
+		    pn = plist->parm_type[1] - '0';
+		    if (pn >= dev->dev_nterm) pn = dev->dev_nterm - 1;
+
+		    hierD = extHierSDAttr(&dev->dev_terms[pn]);
+
+		    // For parameter a<n> followed by parameter p<n>,
+		    // process both at the same time.
+
+		    if (plist->parm_next && plist->parm_next->parm_type[0]
+				== 'p' && plist->parm_next->parm_type[1]
+				== plist->parm_type[1])
+		    {
+			if (hierD)
+			    spcnAPHier(&dev->dev_terms[pn], hierName,
+				esFetInfo[dev->dev_type].resClassSD,
+				scale, plist->parm_type,
+				plist->parm_next->parm_type,
+				sdM, esSpiceF);
+			else
+			{
+			    dnode = SpiceGetNode(hierName,
+			 	dev->dev_terms[pn].dterm_node->efnode_name->efnn_hier);
+			    spcnAP(dnode, esFetInfo[dev->dev_type].resClassSD,
+				scale, plist->parm_name,
+				plist->parm_next->parm_name,
+				sdM, esSpiceF, w);
+		 	}
+			plist = plist->parm_next;
+		    }
+		    else
+		    {
+			if (hierD)
+			    spcnAPHier(&dev->dev_terms[pn], hierName,
+				esFetInfo[dev->dev_type].resClassSD,
+				scale, plist->parm_type, NULL,
+				sdM, esSpiceF);
+			else
+			{
+			    dnode = SpiceGetNode(hierName,
+			    	dev->dev_terms[pn].dterm_node->efnode_name->efnn_hier);
+			    spcnAP(dnode, esFetInfo[dev->dev_type].resClassSD,
+				scale, plist->parm_name, NULL,
+				sdM, esSpiceF, w);
+			}
+		    }
+		}
+
+		break;
+	    case 'p':
+		// Check for area of terminal node vs. device area
+		if (plist->parm_type[1] == '\0' || plist->parm_type[1] == '0')
+		{
+		    fprintf(esSpiceF, " %s=", plist->parm_name);
+		    parmval = dev->dev_perim;
+		    if (esScale < 0)
+			fprintf(esSpiceF, "%g", parmval * scale);
+		    else if (plist->parm_scale != 1.0)
+			fprintf(esSpiceF, "%g", parmval * scale
+				* esScale * plist->parm_scale * 1E-6);
+		    else
+			fprintf(esSpiceF, "%gu", parmval * scale * esScale);
+		}
+		else 
+		{
+		    int pn;
+
+		    pn = plist->parm_type[1] - '0';
+		    if (pn >= dev->dev_nterm) pn = dev->dev_nterm - 1;
+
+		    hierD = extHierSDAttr(&dev->dev_terms[pn]);
+
+		    // For parameter p<n> followed by parameter a<n>,
+		    // process both at the same time.
+
+		    if (plist->parm_next && plist->parm_next->parm_type[0]
+				== 'a' && plist->parm_next->parm_type[1]
+				== plist->parm_type[1])
+		    {
+			if (hierD)
+			    spcnAPHier(&dev->dev_terms[pn], hierName,
+				esFetInfo[dev->dev_type].resClassSD,
+				scale, plist->parm_next->parm_type,
+				plist->parm_type, sdM, esSpiceF);
+			else
+			{
+			    dnode = SpiceGetNode(hierName,
+			 	dev->dev_terms[pn].dterm_node->efnode_name->efnn_hier);
+			    spcnAP(dnode, esFetInfo[dev->dev_type].resClassSD,
+				scale, plist->parm_next->parm_name,
+				plist->parm_name, sdM, esSpiceF, w);
+		 	}
+			plist = plist->parm_next;
+		    }
+		    else
+		    {
+			if (hierD)
+			    spcnAPHier(&dev->dev_terms[pn], hierName,
+				esFetInfo[dev->dev_type].resClassSD,
+				scale, NULL, plist->parm_type,
+				sdM, esSpiceF);
+			else
+			{
+			    dnode = SpiceGetNode(hierName,
+			    	dev->dev_terms[pn].dterm_node->efnode_name->efnn_hier);
+			    spcnAP(dnode, esFetInfo[dev->dev_type].resClassSD,
+				scale, NULL, plist->parm_name,
+				sdM, esSpiceF, w);
+			}
+		    }
+		}
+		break;
+
+	    case 'l':
+		fprintf(esSpiceF, " %s=", plist->parm_name);
+		if (esScale < 0)
+		    fprintf(esSpiceF, "%g", l * scale);
+		else if (plist->parm_scale != 1.0)
+		    fprintf(esSpiceF, "%g", l * scale * esScale
+				* plist->parm_scale * 1E-6);
+		else
+		    fprintf(esSpiceF, "%gu", l * scale * esScale);
+		break;
+	    case 'w':
+		fprintf(esSpiceF, " %s=", plist->parm_name);
+		if (esScale < 0)
+		    fprintf(esSpiceF, "%g", w * scale);
+		else if (plist->parm_scale != 1.0)
+		    fprintf(esSpiceF, "%g", w * scale * esScale
+				* plist->parm_scale * 1E-6);
+		else
+		    fprintf(esSpiceF, "%gu", w * scale * esScale);
+		break;
+	    case 's':
+		fprintf(esSpiceF, " %s=", plist->parm_name);
+		subnodeFlat = spcdevSubstrate(hierName,
+			dev->dev_subsnode->efnode_name->efnn_hier,
+			dev->dev_type, esSpiceF);
+		break;
+	    case 'x':
+		fprintf(esSpiceF, " %s=", plist->parm_name);
+		if (esScale < 0)
+		    fprintf(esSpiceF, "%g", dev->dev_rect.r_xbot * scale);
+		else if (plist->parm_scale != 1.0)
+		    fprintf(esSpiceF, "%g", dev->dev_rect.r_xbot * scale
+				* esScale * plist->parm_scale * 1E-6);
+		else
+		    fprintf(esSpiceF, "%gu", dev->dev_rect.r_xbot * scale
+				* esScale);
+		break;
+	    case 'y':
+		fprintf(esSpiceF, " %s=", plist->parm_name);
+		if (esScale < 0)
+		    fprintf(esSpiceF, "%g", dev->dev_rect.r_ybot * scale);
+		else if (plist->parm_scale != 1.0)
+		    fprintf(esSpiceF, "%g", dev->dev_rect.r_ybot * scale
+				* esScale * plist->parm_scale * 1E-6);
+		else
+		    fprintf(esSpiceF, "%gu", dev->dev_rect.r_ybot * scale
+				* esScale);
+		break;
+	    case 'r':
+		fprintf(esSpiceF, " %s=", plist->parm_name);
+		fprintf(esSpiceF, "%f", (double)(dev->dev_res));
+		break;
+	    case 'c':
+		fprintf(esSpiceF, " %s=", plist->parm_name);
+		fprintf(esSpiceF, "%ff", (double)(dev->dev_cap));
+		break;
+	}
+	plist = plist->parm_next;
+    }
+}
+
+/*
+ * ----------------------------------------------------------------------------
+ *
  * esOutputResistor ---
  *
  * Routine used by spcdevVisit to print a resistor device.  This
@@ -1668,6 +1894,7 @@ esOutputResistor(dev, hierName, scale, term1, term2, has_model, l, w, dscale)
     {
 	fprintf(esSpiceF, " %f", ((double)(dev->dev_res)
 			/ (double)(dscale)) / (double)sdM);
+	spcWriteParams(dev, hierName, scale, l, w, sdM);
     }
     else
     {
@@ -1680,6 +1907,7 @@ esOutputResistor(dev, hierName, scale, term1, term2, has_model, l, w, dscale)
 		w * scale * esScale,
 		((l * scale * esScale) / dscale));
 
+	spcWriteParams(dev, hierName, scale, l, w, sdM);
 	if (sdM != 1.0)
 	    fprintf(esSpiceF, " M=%g", sdM);
     }
@@ -1913,6 +2141,7 @@ spcdevVisit(dev, hierName, scale, trans)
 			name, esSpiceF);
 
 	    fprintf(esSpiceF, " %s", EFDevTypes[dev->dev_type]);
+	    spcWriteParams(dev, hierName, scale, l, w, sdM);
 	    break;
 
 	case DEV_MSUBCKT:
@@ -1978,201 +2207,7 @@ spcdevVisit(dev, hierName, scale, trans)
 	    /* Write all requested parameters to the subcircuit call.	*/
 
 	    sdM = getCurDevMult();
-	    while (plist != NULL)
-	    {
-		switch (plist->parm_type[0])
-		{
-		    case 'a':
-			// Check for area of terminal node vs. device area
-			if (plist->parm_type[1] == '\0' || plist->parm_type[1] == '0')
-			{
-			    fprintf(esSpiceF, " %s=", plist->parm_name);
-			    parmval = dev->dev_area;
-			    if (esScale < 0)
-				fprintf(esSpiceF, "%g", parmval * scale * scale);
-			    else if (plist->parm_scale != 1.0)
-				fprintf(esSpiceF, "%g", parmval * scale * scale
-					* esScale * esScale * plist->parm_scale
-					* 1E-12);
-			    else
-				fprintf(esSpiceF, "%gp", parmval * scale * scale
-					* esScale * esScale);
-			}
-			else 
-			{
-			    int pn;
-
-			    pn = plist->parm_type[1] - '0';
-			    if (pn >= dev->dev_nterm) pn = dev->dev_nterm - 1;
-	
-			    hierD = extHierSDAttr(&dev->dev_terms[pn]);
-
-			    // For parameter a<n> followed by parameter p<n>,
-			    // process both at the same time.
-	
-			    if (plist->parm_next && plist->parm_next->parm_type[0]
-					== 'p' && plist->parm_next->parm_type[1]
-					== plist->parm_type[1])
-			    {
-				if (hierD)
-				    spcnAPHier(&dev->dev_terms[pn], hierName,
-					esFetInfo[dev->dev_type].resClassSD,
-					scale, plist->parm_type,
-					plist->parm_next->parm_type,
-					sdM, esSpiceF);
-				else
-				{
-				    dnode = SpiceGetNode(hierName,
-				 	dev->dev_terms[pn].dterm_node->efnode_name->efnn_hier);
-				    spcnAP(dnode, esFetInfo[dev->dev_type].resClassSD,
-					scale, plist->parm_name,
-					plist->parm_next->parm_name,
-					sdM, esSpiceF, w);
-			 	}
-				plist = plist->parm_next;
-			    }
-			    else
-			    {
-				if (hierD)
-				    spcnAPHier(&dev->dev_terms[pn], hierName,
-					esFetInfo[dev->dev_type].resClassSD,
-					scale, plist->parm_type, NULL,
-					sdM, esSpiceF);
-				else
-				{
-				    dnode = SpiceGetNode(hierName,
-				    	dev->dev_terms[pn].dterm_node->efnode_name->efnn_hier);
-				    spcnAP(dnode, esFetInfo[dev->dev_type].resClassSD,
-					scale, plist->parm_name, NULL,
-					sdM, esSpiceF, w);
-				}
-			    }
-			}
-
-			break;
-		    case 'p':
-			// Check for area of terminal node vs. device area
-			if (plist->parm_type[1] == '\0' || plist->parm_type[1] == '0')
-			{
-			    fprintf(esSpiceF, " %s=", plist->parm_name);
-			    parmval = dev->dev_perim;
-			    if (esScale < 0)
-				fprintf(esSpiceF, "%g", parmval * scale);
-			    else if (plist->parm_scale != 1.0)
-				fprintf(esSpiceF, "%g", parmval * scale
-					* esScale * plist->parm_scale * 1E-6);
-			    else
-				fprintf(esSpiceF, "%gu", parmval * scale * esScale);
-			}
-			else 
-			{
-			    int pn;
-
-			    pn = plist->parm_type[1] - '0';
-			    if (pn >= dev->dev_nterm) pn = dev->dev_nterm - 1;
-	
-			    hierD = extHierSDAttr(&dev->dev_terms[pn]);
-
-			    // For parameter p<n> followed by parameter a<n>,
-			    // process both at the same time.
-	
-			    if (plist->parm_next && plist->parm_next->parm_type[0]
-					== 'a' && plist->parm_next->parm_type[1]
-					== plist->parm_type[1])
-			    {
-				if (hierD)
-				    spcnAPHier(&dev->dev_terms[pn], hierName,
-					esFetInfo[dev->dev_type].resClassSD,
-					scale, plist->parm_next->parm_type,
-					plist->parm_type, sdM, esSpiceF);
-				else
-				{
-				    dnode = SpiceGetNode(hierName,
-				 	dev->dev_terms[pn].dterm_node->efnode_name->efnn_hier);
-				    spcnAP(dnode, esFetInfo[dev->dev_type].resClassSD,
-					scale, plist->parm_next->parm_name,
-					plist->parm_name, sdM, esSpiceF, w);
-			 	}
-				plist = plist->parm_next;
-			    }
-			    else
-			    {
-				if (hierD)
-				    spcnAPHier(&dev->dev_terms[pn], hierName,
-					esFetInfo[dev->dev_type].resClassSD,
-					scale, NULL, plist->parm_type,
-					sdM, esSpiceF);
-				else
-				{
-				    dnode = SpiceGetNode(hierName,
-				    	dev->dev_terms[pn].dterm_node->efnode_name->efnn_hier);
-				    spcnAP(dnode, esFetInfo[dev->dev_type].resClassSD,
-					scale, NULL, plist->parm_name,
-					sdM, esSpiceF, w);
-				}
-			    }
-			}
-			break;
-
-		    case 'l':
-			fprintf(esSpiceF, " %s=", plist->parm_name);
-			if (esScale < 0)
-			    fprintf(esSpiceF, "%g", l * scale);
-			else if (plist->parm_scale != 1.0)
-			    fprintf(esSpiceF, "%g", l * scale * esScale
-					* plist->parm_scale * 1E-6);
-			else
-			    fprintf(esSpiceF, "%gu", l * scale * esScale);
-			break;
-		    case 'w':
-			fprintf(esSpiceF, " %s=", plist->parm_name);
-			if (esScale < 0)
-			    fprintf(esSpiceF, "%g", w * scale);
-			else if (plist->parm_scale != 1.0)
-			    fprintf(esSpiceF, "%g", w * scale * esScale
-					* plist->parm_scale * 1E-6);
-			else
-			    fprintf(esSpiceF, "%gu", w * scale * esScale);
-			break;
-		    case 's':
-			fprintf(esSpiceF, " %s=", plist->parm_name);
-			subnodeFlat = spcdevSubstrate(hierName,
-				subnode->efnode_name->efnn_hier,
-				dev->dev_type, esSpiceF);
-			break;
-		    case 'x':
-			fprintf(esSpiceF, " %s=", plist->parm_name);
-			if (esScale < 0)
-			    fprintf(esSpiceF, "%g", dev->dev_rect.r_xbot * scale);
-			else if (plist->parm_scale != 1.0)
-			    fprintf(esSpiceF, "%g", dev->dev_rect.r_xbot * scale
-					* esScale * plist->parm_scale * 1E-6);
-			else
-			    fprintf(esSpiceF, "%gu", dev->dev_rect.r_xbot * scale
-					* esScale);
-			break;
-		    case 'y':
-			fprintf(esSpiceF, " %s=", plist->parm_name);
-			if (esScale < 0)
-			    fprintf(esSpiceF, "%g", dev->dev_rect.r_ybot * scale);
-			else if (plist->parm_scale != 1.0)
-			    fprintf(esSpiceF, "%g", dev->dev_rect.r_ybot * scale
-					* esScale * plist->parm_scale * 1E-6);
-			else
-			    fprintf(esSpiceF, "%gu", dev->dev_rect.r_ybot * scale
-					* esScale);
-			break;
-		    case 'r':
-			fprintf(esSpiceF, " %s=", plist->parm_name);
-			fprintf(esSpiceF, "%f", (double)(dev->dev_res));
-			break;
-		    case 'c':
-			fprintf(esSpiceF, " %s=", plist->parm_name);
-			fprintf(esSpiceF, "%ff", (double)(dev->dev_cap));
-			break;
-		}
-		plist = plist->parm_next;
-	    }
+	    spcWriteParams(dev, hierName, scale, l, w, sdM);
 	    if (sdM != 1.0)
 		fprintf(esSpiceF, " M=%g", sdM);
 	    break;
@@ -2226,6 +2261,7 @@ spcdevVisit(dev, hierName, scale, trans)
 			name, esSpiceF); 
 
 	    fprintf(esSpiceF, " %s", EFDevTypes[dev->dev_type]);
+	    spcWriteParams(dev, hierName, scale, l, w, sdM);
 	    break;
 
 	case DEV_NDIODE:
@@ -2242,6 +2278,7 @@ spcdevVisit(dev, hierName, scale, trans)
 			name, esSpiceF);
 
 	    fprintf(esSpiceF, " %s", EFDevTypes[dev->dev_type]);
+	    spcWriteParams(dev, hierName, scale, l, w, sdM);
 	    break;
 
 	case DEV_CAP:
@@ -2266,6 +2303,7 @@ spcdevVisit(dev, hierName, scale, trans)
 	    {
 		fprintf(esSpiceF, " %ffF", (double)sdM *
 				(double)(dev->dev_cap));
+		spcWriteParams(dev, hierName, scale, l, w, sdM);
 	    }
 	    else
 	    {
@@ -2278,6 +2316,7 @@ spcdevVisit(dev, hierName, scale, trans)
 			w * scale * esScale,
 			l * scale * esScale);
 
+		spcWriteParams(dev, hierName, scale, l, w, sdM);
 		if (sdM != 1.0)
 		    fprintf(esSpiceF, " M=%g", sdM);
 	    }
@@ -2305,6 +2344,7 @@ spcdevVisit(dev, hierName, scale, trans)
 	    {
 		fprintf(esSpiceF, " %ffF", (double)sdM *
 				(double)(dev->dev_cap));
+		spcWriteParams(dev, hierName, scale, l, w, sdM);
 	    }
 	    else
 	    {
@@ -2317,6 +2357,7 @@ spcdevVisit(dev, hierName, scale, trans)
 			w * scale * esScale,
 			l * scale * esScale);
 
+		spcWriteParams(dev, hierName, scale, l, w, sdM);
 		if (sdM != 1.0)
 		    fprintf(esSpiceF, " M=%g", sdM);
 	    }
@@ -2361,6 +2402,7 @@ spcdevVisit(dev, hierName, scale, trans)
 			w * scale * esScale,
 			l * scale * esScale);
 
+	    spcWriteParams(dev, hierName, scale, l, w, sdM);
 	    if (sdM != 1.0)
 		fprintf(esSpiceF, " M=%g", sdM);
 

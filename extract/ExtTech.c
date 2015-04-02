@@ -1902,25 +1902,82 @@ ExtTechLine(sectionName, argc, argv)
 	    if ((argc - 1) < dv->k_minargs)
 		goto usage;
 
-	    /* No limit on arguments in DEV_SUBCKT and DEV_MSUBCKT! */
-	    /* And. . . check DEV_RSUBCKT later, after parsing parameter names */
+	    /* Parse parameters from the end of the argument list.	*/
+	    /* Parameters may be provided for any device.		*/
+
+	    /* Check final arguments for "x=y" statements showing what	*/
+	    /* parameter names the device uses.				*/
+
+	    subcktParams = NULL;
+	    while ((paramName = strchr(argv[argc - 1], '=')) != NULL)
+	    {
+		char *mult;
+
+		paramName++;
+		newParam = (ParamList *)mallocMagic(sizeof(ParamList));
+		newParam->pl_count = 0;
+		newParam->pl_param[0] = *argv[argc - 1];
+		newParam->pl_param[1] = '\0';
+
+		if (paramName - argv[argc - 1] == 3)
+		    newParam->pl_param[1] = *(argv[argc - 1] + 1);
+
+		else if (paramName - argv[argc - 1] > 3)
+		    TechError("Parameter name %s can be no more than"
+			"two characters.\n", argv[argc - 1]);
+
+		// Parameter syntax "<type>=<name>*<scale>" indicates
+		// that the subcircuit has internal scaling, and the
+		// extractor should multiply the parameter by this value
+		// before passing it to the subcircuit.
+
+		if ((mult = strchr(paramName, '*')) != NULL)
+		{
+		    *mult = '\0';
+		    mult++;
+		    newParam->pl_scale = atof(mult);
+		}
+		else
+		    newParam->pl_scale = 1.0;
+
+		newParam->pl_name = StrDup((char **)NULL, paramName);
+		newParam->pl_next = subcktParams;
+		subcktParams = newParam;
+		argc--;
+	    }
+
+	    /* Check the number of arguments after splitting out	*/
+	    /* parameter entries.  There is no limit on arguments in	*/
+	    /* DEV_SUBCKT and DEV_MSUBCKT.				*/
+
 	    class = dv->k_key;
 	    switch (class)
 	    {
 		case DEV_SUBCKT:
-		case DEV_RSUBCKT:
 		case DEV_MSUBCKT:
 		    break;
 		default:
+		    /* If parameters were saved but the	*/
+		    /* argument list indicates a bad	*/
+		    /* device entry, then free up the	*/
+		    /* parameters.			*/
+
 		    if ((argc - 1) > dv->k_maxargs)
+		    {
+			while (subcktParams != NULL)
+			{
+			    freeMagic(subcktParams->pl_name);
+			    freeMagic(subcktParams);
+			    subcktParams = subcktParams->pl_next;
+			}
 			goto usage;
+		    }
 		    break;
 	    }
 
 	    gscap = (CapValue) 0;
 	    gccap = (CapValue) 0;
 	    subsName = NULL;
-	    subcktParams = NULL;
 	    subsTypes = DBZeroTypeBits;
 	    transName = argv[2];
 
@@ -2021,46 +2078,6 @@ ExtTechLine(sectionName, argc, argv)
 
 		case DEV_SUBCKT:
 		case DEV_MSUBCKT:
-		    /* Check final arguments for "x=y" statements showing what	*/
-		    /* parameter names the subcircuit uses.			*/
-
-		    while ((paramName = strchr(argv[argc - 1], '=')) != NULL)
-		    {
-			char *mult;
-
-			paramName++;
-			newParam = (ParamList *)mallocMagic(sizeof(ParamList));
-			newParam->pl_count = 0;
-			newParam->pl_param[0] = *argv[argc - 1];
-			newParam->pl_param[1] = '\0';
-
-			if (paramName - argv[argc - 1] == 3)
-			    newParam->pl_param[1] = *(argv[argc - 1] + 1);
-
-			else if (paramName - argv[argc - 1] > 3)
-			    TechError("Parameter name %s can be no more than"
-				"two characters.\n", argv[argc - 1]);
-
-			// Parameter syntax "<type>=<name>*<scale>" indicates
-			// that the subcircuit has internal scaling, and the
-			// extractor should multiply the parameter by this value
-			// before passing it to the subcircuit.
-
-			if ((mult = strchr(paramName, '*')) != NULL)
-			{
-			    *mult = '\0';
-			    mult++;
-			    newParam->pl_scale = atof(mult);
-			}
-			else
-			    newParam->pl_scale = 1.0;
-
-			newParam->pl_name = StrDup((char **)NULL, paramName);
-			newParam->pl_next = subcktParams;
-			subcktParams = newParam;
-			argc--;
-		    }
-
 		    if (StrIsInt(argv[4]))
 		    {
 			nterm = atoi(argv[4]);
@@ -2091,55 +2108,6 @@ ExtTechLine(sectionName, argc, argv)
 		    break;
 
 		case DEV_RSUBCKT:
-		    /* Check final arguments for "x=y" statements showing what	*/
-		    /* parameter names the subcircuit uses.			*/
-
-		    while ((paramName = strchr(argv[argc - 1], '=')) != NULL)
-		    {
-			char *mult;
-
-			paramName++;
-			newParam = (ParamList *)mallocMagic(sizeof(ParamList));
-			newParam->pl_count = 0;
-			newParam->pl_param[0] = *argv[argc - 1];
-			newParam->pl_param[1] = '\0';
-
-			if (paramName - argv[argc - 1] == 3)
-			    newParam->pl_param[1] = *(argv[argc - 1] + 1);
-
-			else if (paramName - argv[argc - 1] > 3)
-			    TechError("Parameter name %s can be no more than"
-				"two characters.\n", argv[argc - 1]);
-
-			// See comments for DEV_SUBCKT/DEV_MSUBCKT above.
-
-			if ((mult = strchr(paramName, '*')) != NULL)
-			{
-			    *mult = '\0';
-			    mult++;
-			    newParam->pl_scale = atof(mult);
-			}
-			else
-			    newParam->pl_scale = 1.0;
-
-			newParam->pl_name = StrDup((char **)NULL, paramName);
-			newParam->pl_next = subcktParams;
-			subcktParams = newParam;
-			argc--;
-		    }
-
-		    /* Now check number of parameters */
-		    if ((argc - 1) > dv->k_maxargs)
-		    {
-			while (subcktParams != NULL)
-			{
-			    freeMagic(subcktParams->pl_name);
-			    freeMagic(subcktParams);
-			    subcktParams = subcktParams->pl_next;
-			}
-			goto usage;
-		    }
-
 		    nterm = 2;
 		    DBTechNoisyNameMask(argv[4], &termtypes[0]);	/* terminals */
 		    termtypes[1] = DBZeroTypeBits;

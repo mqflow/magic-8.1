@@ -1272,6 +1272,78 @@ extGetNativeResistClass(type, term)
 /*
  * ----------------------------------------------------------------------------
  *
+ * extOutputDevParams ---
+ *
+ *	Write information to the output in the form of parameters
+ *	representing pre-defined aspects of the device geometry
+ *	that may be specified for any device.
+ *
+ * Results:
+ *	None.
+ *
+ * Side effects:
+ *	Writes non-terminated output to the file 'outFile'.
+ *
+ * ----------------------------------------------------------------------------
+ */
+
+void
+extOutputDevParams(reg, t, outFile, length, width)
+    TransRegion *reg;
+    TileType t;
+    FILE *outFile;
+    int length;
+    int width;
+{
+    ParamList *chkParam;
+
+    for (chkParam = ExtCurStyle->exts_deviceParams[t]; chkParam
+		!= NULL; chkParam = chkParam->pl_next)
+    {
+	switch(tolower(chkParam->pl_param[0]))
+	{
+	    case 'a':
+		if (chkParam->pl_param[1] == '\0' ||
+			chkParam->pl_param[1] == '0')
+		    fprintf(outFile, " %c=%d", chkParam->pl_param[0],
+				reg->treg_area);
+		break;
+	    case 'p':
+		if (chkParam->pl_param[1] == '\0' ||
+			chkParam->pl_param[1] == '0')
+		    fprintf(outFile, " %c=%d", chkParam->pl_param[0],
+				extTransRec.tr_perim);
+		break;
+	    case 'l':
+		fprintf(outFile, " %c=%d", chkParam->pl_param[0],
+				length);
+		break;
+	    case 'w':
+		fprintf(outFile, " %c=%d", chkParam->pl_param[0],
+				width);
+		break;
+	    case 'c':
+		fprintf(outFile, " %c=%g", chkParam->pl_param[0],
+			(ExtCurStyle->exts_transGateCap[t]
+			* reg->treg_area) +
+			(ExtCurStyle->exts_transSDCap[t]
+			* extTransRec.tr_perim));
+		break;
+	    case 's':
+	    case 'x':
+	    case 'y':
+		/* Do nothing;  these values are standard output */
+		break;
+	    default:
+		fprintf(outFile, " %c=", chkParam->pl_param[0]);
+		break;
+	}
+    }
+}
+
+/*
+ * ----------------------------------------------------------------------------
+ *
  * extOutputTrans --
  *
  * For each TransRegion in the supplied list, corresponding to a single
@@ -1316,7 +1388,6 @@ extOutputTrans(def, transList, outFile)
     double dres, dcap;
     char mesg[256];
     bool isAnnular, hasModel;
-    ParamList *chkParam;
 
     for (reg = transList; reg && !SigInterruptPending; reg = reg->treg_next)
     {
@@ -1582,57 +1653,14 @@ extOutputTrans(def, transList, outFile)
 
 		}
 
-		if (ExtCurStyle->exts_deviceClass[t] == DEV_SUBCKT ||
-			ExtCurStyle->exts_deviceClass[t] == DEV_MSUBCKT)
-		{
-		    for (chkParam = ExtCurStyle->exts_deviceParams[t]; chkParam
-				!= NULL; chkParam = chkParam->pl_next)
-		    {
-			switch(tolower(chkParam->pl_param[0]))
-			{
-			    case 'a':
-				if (chkParam->pl_param[1] == '\0' ||
-					chkParam->pl_param[1] == '0')
-				    fprintf(outFile, " %c=%d", chkParam->pl_param[0],
-						reg->treg_area);
-				break;
-			    case 'p':
-				if (chkParam->pl_param[1] == '\0' ||
-					chkParam->pl_param[1] == '0')
-				    fprintf(outFile, " %c=%d", chkParam->pl_param[0],
-						extTransRec.tr_perim);
-				break;
-			    case 'l':
-				fprintf(outFile, " %c=%d", chkParam->pl_param[0],
-						length);
-				break;
-			    case 'w':
-				fprintf(outFile, " %c=%d", chkParam->pl_param[0],
-						width);
-				break;
-			    case 'c':
-				fprintf(outFile, " %c=%g", chkParam->pl_param[0],
-					(ExtCurStyle->exts_transGateCap[t]
-					* reg->treg_area) +
-					(ExtCurStyle->exts_transSDCap[t]
-					* extTransRec.tr_perim));
-				break;
-			    case 's':
-			    case 'x':
-			    case 'y':
-				/* Do nothing;  these values are standard output */
-				break;
-			    default:
-				fprintf(outFile, " %c=", chkParam->pl_param[0]);
-				break;
-			}
-		    }
-
-		}
-		else  /* DEV_MOSFET, DEV_ASYMMETRIC, DEV_BJT */
+		if (ExtCurStyle->exts_deviceClass[t] == DEV_MOSFET ||
+			ExtCurStyle->exts_deviceClass[t] == DEV_ASYMMETRIC ||
+			ExtCurStyle->exts_deviceClass[t] == DEV_BJT)
 		{
 		    fprintf(outFile, " %d %d", length, width);
 		}
+
+		extOutputDevParams(reg, t, outFile, length, width);
 
 		fprintf(outFile, " \"%s\"", (subsName == NULL) ?
 					"None" : subsName);
@@ -1641,6 +1669,7 @@ extOutputTrans(def, transList, outFile)
 	    case DEV_DIODE:	/* Only handle the optional substrate node */
 	    case DEV_NDIODE:
 	    case DEV_PDIODE:
+		extOutputDevParams(reg, t, outFile, length, width);
 		if (subsName != NULL)
 		    fprintf(outFile, " \"%s\"", subsName);
 		break;
@@ -1754,54 +1783,10 @@ extOutputTrans(def, transList, outFile)
 					"Resistor has zero width");
 		}
 
+		extOutputDevParams(reg, t, outFile, length, width);
+
 		if (ExtCurStyle->exts_deviceClass[t] == DEV_RSUBCKT)
 		{
-		    for (chkParam = ExtCurStyle->exts_deviceParams[t]; chkParam
-				!= NULL; chkParam = chkParam->pl_next)
-		    {
-			switch(tolower(chkParam->pl_param[0]))
-			{
-			    case 'a':
-				if (chkParam->pl_param[1] == '\0' ||
-					chkParam->pl_param[1] == '0')
-				    fprintf(outFile, " %c=%d", chkParam->pl_param[0],
-						reg->treg_area);
-				break;
-			    case 'p':
-				if (chkParam->pl_param[1] == '\0' ||
-					chkParam->pl_param[1] == '0')
-				    fprintf(outFile, " %c=%d", chkParam->pl_param[0],
-						extTransRec.tr_perim);
-				break;
-			    case 'l':
-				fprintf(outFile, " %c=%d", chkParam->pl_param[0],
-					length);
-				break;
-			    case 'w':
-				fprintf(outFile, " %c=%d", chkParam->pl_param[0],
-					width);
-				break;
-			    case 'r':
-				fprintf(outFile, " %c=%g", chkParam->pl_param[0],
-					dres / 1000.0);
-				break;
-			    case 'c':
-				fprintf(outFile, " %c=%g", chkParam->pl_param[0],
-					(ExtCurStyle->exts_transGateCap[t]
-					* reg->treg_area) +
-					(ExtCurStyle->exts_transSDCap[t]
-					* extTransRec.tr_perim));
-				break;
-			    case 's':
-			    case 'x':
-			    case 'y':
-				/* Do nothing;  these values are standard output */
-				break;
-			    default:
-				fprintf(outFile, " %c=", chkParam->pl_param[0]);
-				break;
-			}
-		    }
 		    fprintf(outFile, " \"%s\"", (subsName == NULL) ?
 				"None" : subsName);
 		}
@@ -1834,20 +1819,6 @@ extOutputTrans(def, transList, outFile)
 						"Capacitor has zero size");
 			fprintf(outFile, " 0 0");
 		    }
-//		    else if ((ntiles == 1) || (n > 1))
-//		    {
-//			width = 0;
-//			for (n = 0; extTransRec.tr_termlen[n] != 0; n++)
-//			    width += extTransRec.tr_termlen[n];
-//
-//			if (!width && ExtDoWarn)
-//			    extTransBad(def, reg->treg_tile,
-//					"Capacitor has zero width");
-//			else width >>= 2;	/* total perimeter / 4 */
-//
-//			fprintf(outFile, " %d %d", reg->treg_area / width,
-//				width);
-//		    }
 		    else
 		    {
 			/* Special handling of multiple-tile areas.	*/
@@ -1898,6 +1869,7 @@ extOutputTrans(def, transList, outFile)
 			arg.fra_each = (int (*)()) NULL;
 			(void) ExtFindNeighbors(reg->treg_tile, arg.fra_pNum, &arg);
 		    }
+		    extOutputDevParams(reg, t, outFile, length, width);
 		    if (subsName != NULL)
 			fprintf(outFile, " \"%s\"", subsName);
 		}
