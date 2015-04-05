@@ -591,6 +591,7 @@ extSubtreeFunc(scx, ha)
     SearchContext newscx;
     ExtTree *oneFlat;
     HierYank hy;
+    int x, y;
 
     /* Allocate a new ExtTree to hold the flattened, extracted subtree */
     oneFlat = extHierNewOne();
@@ -682,8 +683,29 @@ extSubtreeFunc(scx, ha)
     /* Process connections; this updates ha->ha_connHash */
     extHierConnections(ha, &ha->ha_cumFlat, oneFlat);
 
-    /* Process substrate connection */
-    extHierSubstrate(ha, use, -1, -1);
+    /* Process substrate connection.  All substrates should be	*/
+    /* connected together in the cell def, so in the case of an	*/
+    /* array, just make sure that the first array entry is	*/
+    /* connected.						*/
+    
+    if (use->cu_xhi == use->cu_xlo && use->cu_yhi == use->cu_ylo)
+	extHierSubstrate(ha, use, -1, -1);
+    else if (use->cu_xhi == use->cu_xlo && use->cu_yhi > use->cu_ylo)
+    {	
+	for (y = use->cu_ylo; y <= use->cu_yhi; y++)
+	    extHierSubstrate(ha, use, -1, y);
+    }
+    else if (use->cu_xhi > use->cu_xlo && use->cu_yhi == use->cu_ylo)
+    {
+	for (x = use->cu_xlo; x <= use->cu_xhi; x++)
+	extHierSubstrate(ha, use, x, -1);
+    }
+    else
+    {
+	for (x = use->cu_xlo; x <= use->cu_xhi; x++)
+	    for (y = use->cu_ylo; y <= use->cu_yhi; y++)
+		extHierSubstrate(ha, use, x, y);
+    }
 
     /* Free the cumulative node list we extracted above */
     if (ha->ha_cumFlat.et_nodes)

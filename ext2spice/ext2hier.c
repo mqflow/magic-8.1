@@ -44,6 +44,13 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
 #include "utils/runstats.h"
 #include "ext2spice/ext2spice.h"
 
+// Structure passed to esHierVisit
+
+typedef struct _defflagsdata {
+   Def *def;
+   int flags;
+} DefFlagsData;
+
 /*
  * ----------------------------------------------------------------------------
  *
@@ -55,13 +62,15 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
  */
 
 void
-ESGenerateHierarchy(inName)
+ESGenerateHierarchy(inName, flags)
     char *inName;
+    int flags;
 {
     int esHierVisit(), esMakePorts();	/* Forward declaration */
     Use u;
     Def *def;
     HierContext hc;
+    DefFlagsData dfd;
 
     u.use_def = efDefLook(inName);
     hc.hc_use = &u;
@@ -71,7 +80,9 @@ ESGenerateHierarchy(inName)
     EFHierSrDefs(&hc, esMakePorts, NULL);
     EFHierSrDefs(&hc, NULL, NULL);	/* Clear processed */
 
-    EFHierSrDefs(&hc, esHierVisit, (ClientData)(u.use_def));
+    dfd.def = u.use_def;
+    dfd.flags = flags; 
+    EFHierSrDefs(&hc, esHierVisit, (ClientData)(&dfd));
     EFHierSrDefs(&hc, NULL, NULL);	/* Clear processed */
 
     return;
@@ -1668,9 +1679,15 @@ esHierVisit(hc, cdata)
 {
     HierContext *hcf;
     Def *def = hc->hc_use->use_def;
-    Def *topdef = (Def *)cdata;
+    Def *topdef;
     EFNode *snode;
     char *resstr = NULL;
+    DefFlagsData *dfd;
+    int flags;
+
+    dfd = (DefFlagsData *)cdata;
+    topdef = dfd->def;
+    flags = dfd->flags;
 
     /* Cells without any contents (devices or subcircuits) will	*/
     /* be absorbed into their parents.  Use this opportunity to	*/
@@ -1689,7 +1706,7 @@ esHierVisit(hc, cdata)
     } 
 
     /* Flatten this definition only */
-    hcf = EFFlatBuildOneLevel(hc->hc_use->use_def);
+    hcf = EFFlatBuildOneLevel(hc->hc_use->use_def, flags);
 
     /* If definition has been marked as having no devices, then this	*/
     /* def is not to be output unless it is the top level.		*/

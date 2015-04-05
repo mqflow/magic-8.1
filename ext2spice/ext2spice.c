@@ -52,6 +52,7 @@ bool esDoRenumber = FALSE;
 bool esDoResistorTee = FALSE;
 int  esDoSubckt = AUTO;
 bool esDevNodesOnly = FALSE;
+bool esMergeNames = TRUE;
 bool esNoAttrs = FALSE;
 bool esHierAP = FALSE;
 char spcesDefaultOut[FNSIZE];
@@ -207,7 +208,8 @@ Exttospice_Init(interp)
 #define EXTTOSPC_SUBCIRCUITS	9
 #define EXTTOSPC_HIERARCHY	10
 #define EXTTOSPC_RENUMBER	11
-#define EXTTOSPC_HELP		12
+#define EXTTOSPC_MERGENAMES	12
+#define EXTTOSPC_HELP		13
 
 void
 CmdExtToSpice(w, cmd)
@@ -252,6 +254,7 @@ CmdExtToSpice(w, cmd)
 	"hierarchy [on|off]	output hierarchical spice for LVS",
 	"renumber [on|off]	on = number instances X1, X2, etc.\n"
 	"			off = keep instance ID names",
+	"global [on|off]	on = merge unconnected global nets by name",
 	"help			print help information",
 	NULL
     };
@@ -377,6 +380,20 @@ CmdExtToSpice(w, cmd)
 		esDoRenumber = TRUE;
 	    else	 /* no */
 		esDoRenumber = FALSE;
+	    break;
+
+	case EXTTOSPC_MERGENAMES:
+	    if (cmd->tx_argc == 2)
+	    {
+		Tcl_SetResult(magicinterp, (esMergeNames) ? "on" : "off", NULL);
+		return;
+	    }
+	    idx = Lookup(cmd->tx_argv[2], yesno);
+	    if (idx < 0) goto usage;
+	    else if (idx < 3)	/* yes */
+		esMergeNames = TRUE;
+	    else	 /* no */
+		esMergeNames = FALSE;
 	    break;
 
 	case EXTTOSPC_SUBCIRCUITS:
@@ -750,6 +767,8 @@ runexttospice:
     /* Set output format flags */
 
     flatFlags = EF_FLATNODES;
+    if (esMergeNames == FALSE) flatFlags |= EF_NONAMEMERGE;
+
     // This forces options TRIMGLOB and CONVERTEQUAL, not sure that's such a
     // good idea. . .
     EFTrimFlags |= EF_TRIMGLOB | EF_CONVERTEQUAL;
@@ -801,7 +820,7 @@ runexttospice:
     locDoSubckt = FALSE;
     if (esDoHierarchy)
     {
-	ESGenerateHierarchy(inName);
+	ESGenerateHierarchy(inName, flatFlags);
     }
     else
     {

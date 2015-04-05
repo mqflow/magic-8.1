@@ -128,7 +128,8 @@ EFFlatBuild(name, flags)
 	else
 	    efFlatNodes(&efFlatContext);
 	efFlatKills(&efFlatContext);
-	efFlatGlob();
+	if (!(flags & EF_NONAMEMERGE))
+	    efFlatGlob();
     }
 
     /* Must happen after kill processing */
@@ -156,8 +157,9 @@ EFFlatBuild(name, flags)
 /*----------------------------------------------------------------------*/
 
 HierContext *
-EFFlatBuildOneLevel(def)
+EFFlatBuildOneLevel(def, flags)
     Def *def;		/* root def being flattened */
+    int flags;
 {
     int usecount, savecount;
     Use *use;
@@ -214,7 +216,8 @@ EFFlatBuildOneLevel(def)
     efAddConns(&efFlatContext);
 
     efFlatKills(&efFlatContext);
-    efFlatGlob();
+    if (!(flags & EF_NONAMEMERGE))
+	efFlatGlob();
     efFlatCapsDeviceless(&efFlatContext);
     efFlatDists(&efFlatContext);
 

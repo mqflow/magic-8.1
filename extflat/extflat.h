@@ -34,6 +34,8 @@ typedef unsigned char U_char;
 #define	EF_FLATRESISTS		0x04	/* Flatten resistors */
 #define	EF_FLATDISTS		0x08	/* Flatten distances */
 #define	EF_NOFLATSUBCKT		0x10	/* Don't flatten standard cells */
+#define	EF_NONAMEMERGE		0x20	/* Don't merge unconnected nets	*/
+					/* with the same name.		*/
 
 /* Flags to control output of node names.  Stored in EFTrimFlags */
 #define	EF_TRIMGLOB		0x01	/* Delete trailing '!' from names */

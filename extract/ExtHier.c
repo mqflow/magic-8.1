@@ -111,7 +111,13 @@ extHierSubstrate(ha, use, x, y)
     {
 	/* Process array information */
 	childname = mallocMagic(strlen(name2) + strlen(use->cu_id) + 14);
-	sprintf(childname, "%s[%d,%d]/%s", use->cu_id, x, y, name2);
+	sprintf(childname, "%s[%d,%d]/%s", use->cu_id, y, x, name2);
+    }
+    else if (x >= 0 || y >= 0)
+    {
+	childname = mallocMagic(strlen(name2) + strlen(use->cu_id) + 9);
+	sprintf(childname, "%s[%d]/%s", use->cu_id, ((x >= 0) ? x : y),
+			name2);
     }
     else
     {
