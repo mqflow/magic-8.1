@@ -1179,7 +1179,11 @@ TxTclDispatch(clientData, argc, argv, quiet)
     result = WindSendCommand((MagWindow *)clientData, tclcmd, quiet);
 
     TxFreeCommand(tclcmd);
-    TxCommandNumber++;
+
+    // Don't update the command number on bypass commands, or else
+    // the selection mechanism gets broken by the background DRC.
+
+    if (argc > 0 && strcmp(argv[0], "*bypass")) TxCommandNumber++;
 
     if (SigInterruptPending)
 	TxPrintf("[Interrupted]\n");

@@ -356,6 +356,8 @@ windCloseCmd(w, cmd)
  *	Run a magic command independently of the command line.  That is,
  *	if a command is being typed on the command line, the input
  *	redirection will not be reset by the execution of this command.
+ *	To avoid having such commands interfere with the selection
+ *	mechanism, save and restore the command count.
  *
  * Results:
  *	None.
@@ -371,6 +373,8 @@ windBypassCmd(w, cmd)
     MagWindow *w;
     TxCommand *cmd;
 {
+    int saveCount;
+
     if (cmd->tx_argc == 1)
     {
 	TxError("Usage:  *bypass <command>\n");
@@ -378,7 +382,9 @@ windBypassCmd(w, cmd)
     }
 
     /* Dispatch the referenced command */
+    saveCount = TxCommandNumber;
     TxTclDispatch((ClientData)w, cmd->tx_argc - 1, cmd->tx_argv + 1, FALSE);
+    TxCommandNumber = saveCount;
     if (TxInputRedirect == TX_INPUT_PENDING_RESET)
 	TxInputRedirect = TX_INPUT_REDIRECTED;
 }

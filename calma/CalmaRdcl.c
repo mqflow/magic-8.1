@@ -414,6 +414,7 @@ calmaParseStructure(filename)
 		cifReadCellDef->cd_client = (ClientData) calmaExact();
 		cifReadCellDef->cd_flags |= CDFLATGDS;
 	    }
+
 	    else
 	    {
 		int pNum;
@@ -421,6 +422,7 @@ calmaParseStructure(filename)
 		TxError("Cell geometry fault in cell %s\n", cifReadCellDef->cd_name);
 		TxError("Cannot flatten geometry because "
 				"cell was instanced prior to definition.\n");
+		TxError("Try using option \"gds ordering on\".\n");
 
 		for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
 		    DBClearPaintPlane(cifCurReadPlanes[pNum]);
@@ -864,9 +866,6 @@ calmaElementSref()
 	Plane **gdsplanes = (Plane **)def->cd_client;
 	GDSCopyRec gdsCopyRec;
 	int pNum;
-
-	/* To do:  Deal with arrays by modifying trans and	*/
-	/* looping over X and Y					*/
 
 	for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
 	{
