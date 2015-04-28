@@ -510,6 +510,10 @@ extHierAdjustments(ha, cumFlat, oneFlat, lookFlat)
 	if (np->nreg_pnum == DBNumPlanes) continue;
 
 	tp = extNodeToTile(np, lookFlat);
+
+	/* Ignore substrate nodes (failsafe:  should not happen) */
+	if (TiGetTypeExact(tp) == TT_SPACE) continue;
+
 	if (tp	&& (name = (*ha->ha_nodename)(tp, np->nreg_pnum, lookFlat, ha, FALSE))
 		&& (he = HashLookOnly(&ha->ha_connHash, name))
 		&& (nn = (NodeName *) HashGetValue(he)))

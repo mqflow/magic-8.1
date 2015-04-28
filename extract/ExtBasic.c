@@ -231,8 +231,7 @@ extBasic(def, outFile)
      * This comes before extOutputNodes because we may have to adjust
      * node capacitances in this step.
      */
-    if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING) &&
-		(ExtCurStyle->exts_globSubstratePlane != -1))
+    if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING))
     {
 	coupleInitialized = TRUE;
 	HashInit(&extCoupleHash, 256, HashSize(sizeof (CoupleKey)));
@@ -241,8 +240,10 @@ extBasic(def, outFile)
 	/* Convert coupling capacitance to the substrate node to
 	 * substrate capacitance on each node in nreg_cap
 	 */
-	if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING))
-	    extRelocateSubstrateCoupling(&extCoupleHash, glob_subsnode);
+
+	if (ExtCurStyle->exts_globSubstratePlane != -1)
+	    if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING))
+		extRelocateSubstrateCoupling(&extCoupleHash, glob_subsnode);
     }
 
     /* Output device parameters for any subcircuit devices */
