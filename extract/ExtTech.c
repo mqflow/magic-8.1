@@ -2765,9 +2765,14 @@ zinit:
 				ec = ec->ec_next)
 		    ec->ec_cap *= sqfac;
 
-		for (ec = style->exts_sideCoupleCap[r][s]; ec != NULL;
-				ec = ec->ec_next)
-		    ec->ec_cap *= scalefac;
+		// Note that because sidewall caps are referred to
+		// a specific distance, the value (run / separation)
+		// is unscaled, so the capacitance does not get
+		// modified by the scalefactor.
+
+		// for (ec = style->exts_sideCoupleCap[r][s]; ec != NULL;
+		//		ec = ec->ec_next)
+		//    ec->ec_cap *= scalefac;
 
 	    }
 	}
@@ -2843,12 +2848,17 @@ ExtTechScale(scalen, scaled)
 	    style->exts_perimCap[i][j] /= scaled;
 	    style->exts_overlapCap[i][j] *= sqn;
 	    style->exts_overlapCap[i][j] /= sqd;    /* Typo fixed in 7.2.57 */
-	    for (ec = style->exts_sideCoupleCap[i][j]; ec != NULL;
-				ec = ec->ec_next)
-	    {
-		ec->ec_cap *= scalen;
-		ec->ec_cap /= scaled;
-	    }
+
+	    // Do not scale sidewall cap, for while the value is
+	    // per distance, the distance is referred to a separation
+	    // distance in the same units, so the cap never scales.
+
+	    // for (ec = style->exts_sideCoupleCap[i][j]; ec != NULL;
+	    //			ec = ec->ec_next)
+	    // {
+	    //	ec->ec_cap *= scalen;
+	    //	ec->ec_cap /= scaled;
+	    // }
 	    for (ec = style->exts_sideOverlapCap[i][j]; ec != NULL;
 				ec = ec->ec_next)
 	    {
