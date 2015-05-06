@@ -2768,12 +2768,17 @@ zinit:
 		// Note that because sidewall caps are referred to
 		// a specific distance, the value (run / separation)
 		// is unscaled, so the capacitance does not get
-		// modified by the scalefactor.
+		// modified by the scalefactor.  However, the lambda
+		// reference for sidewall cap is 2 lambda, so if 
+		// the reference is to be interpreted as 1 micron,
+		// the value needs to be divided by 2 (the factor of
+		// 2 is made up by the fact that the sidewall is
+		// independently accumulated on each plate of the
+		// capacitor)
 
-		// for (ec = style->exts_sideCoupleCap[r][s]; ec != NULL;
-		//		ec = ec->ec_next)
-		//    ec->ec_cap *= scalefac;
-
+		for (ec = style->exts_sideCoupleCap[r][s]; ec != NULL;
+				ec = ec->ec_next)
+		    ec->ec_cap *= 0.5;
 	    }
 	}
 
