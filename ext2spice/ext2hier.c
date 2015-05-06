@@ -1718,8 +1718,8 @@ esHierVisit(hc, cdata)
     }
 
     /* Generate subcircuit header */
-    if (def != topdef)
-	topVisit(hc->hc_use->use_def);
+    if ((def != topdef) || (def->def_flags & DEF_SUBCIRCUIT))
+	topVisit(def);
     else
 	fprintf(esSpiceF, "\n* Top level circuit %s\n\n", topdef->def_name);
 
@@ -1762,7 +1762,7 @@ esHierVisit(hc, cdata)
 	freeMagic(resstr);
     }
 
-    if (def != topdef)
+    if ((def != topdef) || (def->def_flags & DEF_SUBCIRCUIT))
 	fprintf(esSpiceF, ".ends\n\n");
     else
 	fprintf(esSpiceF, ".end\n\n");
