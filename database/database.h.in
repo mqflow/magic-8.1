@@ -659,6 +659,12 @@ typedef struct
 #define MODIFIED  6
 #define OTHER	  7
 
+/* -------------------- More codes for painting ------------------------*/
+
+#define PAINT_NORMAL	0	/* Normal paint procedure */
+#define PAINT_MARK	1	/* Mark tiles that are painted */
+#define PAINT_XOR	2	/* Use with XOR function to prevent double-painting */
+
 /* -------------------- Exported procedure headers -------------------- */
 
     /* Painting/erasing */
@@ -669,6 +675,7 @@ extern void DBPaintPlane0();
 extern void DBPaintPlaneActive();
 extern void DBPaintPlaneWrapper();
 extern void DBPaintPlaneMark();
+extern void DBPaintPlaneXor();
 extern void DBPaintPlaneByProc();
 extern void DBPaintPlaneMergeOnce();
 extern void DBPaintMask();
@@ -677,11 +684,11 @@ extern void DBClearPaintPlane();
 extern void DBLockContact();
 extern void DBUnlockContact();
 
-#define DBPaintPlane(a, b, c, d)  DBPaintPlane0(a, b, c, d, FALSE)
+#define DBPaintPlane(a, b, c, d)  DBPaintPlane0(a, b, c, d, PAINT_NORMAL)
 #define DBMergeNMTiles(a, b, c)      DBMergeNMTiles0(a, b, c, FALSE)
 
 extern void DBNMPaintPlane0();
-#define DBNMPaintPlane(a, b, c, d, e)  DBNMPaintPlane0(a, b, c, d, e, FALSE)
+#define DBNMPaintPlane(a, b, c, d, e)  DBNMPaintPlane0(a, b, c, d, e, PAINT_NORMAL)
 
     /* I/O */
 extern bool DBCellRead();

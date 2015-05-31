@@ -1942,3 +1942,152 @@ CmdXload(w, cmd)
     }
     else DBWloadWindow(w, (char *) NULL, FALSE, TRUE);
 }
+
+/*
+ * ----------------------------------------------------------------------------
+ *
+ * CmdXor --
+ *
+ * Implements xor command
+ *
+ * Usage:
+ *	xor [-<option>] destname
+ *
+ * Results:
+ *	rewrites paint tables with xor functions.
+ *	Cell "destname" is assumed to exist.
+ *	Existing top level cell is flattened into destname on top of
+ *	what's already there, using an XOR paint function.  Whatever
+ *	paint remains after the command is a difference between the
+ *	two layouts.
+ *
+ * ----------------------------------------------------------------------------
+ */
+
+void
+CmdXor(w, cmd)
+    MagWindow *w;
+    TxCommand *cmd;
+{
+    int			rval, xMask;
+    bool		dolabels;
+    char		*destname;
+    CellDef		*newdef;
+    CellUse		*newuse;
+    SearchContext	scx;
+    CellUse		*flatDestUse;
+
+    PaintResultType	DBXORResultTbl[NP][NT][NT];
+    PaintResultType	(*curPaintSave)[NT][NT];
+    void		(*curPlaneSave)();
+
+    int p, t, h;
+     
+    destname = cmd->tx_argv[cmd->tx_argc - 1];
+    xMask = CU_DESCEND_ALL;
+    dolabels = TRUE;
+
+    rval = 0;
+    if (cmd->tx_argc > 2)
+    {
+	int i;
+	for (i = 1; i < (cmd->tx_argc - 1); i++)
+	{
+	    if (strncmp(cmd->tx_argv[i], "-no", 3))
+	    {
+	        rval = -1;
+		break;
+	    }
+	    else if (strlen(cmd->tx_argv[i]) > 3)
+	    {
+		switch(cmd->tx_argv[1][3])
+		{
+		    case 'l':
+			dolabels = FALSE;
+			break;
+		    case 's':
+			xMask = CU_DESCEND_NO_SUBCKT;
+			break;
+		    case 'v':
+			xMask = CU_DESCEND_NO_VENDOR;
+			break;
+		    default:
+			TxError("options are: -nolabels, -nosubcircuits -novendor\n");
+			break;
+		}
+	    }
+	}
+    }
+    else if (cmd->tx_argc != 2)
+	rval = -1;
+
+    if (rval != 0)
+    {
+     	TxError("usage: xor [-<option>...] destcell\n");
+	return;
+    }
+    /* create the new def */
+    if ((newdef = DBCellLookDef(destname)) == NULL)
+    {
+    	 TxError("%s does not exist\n", destname);
+	 return;
+    }
+
+    UndoDisable();
+    newuse = DBCellNewUse(newdef, (char *) NULL);
+    (void) StrDup(&(newuse->cu_id), "Flattened cell");
+    DBSetTrans(newuse, &GeoIdentityTransform);
+    newuse->cu_expandMask = CU_DESCEND_SPECIAL;
+    flatDestUse = newuse;
+    
+    if (EditCellUse)
+	scx.scx_use  = EditCellUse;
+    else
+	scx.scx_use = (CellUse *)w->w_surfaceID;
+
+    scx.scx_area = scx.scx_use->cu_def->cd_bbox;
+    scx.scx_trans = GeoIdentityTransform;
+
+    // Prepare the XOR result table
+
+    for (p = 0; p < DBNumPlanes; p++)
+    {
+	// During the copy, space tiles will not be painted over
+	// anything.  However, due to non-manhattan geometry
+	// handling, TT_SPACE is occasionally painted over a
+	// split tile that is being erased and replaced by a
+	// rectangular tile, so painting TT_SPACE should always
+	// result in TT_SPACE.
+
+	for (h = 0; h < DBNumTypes; h++)
+	    DBXORResultTbl[p][0][h] = TT_SPACE;
+
+	for (t = 1; t < DBNumTypes; t++)
+	    for (h = 0; h < DBNumTypes; h++)
+	    {
+		if (t == h)
+		    DBXORResultTbl[p][t][h] = TT_SPACE;
+		else
+		    DBXORResultTbl[p][t][h] = t;
+	    }
+    }
+
+    curPaintSave = DBNewPaintTable(DBXORResultTbl);
+    curPlaneSave = DBNewPaintPlane(DBPaintPlaneXor);
+
+    DBCellCopyAllPaint(&scx, &DBAllButSpaceAndDRCBits, xMask, flatDestUse);
+    if (dolabels)
+	FlatCopyAllLabels(&scx, &DBAllTypeBits, xMask, flatDestUse);
+
+    if (xMask != CU_DESCEND_ALL)
+	DBCellCopyAllCells(&scx, xMask, flatDestUse, (Rect *)NULL);
+    
+    DBNewPaintTable(curPaintSave);
+    DBNewPaintPlane(curPlaneSave);
+
+    // Remove new use
+    DBCellDeleteUse(newuse);
+
+    UndoEnable();
+}
+
