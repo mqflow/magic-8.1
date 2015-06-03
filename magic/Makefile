@@ -45,7 +45,7 @@ install: $(DESTDIR)${BINDIR}/${MODULE}${EXEEXT} $(DESTDIR)${SYSDIR}/.magicrc \
 	$(DESTDIR)${SYSDIR}/magicps.pro
 
 install-tcl: $(DESTDIR)${TCLDIR}/tclmagic${SHDLIB_EXT} $(DESTDIR)${SYSDIR}/.magicrc \
-	$(DESTDIR)${SYSDIR}/magicps.pro ${DEST_XBM}
+	$(DESTDIR)${SYSDIR}/.initrc $(DESTDIR)${SYSDIR}/magicps.pro ${DEST_XBM}
 
 $(DESTDIR)${TCLDIR}/tclmagic${SHDLIB_EXT}: tclmagic${SHDLIB_EXT}
 	${RM} $(DESTDIR)${TCLDIR}/tclmagic${SHDLIB_EXT}
@@ -58,6 +58,10 @@ $(DESTDIR)${TCLDIR}/bitmaps/%: bitmaps/%
 $(DESTDIR)${SYSDIR}/.magicrc: proto.magicrc
 	${RM} $(DESTDIR)${SYSDIR}/.magicrc
 	${CP} proto.magicrc $(DESTDIR)${SYSDIR}/.magicrc
+
+$(DESTDIR)${SYSDIR}/.initrc: proto.initrc
+	${RM} $(DESTDIR)${SYSDIR}/.initrc
+	${CP} proto.initrc $(DESTDIR)${SYSDIR}/.initrc
 
 $(DESTDIR)${SYSDIR}/magicps.pro: magicps.pro
 	${RM} $(DESTDIR)${SYSDIR}/magicps.pro

@@ -508,9 +508,6 @@ mainInitAfterArgs()
     if ((TechDefault == NULL) && (MainFileName != NULL))
 	(void) StrDup(&TechDefault, DBGetTech(MainFileName));
 
-    if (TechDefault == NULL)
-	TechDefault = "minimum";
-
     DBTypeInit();
     MacroInit();
 
@@ -651,34 +648,14 @@ mainInitAfterArgs()
 			sec_types, &sec_plot, TRUE);
 #endif
 
-    /* Load the technology file */
+    /* Load minimum technology file needed to keep things from	*/
+    /* crashing during initialization.				*/
 
-    if (!TechLoad(TechDefault, 0))
+    if (!TechLoad("minimum", 0))
     {
-	/* Don't give up just yet---user may have put a tech	*/
-	/* load command in the RC file.  Load the default	*/
-	/* technology, and only complain if that doesn't work	*/
-	/* either.						*/
-
-	if (!TechLoad("minimum", 0))
-	{
-	    TxError("Cannot load technology \"minimum\" or \"%s\"\n", TechDefault);
-	    return 2;
-	}
+	TxError("Cannot load technology \"minimum\" for initialization\n");
+	return 2;
     }
-
-#ifndef MAGIC_WRAPPER
-
-    // Let the wrapper script be responsible for formatting and
-    // printing the technology file informaiton.
-
-    if (DBTechName != 0) {
-	TxPrintf("Using technology \"%s\"", DBTechName);
-	if (DBTechVersion != 0) TxPrintf(", version %s.", DBTechVersion);
-	TxPrintf("\n");
-    }
-    if (DBTechDescription != 0) TxPrintf("%s\n", DBTechDescription);
-#endif
 
     /* initialize the undo package */
     (void) UndoInit((char *) NULL, (char *) NULL);
@@ -766,16 +743,56 @@ mainInitFinal()
     char *home, cwd[512];
     char startupFileName[256];
     FILE *f;
-
-    /* Read in system startup file, if it exists. */
-
-#ifdef MAGIC_WRAPPER
-
     char *rname;
     int result;
 
+#ifdef MAGIC_WRAPPER
+
+    /* Read in system pre-startup file, if it exists. */
+
     /* Use PaOpen first to perform variable substitutions, and	*/
-    /* return the actual filename in startupFileName.		*/
+    /* return the actual filename in rname.			*/
+
+    f = PaOpen(MAGIC_PRE_DOT, "r", (char *) NULL, ".",
+	    (char *) NULL, (char **) &rname);
+    if (f != NULL)
+    {
+	fclose(f);
+	result = Tcl_EvalFile(magicinterp, rname);
+	if (result != TCL_OK)
+	{
+	    TxError("%s\n", Tcl_GetStringResult(magicinterp));
+	    TxError("System pre-startup file \"%s\" not found or unreadable!\n",
+			rname);
+	    Tcl_ResetResult(magicinterp);
+	}
+    }
+#endif	/* MAGIC_WRAPPER */
+
+    /* Load the technology file. */
+
+    if (TechDefault != NULL)
+	if (!TechLoad(TechDefault, 0))
+	    TxError("Failed to load technology \"%s\"\n", TechDefault);
+
+#ifndef MAGIC_WRAPPER
+
+    // Let the wrapper script be responsible for formatting and
+    // printing the technology file informaiton.
+
+    if (DBTechName != 0) {
+	TxPrintf("Using technology \"%s\"", DBTechName);
+	if (DBTechVersion != 0) TxPrintf(", version %s.", DBTechVersion);
+	TxPrintf("\n");
+    }
+    if (DBTechDescription != 0) TxPrintf("%s\n", DBTechDescription);
+#endif
+
+#ifdef MAGIC_WRAPPER
+    /* Read in system startup file, if it exists. */
+
+    /* Use PaOpen first to perform variable substitutions, and	*/
+    /* return the actual filename in rname.			*/
 
     f = PaOpen(MAGIC_SYS_DOT, "r", (char *) NULL, ".",
 	    (char *) NULL, (char **) &rname);
