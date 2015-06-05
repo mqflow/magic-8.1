@@ -429,9 +429,20 @@ TechLoad(filename, initmask)
 	// way it was.
 	if (dptr != NULL) *dptr = '.';
     }
+
     topfile.file = tf;
     topfile.next = NULL;
     fstack = &topfile;
+
+    // Call TechLoad with initmask == -2 to test that the file exists
+    // and is readable.
+
+    if (initmask == -2)
+    {
+	argc = techGetTokens(line, sizeof line, &fstack, argv);
+	fclose(tf);
+	return ((argc < 0) ? FALSE : TRUE);
+    }
 
     /*
      * Mark all sections as being unread.

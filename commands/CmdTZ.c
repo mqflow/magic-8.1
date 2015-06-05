@@ -518,6 +518,21 @@ CmdTech(w, cmd)
 		    if (action == 0) return;
 		}
 	    }
+
+	    /* Call TechLoad with initmask = -2 to check only that the	*/
+	    /* techfile exists and is readable before calling the init	*/
+	    /* functions on various sections, which is not reversible.	*/
+
+	    if (!TechLoad(cmd->tx_argv[2], -2))
+	    {
+#ifdef MAGIC_WRAPPER
+		Tcl_SetResult(magicinterp, "Technology file does not exist"
+				"or is not readable\n", NULL);
+#else
+		TxError("Technology file does not exist or is not readable.\n");
+#endif
+		break;
+	    }
 	
 	    /* Changing number of planes requires handling on every	*/
 	    /* celldef.  So we need to save the original number of	*/
