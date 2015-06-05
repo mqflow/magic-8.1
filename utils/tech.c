@@ -435,13 +435,16 @@ TechLoad(filename, initmask)
     fstack = &topfile;
 
     // Call TechLoad with initmask == -2 to test that the file exists
-    // and is readable.
+    // and is readable, and that the first non-comment line is the
+    // keyword "tech".
 
     if (initmask == -2)
     {
 	argc = techGetTokens(line, sizeof line, &fstack, argv);
 	fclose(tf);
-	return ((argc < 0) ? FALSE : TRUE);
+	if (argc != 1) return (FALSE);
+	if (strcmp(argv[0], "tech")) return (FALSE);
+	return (TRUE);
     }
 
     /*
