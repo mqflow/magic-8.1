@@ -25,6 +25,7 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
 #include <stdarg.h>
 #include <ctype.h>
 
+#include "database/database.h"
 #include "utils/magic.h"
 #include "utils/geometry.h"
 #include "utils/utils.h"
@@ -228,7 +229,58 @@ TechAddAlias(primaryName, alias)
     }
 }
 
-
+/*
+ * ----------------------------------------------------------------------------
+ *
+ * changePlanesFunc() ---
+ *
+ * This function hacks the existing layout database in case a tech file
+ * is loaded which contains more or fewer planes than the exisiting
+ * technology.  This is doing nothing fancy; it is simply making sure
+ * that all memory allocation is accounted for.
+ *
+ * As a note for future implementation, it would be helpful to keep the
+ * old plane name definitions around and try to match up the old and new
+ * planes, so that it is possible to load a technology file which matches
+ * the existing technology except for the addition or subtraction of one
+ * or more planes (e.g., extra metal layer option) without completely
+ * invalidating an existing layout.
+ *
+ * As written, this function is inherently dangerous.  It is intended for
+ * use when loading a new tech file when there is no layout, just empty
+ * tile planes.
+ * ----------------------------------------------------------------------------
+ */
+
+int
+changePlanesFunc(cellDef, arg)
+    CellDef *cellDef;
+    int *arg;
+{
+    int oldnumplanes = *arg;
+    int pNum;
+
+    if (oldnumplanes < DBNumPlanes)
+    {
+	/* New planes to be added */
+	for (pNum = oldnumplanes; pNum < DBNumPlanes; pNum++)
+	{
+	    cellDef->cd_planes[pNum] = DBNewPlane((ClientData) TT_SPACE);
+	}
+    }
+    else
+    {
+	/* Old planes to be subtracted */
+	for (pNum = DBNumPlanes; pNum < oldnumplanes; pNum++)
+	{
+	    DBFreePaintPlane(cellDef->cd_planes[pNum]);
+	    TiFreePlane(cellDef->cd_planes[pNum]);
+	    cellDef->cd_planes[pNum] = (Plane *) NULL;
+	}
+    }
+    return 0;
+}
+
 /*
  * ----------------------------------------------------------------------------
  *
@@ -360,6 +412,10 @@ TechLoad(filename, initmask)
     fstack = NULL;
     techLineNumber = 0;
     badMask = (SectionID) 0;
+    int saveNumPlanes;
+
+    int changePlanesFunc();	/* forward declaration */
+    int checkForPaintFunc();	/* forward declaration */
 
     if (initmask == -1)
     {
@@ -472,6 +528,13 @@ TechLoad(filename, initmask)
 	ExtTechInit();
 	DRCTechInit();
 	MZTechInit();	
+	
+            /* Changing number of planes requires handling on every     */
+            /* celldef.  So we need to save the original number of      */
+            /* planes to see if it shrinks or expands.                  */
+
+
+	saveNumPlanes = DBNumPlanes;
     }
 
     /*
@@ -635,10 +698,57 @@ skipsection:
 	freeMagic(fstack);
 	fstack = fstack->next;
     }
-
     if (fstack) fclose(fstack->file);
 
-    if (retval == FALSE)
+    if (retval == TRUE)
+    {
+	/* If internal scalefactor is not the default 1:1, then we  */
+	/* need to scale the techfile numbers accordingly.          */
+
+	if ((DBLambda[0] != 1) || (DBLambda[1] != 1))
+	{
+	    int d = DBLambda[0];
+	    int n = DBLambda[1];
+
+	    CIFTechInputScale(d, n, TRUE);
+	    CIFTechOutputScale(d, n);
+	    DRCTechScale(d, n);
+	    ExtTechScale(d, n);
+	    WireTechScale(d, n);
+#ifdef LEF_MODULE
+	    LefTechScale(d, n);
+#endif
+#ifdef ROUTE_MODULE
+	    RtrTechScale(d, n);
+#endif
+	    TxPrintf("Scaled tech values by %d / %d to"
+			" match internal grid scaling\n", n, d);
+
+	    /* Check if we're below the scale set by cifoutput gridlimit */
+	    if (CIFTechLimitScale(1, 1))
+		TxError("WARNING:  Current grid scale is smaller"
+		" than the minimum for the process!\n");
+	}
+
+	/* Post-technology reading routines */
+
+#ifdef ROUTE_MODULE
+	MZAfterTech();
+	IRAfterTech();
+	GAMazeInitParms();
+#endif
+	PlowAfterTech();
+
+	if (DBCellSrDefs(0, checkForPaintFunc, (ClientData)&saveNumPlanes))
+	{
+	    if (saveNumPlanes != DBNumPlanes)
+		TxError("Warning:  Number of planes has changed.  ");
+	    TxError("Existing layout may be invalid.\n");
+	}
+	if (saveNumPlanes != DBNumPlanes)
+	    DBCellSrDefs(0, changePlanesFunc, (ClientData) &saveNumPlanes);
+    }
+    else
     {
 	/* On error, remove any existing technology file name */
 	freeMagic(TechFileName);
