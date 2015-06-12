@@ -370,7 +370,7 @@ TechLoad(filename, initmask)
     /* If NULL is passed to argument "filename", this is a reload and	*/
     /* we should read TechFileName verbatim.				*/
 
-    if (filename == NULL)
+    if ((filename == NULL) && (TechFileName != NULL))
     {
 	tf = PaOpen(TechFileName, "r", (char *)NULL, ".", SysLibPath, &realname);
 	if (tf == (FILE *) NULL)
@@ -423,7 +423,7 @@ TechLoad(filename, initmask)
 		return (FALSE);
 	    }
 	}
-	(void) StrDup(&TechFileName, realname);
+	StrDup(&TechFileName, realname);
 
 	// In case filename is not a temporary string, put it back the
 	// way it was.
@@ -434,9 +434,9 @@ TechLoad(filename, initmask)
     topfile.next = NULL;
     fstack = &topfile;
 
-    // Call TechLoad with initmask == -2 to test that the file exists
-    // and is readable, and that the first non-comment line is the
-    // keyword "tech".
+    // If TechLoad is called with initmask == -2, test that the file
+    // exists and is readable, and that the first non-comment line
+    // is the keyword "tech".
 
     if (initmask == -2)
     {
@@ -454,6 +454,24 @@ TechLoad(filename, initmask)
     for (tsp = techSectionTable; tsp < techSectionFree; tsp++)
     {
 	tsp->ts_read = FALSE;
+    }
+
+    /*
+     * Run section initializations if this is not a reload.
+     * CIF istyle, CIF ostyle, and extract sections need calls
+     * to the init functions which clean up memory devoted to
+     * remembering all the styles.
+     */
+
+    if (filename != NULL)
+    {
+#ifdef CIF_MODULE
+	CIFTechInit();
+	CIFReadTechInit();
+#endif
+	ExtTechInit();
+	DRCTechInit();
+	MZTechInit();	
     }
 
     /*
@@ -619,6 +637,14 @@ skipsection:
     }
 
     if (fstack) fclose(fstack->file);
+
+    if (retval == FALSE)
+    {
+	/* On error, remove any existing technology file name */
+	freeMagic(TechFileName);
+	TechFileName = NULL;
+    }
+
     return (retval);
 }
 

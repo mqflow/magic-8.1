@@ -540,18 +540,6 @@ CmdTech(w, cmd)
 
 	    saveNumPlanes = DBNumPlanes;
 
-	    /* CIF istyle, CIF ostyle, and extract sections need calls	*/
-	    /* to the init functions which clean up memory devoted to	*/
-	    /* remembering all the styles.				*/
-
-#ifdef CIF_MODULE
-	    CIFTechInit();
-	    CIFReadTechInit();
-#endif
-	    ExtTechInit();
-	    DRCTechInit();
-	    MZTechInit();
-
 	    if (!TechLoad(cmd->tx_argv[2], 0))
 	    {
 #ifdef MAGIC_WRAPPER

@@ -657,6 +657,17 @@ mainInitAfterArgs()
 	return 2;
     }
 
+    /* The minimum tech has been loaded only to keep the database from	*/
+    /* becoming corrupted during initialization.  Free the tech file	*/
+    /* name so that a "real" technology file can be forced to replace	*/
+    /* it in mainInitFinal().						*/
+
+    if (TechFileName != NULL)
+    {
+	freeMagic(TechFileName);
+	TechFileName = NULL;
+    }
+
     /* initialize the undo package */
     (void) UndoInit((char *) NULL, (char *) NULL);
 
@@ -769,11 +780,26 @@ mainInitFinal()
     }
 #endif	/* MAGIC_WRAPPER */
 
-    /* Load the technology file. */
+    /* Load the technology file.  If "site.pre" loaded a technology	*/
+    /* file, then "TechFileName" will be set, and we should not		*/
+    /* override it (but "site.pre" should not really be doing that).	*/
 
-    if (TechDefault != NULL)
-	if (!TechLoad(TechDefault, 0))
+    if ((TechFileName == NULL) && (TechDefault != NULL))
+    {
+	if (!TechLoad(TechDefault, -2))
 	    TxError("Failed to load technology \"%s\"\n", TechDefault);
+	else if (!TechLoad(TechDefault, 0))
+	    TxError("Error loading technology \"%s\"\n", TechDefault);
+    }
+
+    /* If that failed, then load the "minimum" technology again and	*/
+    /* keep it.  It's not very useful, but it will keep everything	*/
+    /* up and running.  In the worst case, if site.pre has removed the	*/
+    /* standard locations from the system path, then magic will exit.	*/
+
+    if (TechFileName == NULL)
+	if (!TechLoad("minimum", 0))
+	    return -1;
 
 #ifndef MAGIC_WRAPPER
 
