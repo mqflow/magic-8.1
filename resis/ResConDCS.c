@@ -195,7 +195,6 @@ dbcConnectFuncDCS(tile, cx)
 #ifdef ARIEL
     if (TTMaskHasType(&ResSubsTypeBitMask,t1) && (ResOptionsFlags & ResOpt_DoSubstrate))
     {
-         int	pNum;
 	 TileTypeBitMask  *mask = &ExtCurStyle->exts_subsTransistorTypes[t1];
 
 	 for (pNum = PL_TECHDEPBASE; pNum < DBNumPlanes; pNum++)
@@ -225,35 +224,15 @@ dbcConnectFuncDCS(tile, cx)
 	loctype = (SplitSide(tile)) ? SplitRightType(tile) : SplitLeftType(tile);
     }
 
-    pNum = DBPlane(loctype);
+    pNum = cx->tc_plane;
     connectMask = &csa2->csa2_connect[loctype];
 
     if (DBIsContact(loctype))
     {
-	TileTypeBitMask *cMask, *rMask = DBResidueMask(loctype);
-
-	TTMaskSetOnlyType(&notConnectMask, loctype);
-
-	/* Differenct contact types may share residues (6/18/04) */     
-	for (ctype = TT_TECHDEPBASE; ctype < DBNumUserLayers; ctype++)
-	{
-	    if (DBIsContact(ctype))
-	    {
-		cMask = DBResidueMask(ctype);
-		if (TTMaskIntersect(rMask, cMask))
-		    TTMaskSetType(&notConnectMask, ctype);
-	    }
-	}
-
 	/* The mask of contact types must include all stacked contacts */
-	for (ctype = DBNumUserLayers; ctype < DBNumTypes; ctype++)   
-	{
-	    cMask = DBResidueMask(ctype);
-	    if TTMaskHasType(cMask, loctype)
-		TTMaskSetType(&notConnectMask, ctype);
-	}
-
-	TTMaskCom(&notConnectMask);
+	
+	TTMaskZero(&notConnectMask);
+	TTMaskSetMask(&notConnectMask, &DBNotConnectTbl[loctype]);
     }
     else
     {
@@ -264,7 +243,7 @@ dbcConnectFuncDCS(tile, cx)
 
     if (DBSrPaintNMArea((Tile *) NULL, def->cd_planes[pNum],
 		dinfo, &newarea, &notConnectMask, dbcUnconnectFunc,
-		(ClientData) connectMask) == 0)
+		(ClientData)NULL) == 0)
 	return 0;
 
     DBNMPaintPlane(def->cd_planes[pNum], dinfo,
@@ -306,12 +285,14 @@ dbcConnectFuncDCS(tile, cx)
 	csa2->csa2_size *= 2;
 
 	newlist = (conSrArea *)mallocMagic(csa2->csa2_size * sizeof(conSrArea));
-	for (i = 0; i < lastsize; i++)
-	{
-	    newlist[i].area = csa2->csa2_list[i].area;
-	    newlist[i].connectMask = csa2->csa2_list[i].connectMask;
-	    newlist[i].dinfo = csa2->csa2_list[i].dinfo;
-	}
+	memcpy((void *)newlist, (void *)csa2->csa2_list,
+			(size_t)lastsize * sizeof(conSrArea));
+	// for (i = 0; i < lastsize; i++)
+	// {
+	//     newlist[i].area = csa2->csa2_list[i].area;
+	//     newlist[i].connectMask = csa2->csa2_list[i].connectMask;
+	//     newlist[i].dinfo = csa2->csa2_list[i].dinfo;
+	// }
 	freeMagic((char *)csa2->csa2_list);
 	csa2->csa2_list = newlist;
     }
