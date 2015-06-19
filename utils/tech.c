@@ -700,7 +700,13 @@ skipsection:
     }
     if (fstack) fclose(fstack->file);
 
-    if (retval == TRUE)
+    /* Note:  If filename is NULL, then individual sections are	*/
+    /* being reloaded, and it is the responsibility of the	*/
+    /* calling routine to invoke any exit function specific to	*/
+    /* that section (e.g., DRCTechScale() when loading a new	*/
+    /* DRC style).						*/
+
+    if ((filename != NULL) && (retval == TRUE))
     {
 	/* If internal scalefactor is not the default 1:1, then we  */
 	/* need to scale the techfile numbers accordingly.          */
@@ -748,7 +754,7 @@ skipsection:
 	if (saveNumPlanes != DBNumPlanes)
 	    DBCellSrDefs(0, changePlanesFunc, (ClientData) &saveNumPlanes);
     }
-    else
+    else if (retval == FALSE)
     {
 	/* On error, remove any existing technology file name */
 	freeMagic(TechFileName);
