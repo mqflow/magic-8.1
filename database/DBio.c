@@ -400,11 +400,12 @@ dbCellReadDef(f, cellDef, name, ignoreTech)
 		cellDef->cd_name, n);
 	if (d > 1) 
 	{
-	    TxPrintf("/ %d", d);
+	    TxPrintf("/ %d\n", d);
 	    TxError("Warning:  Geometry may be lost because internal grid"
-			"cannot be reduced.\n");
+			" cannot be reduced.\n");
 	}
-	TxPrintf("\n");
+	else
+	    TxPrintf("\n");
     }
 
     /*

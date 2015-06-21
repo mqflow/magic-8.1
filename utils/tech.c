@@ -34,7 +34,6 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
 #include "windows/windows.h"
 #include "utils/malloc.h"
 
-global char *TechDefault = NULL;
 global int  TechFormatVersion;
 global bool TechOverridesDefault;
 

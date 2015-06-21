@@ -124,6 +124,9 @@ typedef struct filename {
 } FileName;
 FileName *CurrentName;
 
+/* tech name specified on the command line */
+static char *TechDefault = NULL;
+
 /* the filename for the graphics and mouse ports */
 global char *MainGraphicsFile = NULL;
 global char *MainMouseFile = NULL;
@@ -501,20 +504,8 @@ mainInitAfterArgs()
     SectionID sec_drc, sec_extract, sec_wiring, sec_router;
     SectionID sec_plow, sec_plot, sec_mzrouter;
 
-    /* If no technology has been specified yet, try to read one from
-     * the initial cell, or else assign a default.
-     */
-
-    if ((TechDefault == NULL) && (MainFileName != NULL))
-	(void) StrDup(&TechDefault, DBGetTech(MainFileName));
-
     DBTypeInit();
     MacroInit();
-
-#ifdef SCHEME_INTERPRETER
-    /* Pass technology name to Lisp interpreter (rajit@cs.caltech.edu) */
-    LispSetTech (TechDefault);
-#endif
 
 #ifdef LEF_MODULE
     /* Pre-techfile-loading intialization of the LEF module */
@@ -525,19 +516,17 @@ mainInitAfterArgs()
     OAInit();
 #endif
 
-    /* TxPrintf("Using technology \"%s\".\n", TechDefault); */
-
     /*
      * Setup path names for system directory searches
      */
 
     StrDup(&SysLibPath, MAGIC_SYS_PATH);
 
-    if (TechDefault != NULL)
+    if (TechFileName != NULL)
     {
 	CellLibPath = (char *)mallocMagic(strlen(MAGIC_LIB_PATH)
-		+ strlen(TechDefault) - 1);
-	sprintf(CellLibPath, MAGIC_LIB_PATH, TechDefault);
+		+ strlen(TechFileName) - 1);
+	sprintf(CellLibPath, MAGIC_LIB_PATH, TechFileName);
     }
     else
 	CellLibPath = StrDup((char **)NULL, MAGIC_LIB_PATH);
@@ -780,6 +769,13 @@ mainInitFinal()
     }
 #endif	/* MAGIC_WRAPPER */
 
+    /* If no technology has been specified yet, try to read one from
+     * the initial cell, or else assign a default.
+     */
+
+    if ((TechFileName == NULL) && (TechDefault == NULL) && (MainFileName != NULL))
+	StrDup(&TechDefault, DBGetTech(MainFileName));
+
     /* Load the technology file.  If "site.pre" loaded a technology	*/
     /* file, then "TechFileName" will be set, and we should not		*/
     /* override it (but "site.pre" should not really be doing that).	*/
@@ -792,6 +788,12 @@ mainInitFinal()
 	    TxError("Error loading technology \"%s\"\n", TechDefault);
     }
 
+    if (TechDefault != NULL)
+    {
+	freeMagic(TechDefault);
+	TechDefault = NULL;
+    }
+
     /* If that failed, then load the "minimum" technology again and	*/
     /* keep it.  It's not very useful, but it will keep everything	*/
     /* up and running.  In the worst case, if site.pre has removed the	*/
@@ -800,6 +802,11 @@ mainInitFinal()
     if (TechFileName == NULL)
 	if (!TechLoad("minimum", 0))
 	    return -1;
+
+#ifdef SCHEME_INTERPRETER
+    /* Pass technology name to Lisp interpreter (rajit@cs.caltech.edu) */
+    LispSetTech (TechFileName);
+#endif
 
 #ifndef MAGIC_WRAPPER
 
