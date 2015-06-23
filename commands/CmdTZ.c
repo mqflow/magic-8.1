@@ -476,16 +476,14 @@ CmdTech(w, cmd)
 	    locargc = cmd->tx_argc;
 	    while ((*cmd->tx_argv[locargc - 1] == '-') && (locargc > 3))
 	    {
-		if (!strcmp(cmd->tx_argv[locargc - 1], "-nooverride"))
+		if (!strcmp(cmd->tx_argv[locargc - 1], "-override"))
 		{
-		    /* Disallow the "tech load" command from overriding */
+		    /* Allow the "tech load" command to override 	*/
 		    /* a technology specified on the command line.	*/
-		    /* This is used when "tech load" sets up a specific	*/
-		    /* project technology from a .magicrc startup	*/
-		    /* script.						*/
+		    /* Possibly this behavior should not be allowed,	*/
+		    /* but you never know.  Use with utmost caution.	*/
 
-		    if (TechOverridesDefault)
-			return;
+		    TechOverridesDefault = FALSE;
 		}
 		else if (!strcmp(cmd->tx_argv[locargc - 1], "-noprompt"))
 		    noprompt = TRUE;
@@ -499,6 +497,13 @@ CmdTech(w, cmd)
 		TxError("Usage: tech load <filename> [-noprompt] [-nooverride]\n");
 		break;
 	    }
+
+	    /* If the "-T" command line option is given to magic, then	*/
+	    /* the techfile given on the command line prevents any	*/
+	    /* other techfile from being loaded until after startup is	*/
+	    /* done.							*/
+
+	    if (TechOverridesDefault) return;
 
 	    /* Here:  We need to do a test to see if any structures	*/
 	    /* exist in memory and delete them, or else we need to have	*/

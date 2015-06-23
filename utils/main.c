@@ -769,44 +769,24 @@ mainInitFinal()
     }
 #endif	/* MAGIC_WRAPPER */
 
-    /* If no technology has been specified yet, try to read one from
-     * the initial cell, or else assign a default.
-     */
+    // Make a first attempt to load the technology if specified on the
+    // command line with the -T option.  This will preempt most other
+    // ways that the technology file is determined.  If the technology
+    // specified cannot be loaded, then the forced override is revoked.
 
-    if ((TechFileName == NULL) && (TechDefault == NULL) && (MainFileName != NULL))
-	StrDup(&TechDefault, DBGetTech(MainFileName));
-
-    /* Load the technology file.  If "site.pre" loaded a technology	*/
-    /* file, then "TechFileName" will be set, and we should not		*/
-    /* override it (but "site.pre" should not really be doing that).	*/
-
-    if ((TechFileName == NULL) && (TechDefault != NULL))
+    if ((TechFileName == NULL) && (TechDefault != NULL) && TechOverridesDefault)
     {
-	if (!TechLoad(TechDefault, -2))
-	    TxError("Failed to load technology \"%s\"\n", TechDefault);
-	else if (!TechLoad(TechDefault, 0))
-	    TxError("Error loading technology \"%s\"\n", TechDefault);
+        if (!TechLoad(TechDefault, -2))
+	{
+            TxError("Failed to load technology \"%s\"\n", TechDefault);
+	    TechOverridesDefault = FALSE;
+	}
+        else if (!TechLoad(TechDefault, 0))
+	{
+            TxError("Error loading technology \"%s\"\n", TechDefault);
+	    TechOverridesDefault = FALSE;
+	}
     }
-
-    if (TechDefault != NULL)
-    {
-	freeMagic(TechDefault);
-	TechDefault = NULL;
-    }
-
-    /* If that failed, then load the "minimum" technology again and	*/
-    /* keep it.  It's not very useful, but it will keep everything	*/
-    /* up and running.  In the worst case, if site.pre has removed the	*/
-    /* standard locations from the system path, then magic will exit.	*/
-
-    if (TechFileName == NULL)
-	if (!TechLoad("minimum", 0))
-	    return -1;
-
-#ifdef SCHEME_INTERPRETER
-    /* Pass technology name to Lisp interpreter (rajit@cs.caltech.edu) */
-    LispSetTech (TechFileName);
-#endif
 
 #ifndef MAGIC_WRAPPER
 
@@ -982,6 +962,48 @@ mainInitFinal()
 #endif /* !MAGIC_WRAPPER */
 
     }
+
+    /* We are done forcing the "tech load" command to be ignored */
+    TechOverridesDefault = FALSE;
+
+    /* If no technology has been specified yet, try to read one from
+     * the initial cell, or else assign a default.
+     */
+
+    if ((TechFileName == NULL) && (TechDefault == NULL) && (MainFileName != NULL))
+	StrDup(&TechDefault, DBGetTech(MainFileName));
+
+    /* Load the technology file.  If any startup file loaded a		*/
+    /* technology file, then "TechFileName" will be set, and we		*/
+    /* should not override it.						*/
+
+    if ((TechFileName == NULL) && (TechDefault != NULL))
+    {
+        if (!TechLoad(TechDefault, -2))
+            TxError("Failed to load technology \"%s\"\n", TechDefault);
+        else if (!TechLoad(TechDefault, 0))
+            TxError("Error loading technology \"%s\"\n", TechDefault);
+    }
+
+    if (TechDefault != NULL)
+    {
+	freeMagic(TechDefault);
+	TechDefault = NULL;
+    }
+
+    /* If that failed, then load the "minimum" technology again and	*/
+    /* keep it.  It's not very useful, but it will keep everything	*/
+    /* up and running.  In the worst case, if site.pre has removed the	*/
+    /* standard locations from the system path, then magic will exit.	*/
+
+    if (TechFileName == NULL)
+	if (!TechLoad("minimum", 0))
+	    return -1;
+
+#ifdef SCHEME_INTERPRETER
+    /* Pass technology name to Lisp interpreter (rajit@cs.caltech.edu) */
+    LispSetTech (TechFileName);
+#endif
 
     /*
      * Recover crash files from the temp directory if we have specified
