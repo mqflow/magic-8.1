@@ -178,7 +178,7 @@ CmdTech(w, cmd)
 
     static char *cmdTechOption[] =
     {	
-	"load filename [-noprompt][-nooverride]\n\
+	"load filename [-noprompt][-override]\n\
 				Load a new technology",
 	"help			Display techinfo command options",
 	"name			Show current technology name",
@@ -487,14 +487,18 @@ CmdTech(w, cmd)
 		}
 		else if (!strcmp(cmd->tx_argv[locargc - 1], "-noprompt"))
 		    noprompt = TRUE;
-		else
+
+		// "-nooverride" is kept for backwards compatibility but
+		// has no effect.
+
+		else if (strcmp(cmd->tx_argv[locargc - 1], "-nooverride"))
 		    break;
 		locargc--;
 	    }
 
 	    if (locargc != 3)
 	    {
-		TxError("Usage: tech load <filename> [-noprompt] [-nooverride]\n");
+		TxError("Usage: tech load <filename> [-noprompt] [-override]\n");
 		break;
 	    }
 
