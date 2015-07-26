@@ -436,62 +436,66 @@ DBWloadWindow(window, name, ignoreTech, expand)
      * Attach the new cell to the selected window.
      */
 
-    newEditUse = DBCellNewUse(newEditDef, (char *) NULL);
-    (void) StrDup(&(newEditUse->cu_id), "Topmost cell in the window");
-    DBExpand(newEditUse,
-	((DBWclientRec *)window->w_clientData)->dbw_bitmask, TRUE);
-
-    if (expand)
-	DBExpandAll(newEditUse, &(newEditUse->cu_bbox),
-		((DBWclientRec *)window->w_clientData)->dbw_bitmask,
-		FALSE, UnexpandFunc,
-		(ClientData) (((DBWclientRec *)window->w_clientData)->dbw_bitmask));
-
-    if (newEdit)
+    if (window != NULL)
     {
-	if (EditCellUse && EditRootDef)
+	newEditUse = DBCellNewUse(newEditDef, (char *) NULL);
+	(void) StrDup(&(newEditUse->cu_id), "Topmost cell in the window");
+	DBExpand(newEditUse,
+		((DBWclientRec *)window->w_clientData)->dbw_bitmask, TRUE);
+
+	if (expand)
+	    DBExpandAll(newEditUse, &(newEditUse->cu_bbox),
+			((DBWclientRec *)window->w_clientData)->dbw_bitmask,
+			FALSE, UnexpandFunc, (ClientData)
+			(((DBWclientRec *)window->w_clientData)->dbw_bitmask));
+
+	if (newEdit)
 	{
-	    DBWUndoOldEdit(EditCellUse, EditRootDef,
-		    &EditToRootTransform, &RootToEditTransform);
-	    DBWUndoNewEdit(newEditUse, newEditDef,
-		    &GeoIdentityTransform, &GeoIdentityTransform);
-	}
-	if (newEditUse->cu_def->cd_flags & CDNOEDIT)
-	{
-	    newEdit = FALSE;
-	    EditCellUse = NULL;
-	    EditRootDef = NULL;
-	}
-	else
-	{
-	    EditCellUse = newEditUse;
-	    EditRootDef = newEditDef;
+	    if (EditCellUse && EditRootDef)
+	    {
+		DBWUndoOldEdit(EditCellUse, EditRootDef,
+			&EditToRootTransform, &RootToEditTransform);
+		DBWUndoNewEdit(newEditUse, newEditDef,
+			&GeoIdentityTransform, &GeoIdentityTransform);
+	    }
+	    if (newEditUse->cu_def->cd_flags & CDNOEDIT)
+	    {
+		newEdit = FALSE;
+		EditCellUse = NULL;
+		EditRootDef = NULL;
+	    }
+	    else
+	    {
+		EditCellUse = newEditUse;
+		EditRootDef = newEditDef;
+	    }
+
+	    EditToRootTransform = GeoIdentityTransform;
+	    RootToEditTransform = GeoIdentityTransform;
 	}
 
-	EditToRootTransform = GeoIdentityTransform;
-	RootToEditTransform = GeoIdentityTransform;
+	/* enforce a minimum size of 60 and a border of 10% around the sides */
+	xadd = MAX(0, (60 - (loadBox.r_xtop - loadBox.r_xbot)) / 2) + 
+		(loadBox.r_xtop - loadBox.r_xbot + 1) / 10;
+	yadd = MAX(0, (60 - (loadBox.r_ytop - loadBox.r_ybot)) / 2) +
+		(loadBox.r_ytop - loadBox.r_ybot + 1) / 10;
+	loadBox.r_xbot -= xadd;  loadBox.r_xtop += xadd;
+	loadBox.r_ybot -= yadd;  loadBox.r_ytop += yadd;
+
+	window->w_bbox = &(newEditUse->cu_def->cd_bbox);
+	res = WindLoad(window, DBWclientID, (ClientData) newEditUse, &loadBox);
+	ASSERT(res, "DBWcreate");
+
+	/* Update the captions in all windows to reflect the new
+	 * edit cell.  Also, if we've got a new edit cell, we need
+	 * to explicitly ask for redisplay, because there could be
+	 * another window on this cell somewhere else, and it needs
+	 * to be redisplayed too (if it's just the new window, that
+	 * is taken care of during WindLoad).
+	 */
+	CmdSetWindCaption(EditCellUse, EditRootDef);
     }
 
-    /* enforce a minimum size of 60 and a border of 10% around the sides */
-    xadd = MAX(0, (60 - (loadBox.r_xtop - loadBox.r_xbot)) / 2) + 
-	(loadBox.r_xtop - loadBox.r_xbot + 1) / 10;
-    yadd = MAX(0, (60 - (loadBox.r_ytop - loadBox.r_ybot)) / 2) +
-	(loadBox.r_ytop - loadBox.r_ybot + 1) / 10;
-    loadBox.r_xbot -= xadd;  loadBox.r_xtop += xadd;
-    loadBox.r_ybot -= yadd;  loadBox.r_ytop += yadd;
-
-    window->w_bbox = &(newEditUse->cu_def->cd_bbox);
-    res = WindLoad(window, DBWclientID, (ClientData) newEditUse, &loadBox);
-    ASSERT(res, "DBWcreate");
-
-    /* Update the captions in all windows to reflect the new
-     * edit cell.  Also, if we've got a new edit cell, we need
-     * to explicitly ask for redisplay, because there could be
-     * another window on this cell somewhere else, and it needs
-     * to be redisplayed too (if it's just the new window, that
-     * is taken care of during WindLoad).
-     */
-    CmdSetWindCaption(EditCellUse, EditRootDef);
     if (newEdit)
 	DBWAreaChanged(newEditDef, &newEditDef->cd_bbox, DBW_ALLWINDOWS,
 	    &DBAllButSpaceBits);

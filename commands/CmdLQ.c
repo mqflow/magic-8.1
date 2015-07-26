@@ -349,6 +349,7 @@ CmdLoad(w, cmd)
     int d = 1;
     int locargc = cmd->tx_argc;
     bool ignoreTech = FALSE;
+    bool noWindow = FALSE;
     int keepGoing();			/* forward declaration */
 
     windCheckOnlyWindow(&w, DBWclientID);
@@ -360,6 +361,11 @@ CmdLoad(w, cmd)
 
     if (locargc > 2)
     {
+	if (!strncmp(cmd->tx_argv[locargc - 1], "-nowindow", 8))
+	{
+	    locargc--;
+	    noWindow = TRUE;
+	}
 	if (!strncmp(cmd->tx_argv[locargc - 1], "-force", 6))
 	{
 	    locargc--;
@@ -380,7 +386,7 @@ CmdLoad(w, cmd)
 	    DBLambda[1] *= n;
 	    ReduceFraction(&DBLambda[0], &DBLambda[1]);
 	}
-	else if (!ignoreTech)
+	else if (!ignoreTech && !noWindow)
 	{
 	    TxError("Usage: %s [name [scaled n [d]]]\n", cmd->tx_argv[0]);
 	    return;
@@ -399,7 +405,8 @@ CmdLoad(w, cmd)
 	    *(cmd->tx_argv[1] + strlen(cmd->tx_argv[1]) - 1) = '\0';
 	}
 #endif
-	DBWloadWindow(w, cmd->tx_argv[1], ignoreTech, FALSE);
+	DBWloadWindow((noWindow == TRUE) ? NULL : w, cmd->tx_argv[1],
+			ignoreTech, FALSE);
 
 	if ((n > 1) || (d > 1))
 	{
