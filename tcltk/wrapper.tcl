@@ -731,7 +731,7 @@ proc magic::maketoolbar { framename } {
    # the toolbar without going outside the window area.
 
    set locklist [tech locked]
-   set ncols 1
+   set ncols 0
    while {1} {
       incr ncols
       set i 0
