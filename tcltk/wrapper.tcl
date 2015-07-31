@@ -675,13 +675,6 @@ proc magic::maketoolbar { framename } {
    # All toolbar commands will be passed to the appropriate window
    set win ${framename}.magic
 
-   # Make sure that window has been created so we will get the correct
-   # height value.
-
-   update idletasks
-   set winheight [expr {[winfo height ${framename}] - \
-		[winfo height ${framename}.titlebar]}]
-
    # Generate layer images and buttons for toolbar
 
    set all_layers [concat {errors labels subcell} [magic::tech layer "*"]]
@@ -765,6 +758,13 @@ proc magic::maketoolbar { framename } {
 	    incr i
          }
       }
+
+      # Make sure that window has been created so we will get the correct
+      # height value.
+
+      update idletasks
+      set winheight [expr {[winfo height ${framename}] - \
+		[winfo height ${framename}.titlebar]}]
       set toolheight [lindex [grid bbox ${framename}.toolbar] 3]
       if {$toolheight <= $winheight} {break}
    }

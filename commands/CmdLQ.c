@@ -352,13 +352,6 @@ CmdLoad(w, cmd)
     bool noWindow = FALSE;
     int keepGoing();			/* forward declaration */
 
-    windCheckOnlyWindow(&w, DBWclientID);
-    if (w == (MagWindow *) NULL)
-    {
-	TxError("Point to a window first.\n");
-	return;
-    }
-
     if (locargc > 2)
     {
 	if (!strncmp(cmd->tx_argv[locargc - 1], "-nowindow", 8))
@@ -391,6 +384,13 @@ CmdLoad(w, cmd)
 	    TxError("Usage: %s [name [scaled n [d]]]\n", cmd->tx_argv[0]);
 	    return;
 	}
+    }
+
+    windCheckOnlyWindow(&w, DBWclientID);
+    if ((w == (MagWindow *) NULL) && (noWindow == FALSE))
+    {
+	TxError("Point to a window first.\n");
+	return;
     }
 
     if (locargc > 1)
