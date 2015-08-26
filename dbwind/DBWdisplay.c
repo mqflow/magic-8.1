@@ -948,6 +948,7 @@ dbwLabelFunc(scx, label, tpath)
 	screenPos = GeoTransPos(&scx->scx_trans, label->lab_just);
 	GeoTransRect(&scx->scx_trans, &label->lab_rect, &tmp);
 	WindSurfaceToScreen(dbwWindow, &tmp, &labRect);
+	WindSurfaceToScreenNoClip(dbwWindow, &tmp, &labRectNoClip);
 	if (!GEO_TOUCH(&labRect, &dbwWindow->w_screenArea)) return 0;
 	DBWDrawLabel(label, &labRect, screenPos, -1, dbwLabelSize, dbwExpandAmounts);
     }
