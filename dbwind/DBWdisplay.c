@@ -918,7 +918,7 @@ dbwLabelFunc(scx, label, tpath)
     Label *label;		/* Label to be displayed. */
     TerminalPath *tpath;	/* Contains pointer to full pathname of label */
 {
-    Rect labRect, labRectNoClip, tmp;
+    Rect labRect, tmp;
     int screenPos, screenRot, newStyle;
 
     if (!dbwAllSame && ((editDef != scx->scx_use->cu_def)
@@ -948,7 +948,6 @@ dbwLabelFunc(scx, label, tpath)
 	screenPos = GeoTransPos(&scx->scx_trans, label->lab_just);
 	GeoTransRect(&scx->scx_trans, &label->lab_rect, &tmp);
 	WindSurfaceToScreen(dbwWindow, &tmp, &labRect);
-	WindSurfaceToScreenNoClip(dbwWindow, &tmp, &labRectNoClip);
 	if (!GEO_TOUCH(&labRect, &dbwWindow->w_screenArea)) return 0;
 	DBWDrawLabel(label, &labRect, screenPos, -1, dbwLabelSize, dbwExpandAmounts);
     }
@@ -959,20 +958,27 @@ dbwLabelFunc(scx, label, tpath)
 
     if (label->lab_flags & PORT_DIR_MASK)
     {
+	if (label->lab_font >= 0)	// If not done already. . .
+	{
+	    screenPos = GeoTransPos(&scx->scx_trans, label->lab_just);
+	    GeoTransRect(&scx->scx_trans, &label->lab_rect, &tmp);
+	}
+	WindSurfaceToScreenNoClip(dbwWindow, &tmp, &labRect);
+
 	/* Temporarily set the style for port connection lines */
         GrSetStuff(STYLE_PORT_CONNECT);
 	if (label->lab_flags & PORT_DIR_NORTH)
-	    GrClipLine(labRectNoClip.r_xbot, labRectNoClip.r_ytop,
-			labRectNoClip.r_xtop, labRectNoClip.r_ytop);
+	    GrClipLine(labRect.r_xbot, labRect.r_ytop,
+			labRect.r_xtop, labRect.r_ytop);
 	if (label->lab_flags & PORT_DIR_SOUTH)
-	    GrClipLine(labRectNoClip.r_xbot, labRectNoClip.r_ybot,
-			labRectNoClip.r_xtop, labRectNoClip.r_ybot);
+	    GrClipLine(labRect.r_xbot, labRect.r_ybot,
+			labRect.r_xtop, labRect.r_ybot);
 	if (label->lab_flags & PORT_DIR_EAST)
-	    GrClipLine(labRectNoClip.r_xtop, labRectNoClip.r_ybot,
-			labRectNoClip.r_xtop, labRectNoClip.r_ytop);
+	    GrClipLine(labRect.r_xtop, labRect.r_ybot,
+			labRect.r_xtop, labRect.r_ytop);
 	if (label->lab_flags & PORT_DIR_WEST)
-	    GrClipLine(labRectNoClip.r_xbot, labRectNoClip.r_ybot,
-			labRectNoClip.r_xbot, labRectNoClip.r_ytop);
+	    GrClipLine(labRect.r_xbot, labRect.r_ybot,
+			labRect.r_xbot, labRect.r_ytop);
         GrSetStuff(disStyle);
     }
     return 0;
