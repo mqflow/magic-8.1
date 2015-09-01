@@ -359,6 +359,7 @@ cifReadStyleInit()
     cifCurReadStyle->crs_scaleFactor = 0;
     cifCurReadStyle->crs_multiplier = 1;
     cifCurReadStyle->crs_gridLimit = 0;
+    cifCurReadStyle->crs_flags = 0;
     HashInit(&(cifCurReadStyle->cifCalmaToCif), 64,
       sizeof (CalmaLayerType) / sizeof (unsigned));
     for (i = 0; i < MAXCIFRLAYERS; i++)
