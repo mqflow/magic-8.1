@@ -1141,7 +1141,7 @@ TxTclDispatch(clientData, argc, argv, quiet)
     if (argc > TX_MAXARGS)
     {
 	TxError("Error: number of command arguments exceeds %d!\n", TX_MAXARGS);
-	return;
+	return -1;
     }
 
     SigIOReady = FALSE;
@@ -1158,7 +1158,7 @@ TxTclDispatch(clientData, argc, argv, quiet)
 	{
 	    TxError("Error: command length exceeds %d characters!\n", TX_MAX_CMDLEN);
 	    TxFreeCommand(tclcmd);
-	    return;
+	    return -1;
 	}
 	strcpy(&tclcmd->tx_argstring[asize], argv[n]);
 	tclcmd->tx_argv[n] = &tclcmd->tx_argstring[asize];

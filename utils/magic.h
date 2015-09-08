@@ -181,8 +181,9 @@ extern char AbortMessage[];
  * Select system call
  *
  * 	Note:  Errors here may be caused by not including <sys/types.h> 
- *	before "magic.h"
+ *	before "magic.h" (deprecated; more modern usage is <sys/select.h>
  */
+#include <sys/select.h>
 #ifndef FD_SET
 #define fd_set int
 #define FD_SET(n, p)    ((*(p)) |= (1 << (n)))
