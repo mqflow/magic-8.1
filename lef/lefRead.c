@@ -334,8 +334,11 @@ LefError(char *fmt, ...)
  *	against the latter case, "match" should be NULL.
  *
  * Results:
- *	TRUE if the line matches the expected end statement,
- *	FALSE if not. 
+ *	1 if the line matches the expected end statement,
+ *	0 if not.  Return -1 if the last token read was
+ *	"END", indicating to the caller that either an
+ *	error has occurred or, in the case of a section
+ *	skip, the routine needs to be called again.
  *
  * Side effects:
  *	None.
@@ -343,7 +346,7 @@ LefError(char *fmt, ...)
  *------------------------------------------------------------
  */
 
-bool
+int
 LefParseEndStatement(f, match)
     FILE *f;
     char *match;
@@ -352,6 +355,12 @@ LefParseEndStatement(f, match)
     int keyword, words;
     char *match_name[2];
 
+    static char *end_section[] = {
+	"END",
+	"ENDEXT",
+	NULL
+    };
+
     match_name[0] = match;
     match_name[1] = NULL;
 
@@ -359,19 +368,26 @@ LefParseEndStatement(f, match)
     if (token == NULL)
     {
 	LefError("Bad file read while looking for END statement\n");
-	return FALSE;
+	return 0;
     }
 
     /* END or ENDEXT */
-    if ((*token == '\n') && (match == NULL)) return TRUE;
+    if ((*token == '\n') && (match == NULL)) return 1;
 
     /* END <section_name> */
     else {
 	keyword = LookupFull(token, match_name);
 	if (keyword == 0)
-	    return TRUE;
+	    return 1;
 	else
-	    return FALSE;
+	{
+	    /* Check for END followed by END */
+	    keyword = LookupFull(token, end_section);
+	    if (keyword == 0)
+		return -1;
+	    else
+		return 0;
+	}
     }
 }
 
@@ -403,7 +419,7 @@ LefSkipSection(f, section)
     char *section;
 {
     char *token;
-    int keyword;
+    int keyword, result;
     static char *end_section[] = {
 	"END",
 	"ENDEXT",
@@ -414,8 +430,12 @@ LefSkipSection(f, section)
     {
 	if ((keyword = Lookup(token, end_section)) == 0)
 	{
-	    if (LefParseEndStatement(f, section))
-		return;
+	    result = -1;
+	    while (result == -1)
+	    {
+		result = LefParseEndStatement(f, section);
+		if (result == 1) return;
+	    }
 	}
 	else if (keyword == 1)
 	{
@@ -432,6 +452,11 @@ LefSkipSection(f, section)
  *------------------------------------------------------------
  *
  * lefFindCell --
+ *
+ *	Search for an existing cell of the given name.  If
+ *	it exists, return a pointer to the cell def.  If not,
+ *	create a new cell def with the given name and return
+ *	a pointer to it.
  *
  *------------------------------------------------------------
  */
@@ -1025,7 +1050,7 @@ LefReadGeometry(lefMacro, f, oscale, do_list)
 		LefEndStatement(f);
 		break;
 	    case LEF_GEOMETRY_END:
-		if (!LefParseEndStatement(f, NULL))
+		if (LefParseEndStatement(f, NULL) == 0)
 		{
 		    LefError("Geometry (PORT or OBS) END statement missing.\n");
 		    keyword = -1;
@@ -1210,7 +1235,7 @@ LefReadPin(lefMacro, f, pinname, pinNum, oscale)
 		LefEndStatement(f);	/* Ignore. . . */
 		break;
 	    case LEF_PIN_END:
-		if (!LefParseEndStatement(f, pinname))
+		if (LefParseEndStatement(f, pinname) == 0)
 		{
 		    LefError("Pin END statement missing.\n");
 		    keyword = -1;
@@ -1308,14 +1333,32 @@ LefReadMacro(f, mname, oscale, importForeign)
 	}
 	LefError("Cell \"%s\" was already defined in this file.  "
 		"Renaming this cell \"%s\"\n", mname, newname);
-	lefMacro = lefFindCell(newname);
+        lefMacro = DBCellLookDef(newname);
+        if (lefMacro == NULL)
+	{
+	    lefMacro = lefFindCell(newname);
+	    DBCellClearDef(lefMacro);
+	    DBCellSetAvail(lefMacro);
+	    HashSetValue(he, lefMacro);
+	    is_imported = FALSE;
+	}
+	else
+	    is_imported = TRUE;
     }
     else
-	lefMacro = lefFindCell(mname);
-
-    DBCellClearDef(lefMacro);
-    DBCellSetAvail(lefMacro);
-    HashSetValue(he, lefMacro);
+    {
+        lefMacro = DBCellLookDef(mname);
+	if (lefMacro == NULL)
+	{
+	    lefMacro = lefFindCell(mname);
+	    DBCellClearDef(lefMacro);
+	    DBCellSetAvail(lefMacro);
+	    HashSetValue(he, lefMacro);
+	    is_imported = FALSE;
+	}
+	else
+	    is_imported = TRUE;
+    }
 
     /* Initial values */
     pinNum = 1;
@@ -1425,23 +1468,12 @@ origin_error:
 		    token = LefNextToken(f, TRUE);
 		    sprintf(tsave, "%.127s", token);
 
-		    /* Attempt to read a .mag file of this name */
-
-		    DBCellClearAvail(lefMacro);
-		    if (DBCellRead(lefMacro, tsave, TRUE, NULL))
-			is_imported = TRUE;
-		    else
-		    {
-			TxError("   Cannot find magic file %s.mag "
-				"to import.\n", tsave);
-			TxError("   Filling cell with geometry from "
-				"the LEF file.\n");
-		    }
+		    /* To do:  Read and apply X and Y offsets */
 		}
 		LefEndStatement(f);
 		break;
 	    case LEF_MACRO_END:
-		if (!LefParseEndStatement(f, mname))
+		if (LefParseEndStatement(f, mname) == 0)
 		{
 		    LefError("Macro END statement missing.\n");
 		    keyword = -1;
@@ -1454,7 +1486,16 @@ origin_error:
     /* Finish up creating the cell */
 
     if (is_imported)
-	DBReComputeBbox(lefMacro);
+    {
+	/* Redefine cell bounding box to match the LEF macro	*/
+	/* Leave "extended" to mark the original bounding box	*/
+
+	if (has_size)
+	{
+	    lefMacro->cd_bbox = lefBBox;
+	    lefMacro->cd_flags |= CDFIXEDBBOX;
+	}
+    }
     else
     {
 	DBAdjustLabelsNew(lefMacro, &TiPlaneRect, 1);
@@ -1721,7 +1762,7 @@ LefReadLayerSection(f, lname, mode, lefl)
 		LefEndStatement(f);
 		break;
 	    case LEF_LAYER_END:
-		if (!LefParseEndStatement(f, lname))
+		if (LefParseEndStatement(f, lname) == 0)
 		{
 		    LefError("Layer END statement missing.\n");
 		    keyword = -1;
@@ -1975,7 +2016,7 @@ LefRead(inName, importForeign)
 		LefReadMacro(f, tsave, oscale, importForeign);
 		break;
 	    case LEF_END:
-		if (!LefParseEndStatement(f, "LIBRARY"))
+		if (LefParseEndStatement(f, "LIBRARY") == 0)
 		{
 		    LefError("END statement out of context.\n");
 		    keyword = -1;

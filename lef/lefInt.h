@@ -121,7 +121,7 @@ int lefDefInitFunc(), lefDefPushFunc();
 FILE *lefFileOpen();
 
 char *LefGetInput();
-bool LefParseEndStatement();
+int LefParseEndStatement();
 void LefSkipSection();
 void LefEndStatement();
 CellDef *lefFindCell();
