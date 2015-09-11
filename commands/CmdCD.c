@@ -3152,9 +3152,9 @@ CmdDrc(w, cmd)
     static char *cmdDrcOption[] =
     {	
 	"*flatcheck             check box area by flattening",
-	"*halo [d]		limit error checking to areas of d lambda",
+	"*halo [d]		limit error checking to areas of d units",
 	"*showint radius        show interaction area under box",
-	"*stepsize [d]		change DRC step size to d lambda",
+	"*stepsize [d]		change DRC step size to d units",
 	"catchup                run checker and wait for it to complete",
 	"check                  recheck area under box in all cells",
 	"count                  count error tiles in each cell under box",
@@ -3420,30 +3420,35 @@ CmdDrc(w, cmd)
 	case DRC_HALO:
 	    if (argc == 3)
 	    {
-		DRCTechHalo = cmdScaleCoord(w, argv[2], FALSE, TRUE);
-		DRCTechHalo *= DRCCurStyle->DRCScaleFactorN;
-		DRCTechHalo /= DRCCurStyle->DRCScaleFactorD;
+		DRCTechHalo = cmdScaleCoord(w, argv[2], FALSE, TRUE, 1);
 		if (DRCTechHalo > DRCCurStyle->DRCTechHalo)
 		    DRCTechHalo = DRCCurStyle->DRCTechHalo;
 
 		if (DRCTechHalo < DRCCurStyle->DRCTechHalo)
-		    TxPrintf("Warning: rulechecking limited to halo of %d lambda.\n",
-				DRCTechHalo * DRCCurStyle->DRCScaleFactorD
-				/ DRCCurStyle->DRCScaleFactorN);
+		    TxPrintf("Warning: rulechecking limited to halo of "
+				"%d internal units (%d DRC units).\n",
+				DRCTechHalo,
+				DRCTechHalo * DRCCurStyle->DRCScaleFactorN
+				/ DRCCurStyle->DRCScaleFactorD);
 		else
-		    TxPrintf("DRC checks all rules (halo of %d lambda)\n",
-				DRCTechHalo * DRCCurStyle->DRCScaleFactorD
-				/ DRCCurStyle->DRCScaleFactorN);
+		    TxPrintf("DRC checks all rules (halo of %d internal units, or"
+				" %d DRC units)\n",
+				DRCTechHalo,
+				DRCTechHalo * DRCCurStyle->DRCScaleFactorN
+				/ DRCCurStyle->DRCScaleFactorD);
 	    }
 	    else
 	    {
-		TxPrintf("DRC halo is %d lambda\n",
-				DRCTechHalo * DRCCurStyle->DRCScaleFactorD
-				/ DRCCurStyle->DRCScaleFactorN);
+		TxPrintf("DRC halo is %d internal units (%d DRC units)\n",
+				DRCTechHalo,
+				DRCTechHalo * DRCCurStyle->DRCScaleFactorN
+				/ DRCCurStyle->DRCScaleFactorD);
 		if (DRCTechHalo != DRCCurStyle->DRCTechHalo)
-		    TxPrintf("Maximum rule distance is %d lambda\n",
-				DRCCurStyle->DRCTechHalo * DRCCurStyle->DRCScaleFactorD
-				/ DRCCurStyle->DRCScaleFactorN);
+		    TxPrintf("Maximum rule distance is %d internal units "
+				"(%d DRC units)\n",
+				DRCCurStyle->DRCTechHalo,
+				DRCCurStyle->DRCTechHalo * DRCCurStyle->DRCScaleFactorN
+				/ DRCCurStyle->DRCScaleFactorD);
 	    }
 	    break;
 
@@ -3514,23 +3519,25 @@ CmdDrc(w, cmd)
 	case DRC_STEPSIZE:
 	    if (argc == 3)
 	    {
-		DRCStepSize = cmdScaleCoord(w, argv[2], FALSE, TRUE);
-		DRCStepSize *= DRCCurStyle->DRCScaleFactorN;
-		DRCStepSize /= DRCCurStyle->DRCScaleFactorD;
-		TxPrintf("DRC step size is now %d units)\n",
-				DRCStepSize * DRCCurStyle->DRCScaleFactorD
-				/ DRCCurStyle->DRCScaleFactorN);
+		DRCStepSize = cmdScaleCoord(w, argv[2], FALSE, TRUE, 1);
+		TxPrintf("DRC step size is now %d internal units (%d DRC units))\n",
+				DRCStepSize,
+				DRCStepSize * DRCCurStyle->DRCScaleFactorN
+				/ DRCCurStyle->DRCScaleFactorD);
 	    }
 	    else
 	    {
-		TxPrintf("DRC step size is %d units\n",
-			DRCStepSize * DRCCurStyle->DRCScaleFactorD
-			/ DRCCurStyle->DRCScaleFactorN);
+		TxPrintf("DRC step size is %d internal units (%d DRC units)\n",
+			DRCStepSize,
+			DRCStepSize * DRCCurStyle->DRCScaleFactorN
+			/ DRCCurStyle->DRCScaleFactorD);
 		if (DRCStepSize != (16 * DRCCurStyle->DRCTechHalo))
-		    TxPrintf("Recommended step size is %d units\n",
+		    TxPrintf("Recommended step size is %d internal units"
+				" (%d DRC units)\n",
+				(16 * DRCCurStyle->DRCTechHalo),
 				(16 * DRCCurStyle->DRCTechHalo) *
-				DRCCurStyle->DRCScaleFactorD /
-				DRCCurStyle->DRCScaleFactorN);
+				DRCCurStyle->DRCScaleFactorN /
+				DRCCurStyle->DRCScaleFactorD);
 	    }
 	    break;
 
