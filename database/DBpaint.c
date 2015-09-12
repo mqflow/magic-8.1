@@ -638,12 +638,22 @@ done:
     if (method == (unsigned char)PAINT_MARK)
     {
 	/* Now unmark the processed tiles with the same search algorithm */
+	/* Expand the area by one to catch tiles that were clipped at	 */
+	/* the area boundary.						 */
+	
+	area->r_xbot -= 1;
+	area->r_ybot -= 1;
+	area->r_xtop += 1;
+	area->r_ytop += 1;
+	start.p_x = area->r_xbot;
+	start.p_y = area->r_ytop - 1;
+
 	tile = plane->pl_hint;
 	GOTOPOINT(tile, &start);
 
-enum2:
 	while (TOP(tile) > area->r_ybot)
 	{
+enum2:
 	    clipTop = TOP(tile);
 	    if (clipTop > area->r_ytop) clipTop = area->r_ytop;
 
