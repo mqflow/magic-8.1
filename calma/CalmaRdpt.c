@@ -851,7 +851,7 @@ calmaElementText()
                 break;
             }
 
-	if (layer > 0 && (cifCurReadStyle->crs_layers[layer]->crl_flags
+	if (layer >= 0 && (cifCurReadStyle->crs_layers[layer]->crl_flags
 			& CIFR_TEXTLABELS))
 	    flags = LABEL_STICKY;
 	else if (cifCurReadStyle->crs_flags & CRF_NO_RECONNECT_LABELS)
