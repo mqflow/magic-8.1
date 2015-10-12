@@ -806,9 +806,9 @@ DRCTechLine(sectionName, argc, argv)
 	else
 	    scaleD = 1;
 
-	if (scaleN <= 0 || scaleN > 255 || scaleD <= 0 || scaleD > 255)
+	if (scaleN <= 0 || scaleD <= 0)
 	{
-	    TechError("Scale factor must be between 1 and 255.\n");
+	    TechError("Scale factor must be greater than 0.\n");
 	    TechError("Setting scale factor to default value 1.\n");
 	    DRCCurStyle->DRCScaleFactorN = 1;
 	    DRCCurStyle->DRCScaleFactorD = 1;
