@@ -587,6 +587,17 @@ PlotPNM(fileName, scx, layers, xMask, width)
     char command[200], tempFile[200];
 #endif
 
+    // Sanity check on PaintStyles---may be NULL if plot section
+    // was missing from techfile.  If so, run default init/final
+    // procedures, flag a warning, and continue.
+
+    if (PaintStyles == NULL)
+    {
+	TxError ("Warning:  No plot section in techfile, using defaults.\n");
+	PlotPNMTechInit();
+	PlotPNMTechFinal();
+    }
+
     if (width <= 0)
     {
 	TxError ("PNM module given negative pixel width; cannot plot\n");
