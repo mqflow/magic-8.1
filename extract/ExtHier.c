@@ -86,6 +86,10 @@ extHierSubstrate(ha, use, x, y)
 
     NodeRegion *extFindNodes();
 
+    /* Backwards compatibility with tech files that don't */
+    /* define a substrate plane or substrate connections. */
+    if (glob_subsnode == NULL) return;
+
     def = (CellDef *)ha->ha_parentUse->cu_def;
 
     /* Register the name of the parent's substrate */
