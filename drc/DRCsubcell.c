@@ -562,6 +562,13 @@ DRCInteractionCheck(def, area, erasebox, func, cdarg)
 	    square.r_xtop = square.r_xbot + DRCStepSize;
 	    square.r_ytop = square.r_ybot + DRCStepSize;
 
+	    /* Limit square to area.  Otherwise, a huge processing	*/
+	    /* penalty is incurred for finding a single error (e.g.,	*/
+	    /* using "drc find" or "drc why" in a large design with a	*/
+	    /* large step size.						*/
+
+	    GeoClip(&square, area);
+
 	    /* Find all the interactions in the square, and clip to the error
 	     * area we're interested in. */
 

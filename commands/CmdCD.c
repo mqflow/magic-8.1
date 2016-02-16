@@ -721,8 +721,10 @@ CmdCellname(w, cmd)
 	    if ((locargc == 4) && !strcmp(cmd->tx_argv[3 + ((dolist) ? 1 : 0)],
 			"-noprompt"))
 	        DBCellDelete(cellname, TRUE);
-	    else
+	    else if (locargc == 3)
 	        DBCellDelete(cellname, FALSE);
+	    else 
+		TxError("Delete cell command missing cellname\n");
 	    break;
 
 	case IDX_READWRITE:

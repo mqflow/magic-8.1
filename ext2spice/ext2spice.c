@@ -642,19 +642,21 @@ runexttospice:
     if (spcesOutName == spcesDefaultOut)
 	sprintf(spcesDefaultOut, "%s.spice", inName);
 
+    /* Read the hierarchical description of the input circuit */
+    if (EFReadFile(inName, TRUE, esDoExtResis, FALSE) == FALSE)
+    {
+	EFDone();
+        return;
+    }
+
+    /* If the .ext file was read without error, then open the output file */
+
     if ((esSpiceF = fopen(spcesOutName, "w")) == NULL)
     {
 	char *tclres = Tcl_Alloc(128);
 	sprintf(tclres, "exttospice: Unable to open file %s for writing\n",
 		spcesOutName);
 	Tcl_SetResult(magicinterp, tclres, TCL_DYNAMIC);
-	EFDone();
-        return;
-    }
-
-    /* Read the hierarchical description of the input circuit */
-    if (EFReadFile(inName, TRUE, esDoExtResis, FALSE) == FALSE)
-    {
 	EFDone();
         return;
     }
