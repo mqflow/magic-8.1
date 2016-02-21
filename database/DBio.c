@@ -454,7 +454,7 @@ dbCellReadDef(f, cellDef, name, ignoreTech)
 	    }
 	    else if (!strcmp(layername, "properties"))
 	    {
-		if (!dbReadProperties(cellDef, line, sizeof line, f)) goto badfile;
+		if (!dbReadProperties(cellDef, line, sizeof line, f, n, d)) goto badfile;
 		continue;
 	    }
 	    else if (!strcmp(layername, "end")) goto done;
@@ -1389,11 +1389,13 @@ nextLine:
  */
 
 bool
-dbReadProperties(cellDef, line, len, f)
+dbReadProperties(cellDef, line, len, f, scalen, scaled)
     CellDef *cellDef;	/* Cell whose elements are being read */
     char *line;		/* Line containing << elements >> */
     int len;		/* Size of buffer pointed to by line */
     FILE *f;		/* Input file */
+    int scalen;		/* Scale up by this factor */
+    int scaled;		/* Scale down by this factor */
 {
     char propertyname[128], propertyvalue[128], *storedvalue;
     int ntok;
@@ -1431,6 +1433,36 @@ dbReadProperties(cellDef, line, len, f)
 	    /* Go ahead and process the vendor GDS property */
 	    if (!strcmp(propertyname, "GDS_FILE"))
 		cellDef->cd_flags |= CDVENDORGDS;
+
+	    /* Also process FIXED_BBOX property */
+	    if (!strcmp(propertyname, "FIXED_BBOX"))
+	    {
+		if (sscanf(propertyvalue, "%d %d %d %d",
+			&(cellDef->cd_bbox.r_xbot),
+			&(cellDef->cd_bbox.r_ybot),
+			&(cellDef->cd_bbox.r_xtop),
+			&(cellDef->cd_bbox.r_ytop)) != 4)
+		    TxError("Cannot read bounding box values in %s property",
+				propertyname);
+		else
+		{
+		    if (scalen > 1)
+		    {
+			cellDef->cd_bbox.r_xbot *= scalen;
+			cellDef->cd_bbox.r_ybot *= scalen;
+			cellDef->cd_bbox.r_xtop *= scalen;
+			cellDef->cd_bbox.r_ytop *= scalen;
+		    }
+		    if (scaled > 1)
+		    {
+			cellDef->cd_bbox.r_xbot /= scaled;
+			cellDef->cd_bbox.r_ybot /= scaled;
+			cellDef->cd_bbox.r_xtop /= scaled;
+			cellDef->cd_bbox.r_ytop /= scaled;
+		    }
+		    cellDef->cd_flags |= CDFIXEDBBOX;
+		}
+	    }
 	}
 
 nextproperty:

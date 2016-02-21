@@ -1380,7 +1380,7 @@ LefReadMacro(f, mname, oscale, importForeign)
 	    case LEF_CLASS:
 		token = LefNextToken(f, TRUE);
 		if (*token != '\n')
-		    DBPropPut(lefMacro, "LEFclass", token);
+		    DBPropPut(lefMacro, "LEFclass", StrDup((char **)NULL, token));
 		LefEndStatement(f);
 		break;
 	    case LEF_SIZE:
@@ -1420,21 +1420,25 @@ origin_error:
 		LefEndStatement(f);
 		break;
 	    case LEF_SYMMETRY:
+		strcpy(tsave, "");
 		token = LefNextToken(f, TRUE);
-		if (*token != '\n')
-		    DBPropPut(lefMacro, "LEFsymmetry", token + strlen(token) + 1);
-		LefEndStatement(f);
+		while (*token != ';')
+		{
+		    sprintf(tsave + strlen(tsave), " %s", token);
+		    token = LefNextToken(f, TRUE);
+		}
+		DBPropPut(lefMacro, "LEFsymmetry", StrDup((char **)NULL, tsave + 1));
 		break;
 	    case LEF_SOURCE:
 		token = LefNextToken(f, TRUE);
 		if (*token != '\n')
-		    DBPropPut(lefMacro, "LEFsource", token);
+		    DBPropPut(lefMacro, "LEFsource", StrDup((char **)NULL, token));
 		LefEndStatement(f);
 		break;
 	    case LEF_SITE:
 		token = LefNextToken(f, TRUE);
 		if (*token != '\n')
-		    DBPropPut(lefMacro, "LEFsite", token);
+		    DBPropPut(lefMacro, "LEFsite", StrDup((char **)NULL, token));
 		LefEndStatement(f);
 		break;
 	    case LEF_PIN:
@@ -1507,8 +1511,19 @@ origin_error:
 	}
 	else
 	{
+            char *propstr = (char *)mallocMagic(64);
+	    int reducer = DBCellFindScale(lefMacro);
+
 	    lefMacro->cd_bbox = lefBBox;
 	    lefMacro->cd_extended = lefBBox;
+	
+	    // Record this fixed bounding box in the properties
+	    sprintf(propstr, "%d %d %d %d", lefBBox.r_xbot / reducer,
+			lefBBox.r_ybot / reducer,
+			lefBBox.r_xtop / reducer,
+			lefBBox.r_ytop / reducer);
+
+	    DBPropPut(lefMacro, "FIXED_BBOX", (ClientData)propstr);
 	}
 
 	/* Fix the bounding box and do not allow edits */
