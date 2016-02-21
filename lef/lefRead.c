@@ -1516,14 +1516,6 @@ origin_error:
 
 	    lefMacro->cd_bbox = lefBBox;
 	    lefMacro->cd_extended = lefBBox;
-	
-	    // Record this fixed bounding box in the properties
-	    sprintf(propstr, "%d %d %d %d", lefBBox.r_xbot / reducer,
-			lefBBox.r_ybot / reducer,
-			lefBBox.r_xtop / reducer,
-			lefBBox.r_ytop / reducer);
-
-	    DBPropPut(lefMacro, "FIXED_BBOX", (ClientData)propstr);
 	}
 
 	/* Fix the bounding box and do not allow edits */

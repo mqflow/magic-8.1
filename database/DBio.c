@@ -1427,14 +1427,15 @@ dbReadProperties(cellDef, line, len, f, scalen, scaled)
 		TxError("Skipping bad property line: %s", line);
 		goto nextproperty;
 	    }
-	    storedvalue = StrDup((char **)NULL, propertyvalue);
-	    (void) DBPropPut(cellDef, propertyname, storedvalue);
 
 	    /* Go ahead and process the vendor GDS property */
 	    if (!strcmp(propertyname, "GDS_FILE"))
 		cellDef->cd_flags |= CDVENDORGDS;
 
-	    /* Also process FIXED_BBOX property */
+	    /* Also process FIXED_BBOX property, but do not keep	*/
+	    /* the property, as it should be regenerated on cell	*/
+	    /* output from the current scale.				*/
+
 	    if (!strcmp(propertyname, "FIXED_BBOX"))
 	    {
 		if (sscanf(propertyvalue, "%d %d %d %d",
@@ -1442,8 +1443,12 @@ dbReadProperties(cellDef, line, len, f, scalen, scaled)
 			&(cellDef->cd_bbox.r_ybot),
 			&(cellDef->cd_bbox.r_xtop),
 			&(cellDef->cd_bbox.r_ytop)) != 4)
+		{
 		    TxError("Cannot read bounding box values in %s property",
 				propertyname);
+		    storedvalue = StrDup((char **)NULL, propertyvalue);
+		    (void) DBPropPut(cellDef, propertyname, storedvalue);
+		}
 		else
 		{
 		    if (scalen > 1)
@@ -1462,6 +1467,11 @@ dbReadProperties(cellDef, line, len, f, scalen, scaled)
 		    }
 		    cellDef->cd_flags |= CDFIXEDBBOX;
 		}
+	    }
+	    else
+	    {
+		storedvalue = StrDup((char **)NULL, propertyvalue);
+		(void) DBPropPut(cellDef, propertyname, storedvalue);
 	    }
 	}
 
@@ -2175,6 +2185,7 @@ DBCellWriteFile(cellDef, f)
     TileTypeBitMask typeMask, *sMask;
     int reducer;
     char *estring;
+    char lstring[256];
 
 #define FPRINTF(f,s)\
 {\
@@ -2259,8 +2270,6 @@ DBCellWriteFile(cellDef, f)
     /* Now labels */
     if (cellDef->cd_labels)
     {
-	char lstring[256];
-
 	FPRINTF(f, "<< labels >>\n");
 	for (lab = cellDef->cd_labels; lab; lab = lab->lab_next)
 	{
@@ -2369,6 +2378,21 @@ DBCellWriteFile(cellDef, f)
     {
 	FPRINTF(f, "<< properties >>\n");
 	DBPropEnum(cellDef, dbWritePropFunc, (ClientData)f);
+    }
+
+    /* Fixed bounding box goes into a special property in output file	*/
+    /* This is not kept internally as a property, so that it can be	*/
+    /* read and written in the correct units without regard to internal	*/
+    /* changes in scaling.						*/
+
+    if (cellDef->cd_flags |= CDFIXEDBBOX)
+    {
+	sprintf(lstring, "string FIXED_BBOX %d %d %d %d\n",
+		cellDef->cd_bbox.r_xbot / reducer,
+		cellDef->cd_bbox.r_ybot / reducer,
+		cellDef->cd_bbox.r_xtop / reducer,
+		cellDef->cd_bbox.r_ytop / reducer);
+	FPRINTF(f, lstring);
     }
 
     FPRINTF(f, "<< end >>\n");
