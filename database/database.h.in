@@ -233,7 +233,7 @@ typedef struct label
 				 	 * cached in lab_bbox;
 					 */
     int		    lab_just;		/* Justification (GEO_NORTH, etc.) */
-    char	    lab_font;		/* Font used for label. -1 is the default
+    signed char	    lab_font;		/* Font used for label. -1 is the default
 					 * X11 font; other values are indexes into
 					 * the font tables.
 					 */
