@@ -2385,8 +2385,14 @@ DBCellWriteFile(cellDef, f)
     /* read and written in the correct units without regard to internal	*/
     /* changes in scaling.						*/
 
-    if (cellDef->cd_flags |= CDFIXEDBBOX)
+    if (cellDef->cd_flags & CDFIXEDBBOX)
     {
+	// If there were no explicit properties, then we need to
+	// write the header
+
+	if (cellDef->cd_props == (ClientData)NULL)
+	    FPRINTF(f, "<< properties >>\n");
+
 	sprintf(lstring, "string FIXED_BBOX %d %d %d %d\n",
 		cellDef->cd_bbox.r_xbot / reducer,
 		cellDef->cd_bbox.r_ybot / reducer,
