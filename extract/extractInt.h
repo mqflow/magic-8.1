@@ -515,6 +515,12 @@ typedef struct extstyle
     TileTypeBitMask	 exts_transConn[NT];
 
     /*
+     * Set of types to be considered for extraction.  Types not in
+     * this list cannot be nodes (e.g., implant layers)
+     */
+    TileTypeBitMask	 exts_activeTypes;
+
+    /*
      * Sheet resistivity for each tile type, in milli-ohms per square.
      * For types that are transistors or capacitors, this corresponds
      * to the sheet resistivity of the gate.

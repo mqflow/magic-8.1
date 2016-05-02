@@ -418,6 +418,9 @@ extAddOverlap(tbelow, ecpls)
     rabove = (NodeRegion *) extGetRegion(tabove);
     rbelow = (NodeRegion *) extGetRegion(tbelow);
 
+    /* Quick check on validity of tile's ti_client record */
+    if (rbelow == (NodeRegion *)CLIENTDEFAULT) return 0;
+
     /* Compute the area of overlap */
     ov.o_clip.r_xbot = MAX(LEFT(tbelow), LEFT(tabove));
     ov.o_clip.r_xtop = MIN(RIGHT(tbelow), RIGHT(tabove));

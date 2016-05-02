@@ -572,6 +572,7 @@ extTechStyleInit(style)
 
     style->exts_sidePlanes = style->exts_overlapPlanes = 0;
     TTMaskZero(&style->exts_transMask);
+    style->exts_activeTypes = DBAllButSpaceAndDRCBits;
 
     for (r = 0; r < NP; r++)
     {
@@ -2453,11 +2454,16 @@ ExtTechLine(sectionName, argc, argv)
 	    if (!StrIsInt(argv[2]))
 	    {
 		if (!strcmp(argv[2], "None"))
-		    val = -1;
+		{
+		    for (t = TT_TECHDEPBASE; t < DBNumTypes; t++)
+			if (TTMaskHasType(&types1, t))
+			    TTMaskClearType(&ExtCurStyle->exts_activeTypes, t);
+		    break;
+		}
 		else
 		{
 		    TxError("Resist argument must be integer or \"None\".\n");
-		    val = 0;
+		    break;
 		}
 	    }
 	    else
@@ -2579,7 +2585,7 @@ extTechFinalStyle(style)
 {
     TileTypeBitMask maskBits;
     TileType r, s, t;
-    int p1, missing, conflict;
+    int p, p1, missing, conflict;
     int indicis[NP];
 
     for (r = TT_TECHDEPBASE; r < DBNumTypes; r++)
@@ -2624,7 +2630,6 @@ extTechFinalStyle(style)
     {
 	TileTypeBitMask rmask;
 	PlaneMask pMask;
-	int p;
 	TileType q;
 
 	if (!DBIsContact(s)) continue;
@@ -2692,6 +2697,31 @@ extTechFinalStyle(style)
 		TTMaskSetType(&style->exts_overlapOtherTypes[s], r);
 	    }
 	}
+
+    /* Finally, for all coupling type masks, remove those types	 */
+    /* that have been declared not to participate in extraction. */
+
+    for (s = TT_TECHDEPBASE; s < DBNumTypes; s++)
+    {
+	TTMaskAndMask(&style->exts_overlapOtherTypes[s], &style->exts_activeTypes);
+	TTMaskAndMask(&style->exts_perimCapMask[s], &style->exts_activeTypes);
+
+	for (t = TT_TECHDEPBASE; t < DBNumTypes; t++)
+	{
+	    TTMaskAndMask(&style->exts_overlapShieldTypes[s][t], 
+			&style->exts_activeTypes);
+	    TTMaskAndMask(&style->exts_sideOverlapOtherTypes[s][t], 
+			&style->exts_activeTypes);
+	    TTMaskAndMask(&style->exts_sideCoupleOtherEdges[s][t],
+			&style->exts_activeTypes);
+	}
+    }
+
+    for (p = 0; p < DBNumPlanes; p++)
+    {
+	TTMaskAndMask(&style->exts_overlapTypes[p], &style->exts_activeTypes);
+	TTMaskAndMask(&style->exts_sideTypes[p], &style->exts_activeTypes);
+    }
 
     if ( style->exts_planeOrderStatus == noPlaneOrder ) 
     	return /* no need to check */ ;

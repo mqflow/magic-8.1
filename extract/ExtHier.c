@@ -243,12 +243,12 @@ extHierConnectFunc1(oneTile, ha)
 	    if (IsSplit(oneTile))
 		DBSrPaintNMArea((Tile *) NULL, cumDef->cd_planes[i],
 			rtype, &r,
-			((i == ha->hierPNum) ? &DBAllButSpaceBits : connected),
-			extHierConnectFunc2, (ClientData) ha);
+			((i == ha->hierPNum) ? &ExtCurStyle->exts_activeTypes
+			: connected), extHierConnectFunc2, (ClientData) ha);
 	    else
 		DBSrPaintArea((Tile *) NULL, cumDef->cd_planes[i], &r,
-			((i == ha->hierPNum) ? &DBAllButSpaceBits : connected),
-			extHierConnectFunc2, (ClientData) ha);
+			((i == ha->hierPNum) ? &ExtCurStyle->exts_activeTypes
+			: connected), extHierConnectFunc2, (ClientData) ha);
 	}
     }
 

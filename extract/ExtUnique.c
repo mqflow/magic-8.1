@@ -93,7 +93,8 @@ extUniqueCell(def, option)
 
     /* Build up a list of nodes and assign them to tiles */
     lregList = (LabRegion *) ExtFindRegions(def, &TiPlaneRect,
-				&DBAllButSpaceBits, ExtCurStyle->exts_nodeConn,
+				&ExtCurStyle->exts_activeTypes,
+				ExtCurStyle->exts_nodeConn,
 				extUnInit, extHierLabFirst, (int (*)()) NULL);
 
     /* Assign the labels to their associated regions */

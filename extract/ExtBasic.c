@@ -2899,7 +2899,7 @@ extFindNodes(def, clipArea, subonly)
     {
 	arg.fra_pNum = pNum;
 	(void) DBSrPaintClient((Tile *) NULL, def->cd_planes[pNum],
-		    &TiPlaneRect, &DBAllButSpaceBits,
+		    &TiPlaneRect, &ExtCurStyle->exts_activeTypes,
 		    extUnInit, extNodeAreaFunc, (ClientData) &arg);
     }
     SigEnableInterrupts();
