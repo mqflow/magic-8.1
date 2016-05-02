@@ -2450,7 +2450,19 @@ ExtTechLine(sectionName, argc, argv)
 	case RESIST: {
 	    float chop = 1.0;
 
-	    val = atoi(argv[2]);
+	    if (!StrIsInt(argv[2]))
+	    {
+		if (!strcmp(argv[2], "None"))
+		    val = -1;
+		else
+		{
+		    TxError("Resist argument must be integer or \"None\".\n");
+		    val = 0;
+		}
+	    }
+	    else
+		val = atoi(argv[2]);
+
 	    if (argc == 4)
 		chop = atof(argv[3]);
 	    class = ExtCurStyle->exts_numResistClasses++;

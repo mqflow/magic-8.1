@@ -284,7 +284,7 @@ calmaElementBoundary()
 
     if (cifCurReadPlanes == cifEditCellPlanes)
     {
-	CIFPaintCurrent();
+	CIFPaintCurrent(TRUE);
 	DBReComputeBbox(cifReadCellDef);
 	DRCCheckThis(cifReadCellDef, TT_CHECKPAINT, &cifReadCellDef->cd_bbox);
 	DBWAreaChanged(cifReadCellDef, &cifReadCellDef->cd_bbox,
@@ -602,7 +602,7 @@ calmaElementPath()
 
 	if (cifCurReadPlanes == cifEditCellPlanes)
 	{
-	    CIFPaintCurrent();
+	    CIFPaintCurrent(TRUE);
 	    DBReComputeBbox(cifReadCellDef);
 	    DRCCheckThis(cifReadCellDef, TT_CHECKPAINT, &cifReadCellDef->cd_bbox);
 	    DBWAreaChanged(cifReadCellDef, &cifReadCellDef->cd_bbox,

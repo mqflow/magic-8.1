@@ -393,6 +393,7 @@ calmaParseStructure(filename)
 	TxPrintf("Saving contents of cell %s\n", cifReadCellDef->cd_name);
 	cifReadCellDef->cd_client = (ClientData) calmaExact();
 	cifReadCellDef->cd_flags |= CDFLATGDS;
+	cifReadCellDef->cd_flags &= ~CDFLATTENED;
     }
     else
     {
@@ -401,7 +402,7 @@ calmaParseStructure(filename)
 	 * the appropriate cell of the database.
 	 */
 
-	if (CIFPaintCurrent())
+	if (CIFPaintCurrent(TRUE))
 	{
 	    /* CIFPaintCurrent returned 1, meaning that the processing	*/
 	    /* generated non-null geometry on one of the "fault" types.	*/
@@ -413,6 +414,7 @@ calmaParseStructure(filename)
 		TxPrintf("Saving contents of %s\n", cifReadCellDef->cd_name);
 		cifReadCellDef->cd_client = (ClientData) calmaExact();
 		cifReadCellDef->cd_flags |= CDFLATGDS;
+		cifReadCellDef->cd_flags &= ~CDFLATTENED;
 	    }
 
 	    else
@@ -424,8 +426,11 @@ calmaParseStructure(filename)
 				"cell was instanced prior to definition.\n");
 		TxError("Try using option \"gds ordering on\".\n");
 
+		// ???
 		for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
 		    DBClearPaintPlane(cifCurReadPlanes[pNum]);
+
+		CIFPaintCurrent(FALSE);
 	    }
 	}
     }
@@ -565,7 +570,7 @@ calmaElementSref()
     CellUse *use;
     CellDef *def;
     int gdsCopyPaintFunc();	/* Forward reference */
-    int gdsPullUses();		/* Forward reference */
+    int gdsHasUses();		/* Forward reference */
     /* Added by NP */
     char *useid = NULL, *arraystr = NULL;
     int propAttrType;
@@ -866,6 +871,10 @@ calmaElementSref()
 	Plane **gdsplanes = (Plane **)def->cd_client;
 	GDSCopyRec gdsCopyRec;
 	int pNum;
+	bool hasUses;
+
+	// Mark cell as flattened (at least once)
+	def->cd_flags |= CDFLATTENED;
 
 	for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
 	{
@@ -897,8 +906,18 @@ calmaElementSref()
 		}
 	    }
 	}
-	DBCellEnum(def, gdsPullUses, (ClientData)cifReadCellDef);
 
+	/* If cell has children in addition to paint to be flattened,	*/
+	/* then also generate an instance of the cell.			*/
+
+	if (DBCellEnum(def, gdsHasUses, (ClientData)NULL))
+	{
+	    use = DBCellNewUse(def, (useid) ? useid : (char *) NULL);
+	    if (isArray)
+		DBMakeArray(use, &GeoIdentityTransform, xlo, ylo, xhi, yhi, xsep, ysep);
+	    DBSetTrans(use, &trans);
+	    DBPlaceCell(use, cifReadCellDef);
+	}
     }
     else
     {
@@ -916,21 +935,14 @@ calmaElementSref()
 }
 
 
-/* Callback function for copying subcells from one CIF cell into another */
+/* Callback function for determining if a cell has at least one subcell */
 
 int
-gdsPullUses(use, clientdata)
+gdsHasUses(use, clientdata)
     CellUse *use;
     ClientData clientdata;
 {
-    CellUse *newuse;
-    CellDef *cifreaddef = (CellDef *)clientdata;
-
-    newuse = DBCellNewUse(use->cu_def, use->cu_id ?
-				use->cu_id : (char *) NULL);
-    DBSetTrans(newuse, &use->cu_transform);
-    DBPlaceCell(newuse, cifreaddef);
-    return 0;
+    return 1;
 }
 
 /* Callback function for copying paint from one CIF cell into another */
@@ -957,6 +969,47 @@ gdsCopyPaintFunc(tile, gdsCopyRec)
 		(PaintUndoInfo *)NULL);
     
     return 0;
+}
+
+/*
+ * ----------------------------------------------------------------------------
+ *
+ * calmaDumpSelf --
+ *
+ * Check for cells which have been marked for flattening but have not ever
+ * been flattened.  Dump the contents into the cell and flag a warning that
+ * some layers have not been processed correctly.
+ *
+ * ----------------------------------------------------------------------------
+ */
+
+void
+calmaDumpSelf(def)
+    CellDef *def;
+{
+    Plane **gdsplanes = (Plane **)def->cd_client;
+    GDSCopyRec gdsCopyRec;
+    int pNum;
+
+    for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
+    {
+	if (gdsplanes[pNum] != NULL)
+	{
+	    gdsCopyRec.plane = cifCurReadPlanes[pNum];
+	    gdsCopyRec.trans = NULL;
+	    DBSrPaintArea((Tile *)NULL, gdsplanes[pNum], &TiPlaneRect,
+			&DBAllButSpaceBits, gdsCopyPaintFunc, &gdsCopyRec);
+	}
+    }
+
+    TxError("Warning: Cell \"%s\" saved for flattening but never flattened.\n",
+		def->cd_name);
+    TxError("Some layers may not be processed correctly.\n");
+
+    def->cd_flags &= ~CDFLATGDS;
+    def->cd_flags |= CDFLATTENED;
+
+    /* Note:  Calling routine cif/CIFrdcl.c frees cd_client memory */
 }
 
 /*

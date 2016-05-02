@@ -10,7 +10,11 @@ global Opts
 # If we called magic via the non-console script, then we want to reset
 # the environment variable HOME to its original value.
    
-load TCL_DIR/tclmagicSHDLIB_EXT
+if {${tcl_version} >= 8.6} {
+   load -lazy TCL_DIR/tclmagicSHDLIB_EXT
+} else {
+   load TCL_DIR/tclmagicSHDLIB_EXT
+}
 
 # It is important to make sure no magic commands overlap with Tcl built-in
 # commands, because otherwise the namespace import will fail.

@@ -520,26 +520,30 @@ int checkFaultFunc(tile, clientData)
  */
 
 int
-CIFPaintCurrent()
+CIFPaintCurrent(checkfaults)
+    bool checkfaults;
 {
     Plane *plane, *swapplane;
     int i;
     int checkFault();
 
-    for (i = 0; i < cifCurReadStyle->crs_nLayers; i++)
+    if (checkfaults)
     {
-	if (cifCurReadStyle->crs_layers[i]->crl_flags & CIFR_FAULTLAYER)
+	for (i = 0; i < cifCurReadStyle->crs_nLayers; i++)
 	{
-	    plane = CIFGenLayer(cifCurReadStyle->crs_layers[i]->crl_ops,
+	    if (cifCurReadStyle->crs_layers[i]->crl_flags & CIFR_FAULTLAYER)
+	    {
+		plane = CIFGenLayer(cifCurReadStyle->crs_layers[i]->crl_ops,
 			&TiPlaneRect, (CellDef *) NULL, cifCurReadPlanes);
 	
-	    if (DBSrPaintArea((Tile *)NULL, plane, &TiPlaneRect,
+		if (DBSrPaintArea((Tile *)NULL, plane, &TiPlaneRect,
 			&CIFSolidBits, checkFaultFunc, (ClientData)NULL))
-	    {
-		/* Clean up before returning */
-		DBFreePaintPlane(plane);
-		TiFreePlane(plane);
-		return 1;
+		{
+		    /* Clean up before returning */
+		    DBFreePaintPlane(plane);
+		    TiFreePlane(plane);
+		    return 1;
+		}
 	    }
 	}
     }
@@ -693,7 +697,7 @@ CIFParseFinish()
      * layer info.
      */
     
-    CIFPaintCurrent();
+    CIFPaintCurrent(TRUE);
 
     DBAdjustLabels(cifReadCellDef, &TiPlaneRect);
     DBReComputeBbox(cifReadCellDef);
@@ -1203,6 +1207,7 @@ CIFReadCellCleanup(type)
     HashSearch hs;
     CellDef *def;
     MagWindow *window;
+    int flags;
 
     if (cifSubcellBeingRead)
     {
@@ -1228,18 +1233,17 @@ CIFReadCellCleanup(type)
 		calmaReadError("cell table has NULL entry (Magic error).\n");
 	    continue;
 	}
-	if (!(def->cd_flags & CDAVAILABLE))
+	flags = def->cd_flags;
+	if (!(flags & CDAVAILABLE))
 	{
 	    if (type == 0)
 		CIFReadError("cell %s was used but not defined.\n", def->cd_name);
 	    else
 		calmaReadError("cell %s was used but not defined.\n", def->cd_name);
         }
-	if (def->cd_flags & CDPROCESSEDGDS)
-	{
-	    def->cd_flags &= ~CDPROCESSEDGDS;
-	}
-	if (def->cd_flags & CDFLATGDS)
+	def->cd_flags &= ~CDPROCESSEDGDS;
+
+	if (flags & CDFLATGDS)
 	{
 	    /* These cells have been flattened and are no longer needed. */
 
@@ -1248,6 +1252,9 @@ CIFReadCellCleanup(type)
 	    Plane **gdsplanes = (Plane **)def->cd_client;
 
 	    UndoDisable();
+
+	    if (!(flags & CDFLATTENED)) calmaDumpSelf(def);
+
 	    for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
 	    {
 	        if (gdsplanes[pNum] != NULL)
@@ -1257,6 +1264,7 @@ CIFReadCellCleanup(type)
 		}
 	    }
 	    freeMagic((char *)def->cd_client);
+	    def->cd_client = (ClientData)NULL;	// in case cell can't be deleted
 
 	    if (def->cd_parents != (CellUse *)NULL)
 	    {
@@ -1267,23 +1275,29 @@ CIFReadCellCleanup(type)
 		else
 		    calmaReadError("GDS read warning:  Cell %s has parent %s\n",
 				savename, cu_p->cu_id);
-		def->cd_parents = (CellUse *)NULL;
+		// def->cd_parents = (CellUse *)NULL;
+
+		DBWAreaChanged(def, &def->cd_bbox, DBW_ALLWINDOWS, &DBAllButSpaceBits);
+		DBCellSetModified(def, TRUE);
 	    }
-	    if (DBCellDeleteDef(def) == FALSE)
+	    else if (flags & CDFLATTENED)
 	    {
-		if (type == 0)
-		    CIFReadError("CIF read error:  Unable to delete cell %s\n",
+		if (DBCellDeleteDef(def) == FALSE)
+		{
+		    if (type == 0)
+			CIFReadError("CIF read error:  Unable to delete cell %s\n",
 				savename);
-		else
-		    calmaReadError("GDS read error:  Unable to delete cell %s\n",
+		    else
+			calmaReadError("GDS read error:  Unable to delete cell %s\n",
 				savename);
-	    }
-	    else
-	    {
-		if (type == 0)
-		    TxPrintf("CIF read:  Removed flattened cell %s\n", savename);
+		}
 		else
-		    TxPrintf("GDS read:  Removed flattened cell %s\n", savename);
+		{
+		    if (type == 0)
+			TxPrintf("CIF read:  Removed flattened cell %s\n", savename);
+		    else
+			TxPrintf("GDS read:  Removed flattened cell %s\n", savename);
+		}
 	    }
 	    UndoEnable();
 	    freeMagic(savename);
@@ -1302,7 +1316,7 @@ CIFReadCellCleanup(type)
 
     /* Finally, do geometrical processing on the top-level cell. */
 
-    CIFPaintCurrent();
+    CIFPaintCurrent(FALSE);
     DBAdjustLabels(EditCellUse->cu_def, &TiPlaneRect);
     DBReComputeBbox(EditCellUse->cu_def);
     DBWAreaChanged(EditCellUse->cu_def, &EditCellUse->cu_def->cd_bbox,

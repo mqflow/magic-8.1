@@ -552,6 +552,7 @@ DRCTechStyleInit()
 	    dp = DRCCurStyle->DRCRulesTbl[i][j];
 	    dp = (DRCCookie *) mallocMagic((unsigned) (sizeof (DRCCookie)));
 	    dp->drcc_dist = -1;
+	    dp->drcc_cdist = -1;
 	    dp->drcc_next = (DRCCookie *) NULL;
 	    TTMaskZero(&dp->drcc_mask);
 	    DRCCurStyle->DRCRulesTbl[i][j] = dp;
