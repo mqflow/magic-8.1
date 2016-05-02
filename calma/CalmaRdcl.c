@@ -566,7 +566,7 @@ calmaElementSref()
     char *sname = NULL;
     bool isArray = FALSE;
     Transform trans, tinv;
-    Point refarray[3], p;
+    Point refarray[3], refunscaled[3], p;
     CellUse *use;
     CellDef *def;
     int gdsCopyPaintFunc();	/* Forward reference */
@@ -728,95 +728,40 @@ calmaElementSref()
      * coordinates, and don't scale to the magic database.
      */
 
-    if (def->cd_flags & CDFLATGDS)	/* Don't scale to magic coords! */
+    for (n = 0; n < nref; n++)
     {
-	for (n = 0; n < nref; n++)
+	savescale = cifCurReadStyle->crs_scaleFactor;
+	calmaReadPoint(&refarray[n], 1);
+	refunscaled[n] = refarray[n];	// Save for CDFLATGDS cells
+	refarray[n].p_x = CIFScaleCoord(refarray[n].p_x, COORD_EXACT);
+	if (savescale != cifCurReadStyle->crs_scaleFactor)
 	{
-	    calmaReadPoint(&refarray[n], 1);
-	    if (feof(calmaInputFile))
-		return;
-	}
-    }
-    else
-    {
-	for (n = 0; n < nref; n++)
-	{
+	    for (i = 0; i < n; i++)
+	    {
+		refarray[i].p_x *= (savescale / cifCurReadStyle->crs_scaleFactor);
+		refarray[i].p_y *= (savescale / cifCurReadStyle->crs_scaleFactor);
+	    }
 	    savescale = cifCurReadStyle->crs_scaleFactor;
-	    calmaReadPoint(&refarray[n], 1);
-	    refarray[n].p_x = CIFScaleCoord(refarray[n].p_x, COORD_EXACT);
-	    if (savescale != cifCurReadStyle->crs_scaleFactor)
-	    {
-		for (i = 0; i < n; i++)
-		{
-		    refarray[i].p_x *= (savescale / cifCurReadStyle->crs_scaleFactor);
-		    refarray[i].p_y *= (savescale / cifCurReadStyle->crs_scaleFactor);
-		}
-		savescale = cifCurReadStyle->crs_scaleFactor;
-	    }
-	    refarray[n].p_y = CIFScaleCoord(refarray[n].p_y, COORD_EXACT);
-	    if (savescale != cifCurReadStyle->crs_scaleFactor)
-	    {
-		for (i = 0; i < n; i++)
-		{
-		    refarray[i].p_x *= (savescale / cifCurReadStyle->crs_scaleFactor);
-		    refarray[i].p_y *= (savescale / cifCurReadStyle->crs_scaleFactor);
-		}
-		refarray[n].p_x *= (savescale / cifCurReadStyle->crs_scaleFactor);
-	    }
-
-	    if (feof(calmaInputFile))
-		return;
 	}
+	refarray[n].p_y = CIFScaleCoord(refarray[n].p_y, COORD_EXACT);
+	if (savescale != cifCurReadStyle->crs_scaleFactor)
+	{
+	    for (i = 0; i < n; i++)
+	    {
+		refarray[i].p_x *= (savescale / cifCurReadStyle->crs_scaleFactor);
+		refarray[i].p_y *= (savescale / cifCurReadStyle->crs_scaleFactor);
+	    }
+	    refarray[n].p_x *= (savescale / cifCurReadStyle->crs_scaleFactor);
+	}
+
+	if (feof(calmaInputFile))
+	    return;
     }
 
     /* Skip remainder */
     nbytes -= nref * 8;
     if (nbytes)
 	(void) calmaSkipBytes(nbytes);
-
-    /*
-     * Figure out the inter-element spacing of array elements,
-     * and also the translation part of the transform.
-     * The first reference point for both SREFs and AREFs is the
-     * translation of the use's or array's lower-left.
-     */
-    trans.t_c = refarray[0].p_x;
-    trans.t_f = refarray[0].p_y;
-    GeoInvertTrans(&trans, &tinv);
-    if (isArray)
-    {
-	/*
-	 * The remaining two points for an array are displaced from
-	 * the first reference point by:
-	 *    - the inter-column spacing times the number of columns,
-	 *    - the inter-row spacing times the number of rows.
-	 */
-	xsep = ysep = 0;
-	if (cols)
-	{
-	    GeoTransPoint(&tinv, &refarray[1], &p);
-	    if (p.p_x % cols)
-	    {
-		n = (p.p_x + (cols+1)/2) / cols;
-		calmaReadError("# cols doesn't divide displacement ref pt\n");
-		calmaReadError("    %d / %d -> %d\n", p.p_x, cols, n);
-		xsep = n;
-	    }
-	    else xsep = p.p_x / cols;
-	}
-	if (rows)
-	{
-	    GeoTransPoint(&tinv, &refarray[2], &p);
-	    if (p.p_y % rows)
-	    {
-		n = (p.p_y + (rows+1)/2) / rows;
-		calmaReadError("# rows doesn't divide displacement ref pt\n");
-		calmaReadError("    %d / %d -> %d\n", p.p_y, rows, n);
-		ysep = n;
-	    }
-	    ysep = p.p_y / rows;
-	}
-    }
 
     /* Added by NP --- parse PROPATTR and PROPVALUE record types */
     /* The PROPATTR types 98 and 99 are defined internally to	 */
@@ -863,46 +808,117 @@ calmaElementSref()
 	}
     }
 
-    /*
-     * Check for cells which have been marked for flattening
-     */
-    if (def->cd_flags & CDFLATGDS)
+    /* Transform manipulation.  Run through this twice if necessary.	*/
+    /* The second time will use the unscaled transform to compute	*/
+    /* the coordinates of saved geometry for a CD_FLATGDS cell.		*/
+
+    for (i = 0; i < 2; i++)
     {
-	Plane **gdsplanes = (Plane **)def->cd_client;
-	GDSCopyRec gdsCopyRec;
-	int pNum;
-	bool hasUses;
-
-	// Mark cell as flattened (at least once)
-	def->cd_flags |= CDFLATTENED;
-
-	for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
+	if (i == 1)
 	{
-	    if (gdsplanes[pNum] != NULL)
+	    for (n = 0; n < nref; n++)
+		refarray[n] = refunscaled[n]; 	// Restore for CDFLATGDS cells
+	}
+
+	/*
+	 * Figure out the inter-element spacing of array elements,
+	 * and also the translation part of the transform.
+	 * The first reference point for both SREFs and AREFs is the
+	 * translation of the use's or array's lower-left.
+	 */
+
+	trans.t_c = refarray[0].p_x;
+	trans.t_f = refarray[0].p_y;
+	GeoInvertTrans(&trans, &tinv);
+	if (isArray)
+	{
+	    /*
+	     * The remaining two points for an array are displaced from
+	     * the first reference point by:
+	     *    - the inter-column spacing times the number of columns,
+	     *    - the inter-row spacing times the number of rows.
+	     */
+	    xsep = ysep = 0;
+	    if (cols)
 	    {
-		gdsCopyRec.plane = cifCurReadPlanes[pNum];
-		if (isArray)
+		GeoTransPoint(&tinv, &refarray[1], &p);
+		if (p.p_x % cols)
 		{
-		    Transform artrans;
-		    int x, y;
+		    n = (p.p_x + (cols+1)/2) / cols;
+		    calmaReadError("# cols doesn't divide displacement ref pt\n");
+		    calmaReadError("    %d / %d -> %d\n", p.p_x, cols, n);
+		    xsep = n;
+		}
+		else xsep = p.p_x / cols;
+	    }
+	    if (rows)
+	    {
+		GeoTransPoint(&tinv, &refarray[2], &p);
+		if (p.p_y % rows)
+		{
+		    n = (p.p_y + (rows+1)/2) / rows;
+		    calmaReadError("# rows doesn't divide displacement ref pt\n");
+		    calmaReadError("    %d / %d -> %d\n", p.p_y, rows, n);
+		    ysep = n;
+		}
+		ysep = p.p_y / rows;
+	    }
+	}
 
-		    gdsCopyRec.trans = &artrans;
+	/*
+	 * Check for cells which have *not* been marked for flattening
+	 */
 
-		    for (x = 0; x < cols; x++)
-			for (y = 0; y < rows; y++)
-			{
-			    GeoTransTranslate((x * xsep), (y * ysep), &trans,
+	if (!(def->cd_flags & CDFLATGDS))
+	{
+	    use = DBCellNewUse(def, (useid) ? useid : (char *) NULL);
+	    if (isArray)
+		DBMakeArray(use, &GeoIdentityTransform, xlo, ylo, xhi, yhi, xsep, ysep);
+	    DBSetTrans(use, &trans);
+	    DBPlaceCell(use, cifReadCellDef);
+
+	    break;	// No need to do 2nd loop
+	}
+
+	else if (i == 1)
+	{
+
+	    Plane **gdsplanes = (Plane **)def->cd_client;
+	    GDSCopyRec gdsCopyRec;
+	    int pNum;
+	    bool hasUses;
+
+	    // Mark cell as flattened (at least once)
+	    def->cd_flags |= CDFLATTENED;
+
+	    for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
+	    {
+		if (gdsplanes[pNum] != NULL)
+		{
+		    gdsCopyRec.plane = cifCurReadPlanes[pNum];
+		    if (isArray)
+		    {
+			Transform artrans;
+			int x, y;
+
+			gdsCopyRec.trans = &artrans;
+
+			for (x = 0; x < cols; x++)
+			    for (y = 0; y < rows; y++)
+			    {
+				GeoTransTranslate((x * xsep), (y * ysep), &trans,
 					&artrans);
-			    DBSrPaintArea((Tile *)NULL, gdsplanes[pNum],
+				DBSrPaintArea((Tile *)NULL, gdsplanes[pNum],
 					&TiPlaneRect, &DBAllButSpaceBits,
 					gdsCopyPaintFunc, &gdsCopyRec);
-			}
-		}
-		else
-		{
-		    gdsCopyRec.trans = &trans;
-		    DBSrPaintArea((Tile *)NULL, gdsplanes[pNum], &TiPlaneRect,
-			&DBAllButSpaceBits, gdsCopyPaintFunc, &gdsCopyRec);
+			    }
+		    }
+		    else
+		    {
+			gdsCopyRec.trans = &trans;
+			DBSrPaintArea((Tile *)NULL, gdsplanes[pNum], &TiPlaneRect,
+				&DBAllButSpaceBits, gdsCopyPaintFunc, &gdsCopyRec);
+		    }
 		}
 	    }
 	}
@@ -910,7 +926,7 @@ calmaElementSref()
 	/* If cell has children in addition to paint to be flattened,	*/
 	/* then also generate an instance of the cell.			*/
 
-	if (DBCellEnum(def, gdsHasUses, (ClientData)NULL))
+	else if (DBCellEnum(def, gdsHasUses, (ClientData)NULL))
 	{
 	    use = DBCellNewUse(def, (useid) ? useid : (char *) NULL);
 	    if (isArray)
@@ -918,14 +934,6 @@ calmaElementSref()
 	    DBSetTrans(use, &trans);
 	    DBPlaceCell(use, cifReadCellDef);
 	}
-    }
-    else
-    {
-	use = DBCellNewUse(def, (useid) ? useid : (char *) NULL);
-	if (isArray)
-	    DBMakeArray(use, &GeoIdentityTransform, xlo, ylo, xhi, yhi, xsep, ysep);
-	DBSetTrans(use, &trans);
-	DBPlaceCell(use, cifReadCellDef);
     }
 
     /* Done with allocated variables */

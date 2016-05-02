@@ -674,7 +674,8 @@ extSubtreeFunc(scx, ha)
 	 */
 	ha->ha_cumFlat.et_nodes =
 	    (NodeRegion *) ExtFindRegions(cumUse->cu_def, &TiPlaneRect,
-				&DBAllButSpaceBits, ExtCurStyle->exts_nodeConn,
+				&DBAllButSpaceBits,
+				ExtCurStyle->exts_nodeConn,
 				extUnInit, extHierLabFirst, (int (*)()) NULL);
 	ExtLabelRegions(cumUse->cu_def, ExtCurStyle->exts_nodeConn,
 			&(ha->ha_cumFlat.et_nodes), &TiPlaneRect);

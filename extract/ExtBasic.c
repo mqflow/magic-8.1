@@ -2899,8 +2899,8 @@ extFindNodes(def, clipArea, subonly)
     {
 	arg.fra_pNum = pNum;
 	(void) DBSrPaintClient((Tile *) NULL, def->cd_planes[pNum],
-		    &TiPlaneRect, &DBAllButSpaceBits, extUnInit,
-		    extNodeAreaFunc, (ClientData) &arg);
+		    &TiPlaneRect, &DBAllButSpaceBits,
+		    extUnInit, extNodeAreaFunc, (ClientData) &arg);
     }
     SigEnableInterrupts();
 
