@@ -426,10 +426,7 @@ calmaParseStructure(filename)
 				"cell was instanced prior to definition.\n");
 		TxError("Try using option \"gds ordering on\".\n");
 
-		// ???
-		for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
-		    DBClearPaintPlane(cifCurReadPlanes[pNum]);
-
+		// Read in without fault handling
 		CIFPaintCurrent(FALSE);
 	    }
 	}
