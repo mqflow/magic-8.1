@@ -394,6 +394,23 @@ calmaParseStructure(filename)
 	/* To-do:  If CDFLATGDS is already set, need to remove	*/
 	/* existing planes and free memory.			*/
 
+	if (cifReadCellDef->cd_flags & CDFLATGDS)
+	{
+	    Plane **cifplanes = (Plane **)cifReadCellDef->cd_client;
+	    int pNum;
+
+            for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
+            {
+                if (cifplanes[pNum] != NULL)
+                {
+                    DBFreePaintPlane(cifplanes[pNum]);
+                    TiFreePlane(cifplanes[pNum]);
+                }
+            }
+            freeMagic((char *)cifReadCellDef->cd_client);
+            cifReadCellDef->cd_client = (ClientData)CLIENTDEFAULT;
+	}
+
 	TxPrintf("Saving contents of cell %s\n", cifReadCellDef->cd_name);
 	cifReadCellDef->cd_client = (ClientData) calmaExact();
 	cifReadCellDef->cd_flags |= CDFLATGDS;
