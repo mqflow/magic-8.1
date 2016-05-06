@@ -1183,8 +1183,18 @@ extOutputParameters(def, transList, outFile)
     TileTypeBitMask tmask;
 
     TTMaskZero(&tmask);
+
     for (reg = transList; reg && !SigInterruptPending; reg = reg->treg_next)
-	TTMaskSetType(&tmask, reg->treg_type);
+    {
+	TileType loctype = reg->treg_type;
+
+	/* Watch for rare split reg->treg_type */
+	if (loctype & TT_DIAGONAL)
+	    loctype = (reg->treg_type & TT_SIDE) ? ((reg->treg_type &
+			TT_RIGHTMASK) >> 14) : (reg->treg_type & TT_LEFTMASK);
+
+	TTMaskSetType(&tmask, loctype);
+    }
 
     for (t = TT_TECHDEPBASE; t < DBNumTypes; t++)
     {
@@ -1411,6 +1421,12 @@ extOutputTrans(def, transList, outFile)
 
 	extTransRec.tr_gatenode = (NodeRegion *) extGetRegion(reg->treg_tile);
 	t = reg->treg_type;
+
+	/* Watch for rare split reg->treg_type */
+	if (t & TT_DIAGONAL)
+	    t = (reg->treg_type & TT_SIDE) ? ((reg->treg_type &
+			TT_RIGHTMASK) >> 14) : (reg->treg_type & TT_LEFTMASK);
+
 	arg.fra_pNum = DBPlane(t);
 
 	/* Set all terminals to NULL to guard against	*/

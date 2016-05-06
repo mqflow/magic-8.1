@@ -178,9 +178,9 @@ calmaNextCell()
              READRH(nbytes, rtype);      /* Read header */
              if (nbytes <= 0)
              {
-                /* We have reached the end of the file.  There are no
-		 * more cell definitions remaining to read.
-                 * Set file pointer to CALMA_ENDLIB record.
+                /* We have reached the end of the file unexpectedly.
+		 * try to set the file pointer somewhere sane, but
+		 * it will likely dump an error later on.
 		 */
                 fseek(calmaInputFile, -(CALMAHEADERLENGTH), SEEK_END);
                 return;
@@ -190,8 +190,9 @@ calmaNextCell()
 	      * structure record.
               */
              fseek(calmaInputFile, nbytes - CALMAHEADERLENGTH, SEEK_CUR);
-        } while(rtype != CALMA_BGNSTR);
-        fseek(calmaInputFile, -nbytes, SEEK_CUR);
+        } while((rtype != CALMA_BGNSTR) && (rtype != CALMA_ENDLIB));
+
+	fseek(calmaInputFile, -nbytes, SEEK_CUR);
     }
 }
 
@@ -390,6 +391,9 @@ calmaParseStructure(filename)
      */
     if (CalmaFlattenUses && (!was_called) && (npaths < 10))
     {
+	/* To-do:  If CDFLATGDS is already set, need to remove	*/
+	/* existing planes and free memory.			*/
+
 	TxPrintf("Saving contents of cell %s\n", cifReadCellDef->cd_name);
 	cifReadCellDef->cd_client = (ClientData) calmaExact();
 	cifReadCellDef->cd_flags |= CDFLATGDS;
@@ -402,34 +406,7 @@ calmaParseStructure(filename)
 	 * the appropriate cell of the database.
 	 */
 
-	if (CIFPaintCurrent(TRUE))
-	{
-	    /* CIFPaintCurrent returned 1, meaning that the processing	*/
-	    /* generated non-null geometry on one of the "fault" types.	*/
-	    /* Treat this like CalmaFlattenUses, and pull all geometry	*/
-	    /* up to the next hierarchical level.			*/
-
-	    if (!was_called)
-	    {
-		TxPrintf("Saving contents of %s\n", cifReadCellDef->cd_name);
-		cifReadCellDef->cd_client = (ClientData) calmaExact();
-		cifReadCellDef->cd_flags |= CDFLATGDS;
-		cifReadCellDef->cd_flags &= ~CDFLATTENED;
-	    }
-
-	    else
-	    {
-		int pNum;
-
-		TxError("Cell geometry fault in cell %s\n", cifReadCellDef->cd_name);
-		TxError("Cannot flatten geometry because "
-				"cell was instanced prior to definition.\n");
-		TxError("Try using option \"gds ordering on\".\n");
-
-		// Read in without fault handling
-		CIFPaintCurrent(FALSE);
-	    }
-	}
+	CIFPaintCurrent();
     }
 
     DBAdjustLabelsNew(cifReadCellDef, &TiPlaneRect,
@@ -440,9 +417,8 @@ calmaParseStructure(filename)
     /* cell, or if the cell is read-only, or if "calma drcnocheck true"	*/
     /* has been issued.							*/
 
-    if (!(cifReadCellDef->cd_flags & CDFLATGDS))
-	if (!CalmaReadOnly && !CalmaNoDRCCheck)
-	    DRCCheckThis(cifReadCellDef, TT_CHECKPAINT, &cifReadCellDef->cd_bbox);
+    if (!CalmaReadOnly && !CalmaNoDRCCheck)
+	DRCCheckThis(cifReadCellDef, TT_CHECKPAINT, &cifReadCellDef->cd_bbox);
 
     DBWAreaChanged(cifReadCellDef, &cifReadCellDef->cd_bbox,
 	DBW_ALLWINDOWS, &DBAllButSpaceBits);
@@ -608,9 +584,10 @@ calmaElementSref()
 	    HashTable OrigCalmaLayerHash;
 	    int crsMultiplier = cifCurReadStyle->crs_multiplier;
 	    char *currentSname = cifReadCellDef->cd_name;
+	    Plane **savePlanes;
 
 	    OrigCalmaLayerHash = calmaLayerHash;
-	    cifReadCellDef->cd_client = (ClientData)calmaExact();
+	    savePlanes = calmaExact();
 
 	    /* Read cell definition "sname". */
 	    calmaParseStructure();
@@ -619,8 +596,7 @@ calmaElementSref()
 	    fseek(calmaInputFile, originalFilePos, SEEK_SET);
 	    cifReadCellDef = calmaLookCell(currentSname);
 	    def = calmaLookCell(sname);
-	    cifCurReadPlanes = (Plane **)cifReadCellDef->cd_client;
-	    cifReadCellDef->cd_client = (ClientData)NULL;
+	    cifCurReadPlanes = savePlanes;
 	    calmaLayerHash = OrigCalmaLayerHash;
 	    if (crsMultiplier != cifCurReadStyle->crs_multiplier)
 	    {
@@ -879,7 +855,6 @@ calmaElementSref()
 
 	else if (i == 1)
 	{
-
 	    Plane **gdsplanes = (Plane **)def->cd_client;
 	    GDSCopyRec gdsCopyRec;
 	    int pNum;
@@ -923,7 +898,7 @@ calmaElementSref()
 	/* If cell has children in addition to paint to be flattened,	*/
 	/* then also generate an instance of the cell.			*/
 
-	else if (DBCellEnum(def, gdsHasUses, (ClientData)NULL))
+	else
 	{
 	    use = DBCellNewUse(def, (useid) ? useid : (char *) NULL);
 	    if (isArray)
@@ -974,47 +949,6 @@ gdsCopyPaintFunc(tile, gdsCopyRec)
 		(PaintUndoInfo *)NULL);
     
     return 0;
-}
-
-/*
- * ----------------------------------------------------------------------------
- *
- * calmaDumpSelf --
- *
- * Check for cells which have been marked for flattening but have not ever
- * been flattened.  Dump the contents into the cell and flag a warning that
- * some layers have not been processed correctly.
- *
- * ----------------------------------------------------------------------------
- */
-
-void
-calmaDumpSelf(def)
-    CellDef *def;
-{
-    Plane **gdsplanes = (Plane **)def->cd_client;
-    GDSCopyRec gdsCopyRec;
-    int pNum;
-
-    for (pNum = 0; pNum < MAXCIFRLAYERS; pNum++)
-    {
-	if (gdsplanes[pNum] != NULL)
-	{
-	    gdsCopyRec.plane = cifCurReadPlanes[pNum];
-	    gdsCopyRec.trans = NULL;
-	    DBSrPaintArea((Tile *)NULL, gdsplanes[pNum], &TiPlaneRect,
-			&DBAllButSpaceBits, gdsCopyPaintFunc, &gdsCopyRec);
-	}
-    }
-
-    TxError("Warning: Cell \"%s\" saved for flattening but never flattened.\n",
-		def->cd_name);
-    TxError("Some layers may not be processed correctly.\n");
-
-    def->cd_flags &= ~CDFLATGDS;
-    def->cd_flags |= CDFLATTENED;
-
-    /* Note:  Calling routine cif/CIFrdcl.c frees cd_client memory */
 }
 
 /*

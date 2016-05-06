@@ -749,8 +749,10 @@ CIFReadTechLine(sectionName, argc, argv)
     }
 
     /* Process templayer lines next.  (templayers in cifinput added 5/3/09) */
+    /* Fault handling deprecated 5/5/16;  treat as templayer and flag a	    */
+    /* warning.								    */
 
-    if (strcmp(argv[0], "templayer") == 0)
+    if ((strcmp(argv[0], "templayer") == 0) || (strcmp(argv[0], "fault") == 0))
     {
 	TileType type;
 
@@ -766,6 +768,9 @@ CIFReadTechLine(sectionName, argc, argv)
         if ((argc != 2) && (argc != 3)) goto wrongNumArgs;
 	type = CIFReadNameToType(argv[1], TRUE);
 	if (type < 0) goto errorReturn;
+
+	if (*argv[0] == 'f')
+	    TechError("Error:  Fault layers deprecated.  Treating as templayer\n");
 
 	cifCurReadLayer = (CIFReadLayer *) mallocMagic(sizeof(CIFReadLayer));
 	cifCurReadStyle->crs_layers[cifCurReadStyle->crs_nLayers]
@@ -792,52 +797,6 @@ CIFReadTechLine(sectionName, argc, argv)
 	}
 	return TRUE;
     }
-
-    /* Process fault lines next.  (fault handling added 3/16/15) */
-
-    if (strcmp(argv[0], "fault") == 0)
-    {
-	TileType type;
-
-	cifCurReadLayer = NULL;
-	cifCurReadOp = NULL;
-	if (cifCurReadStyle->crs_nLayers == MAXCIFRLAYERS)
-	{
-	    TechError("Can't handle more than %d layers per style.\n",
-		    MAXCIFRLAYERS);
-	    TechError("Your local Magic wizard can increase the table size.\n");
-	    goto errorReturn;
-	}
-        if ((argc != 2) && (argc != 3)) goto wrongNumArgs;
-	type = CIFReadNameToType(argv[1], TRUE);
-	if (type < 0) goto errorReturn;
-
-	cifCurReadLayer = (CIFReadLayer *) mallocMagic(sizeof(CIFReadLayer));
-	cifCurReadStyle->crs_layers[cifCurReadStyle->crs_nLayers]
-		= cifCurReadLayer;
-	cifCurReadStyle->crs_nLayers += 1;
-	cifCurReadLayer->crl_magicType = type;
-	cifCurReadLayer->crl_ops = NULL;
-	cifCurReadLayer->crl_flags = CIFR_FAULTLAYER | CIFR_SIMPLE;
-
-	/* Handle a special case of a list of layer names on the
-	 * layer line.  Turn them into an OR operation.
-	 */
-	
-	if (argc == 3)
-	{
-	    cifCurReadOp = (CIFOp *) mallocMagic(sizeof(CIFOp));
-	    cifCurReadOp->co_opcode = CIFOP_OR;
-	    cifCurReadOp->co_client = (ClientData)NULL;
-	    CIFParseReadLayers(argv[2], &cifCurReadOp->co_cifMask);
-	    TTMaskZero(&cifCurReadOp->co_paintMask);
-	    cifCurReadOp->co_next = NULL;
-	    cifCurReadOp->co_distance = 0;
-	    cifCurReadLayer->crl_ops = cifCurReadOp;
-	}
-	return TRUE;
-    }
-
 
     /* Process mapping between CIF layers and calma layers/types */
     if ((strcmp(argv[0], "calma") == 0) || (strncmp(argv[0], "gds", 3) == 0))
@@ -980,6 +939,8 @@ CIFReadTechLine(sectionName, argc, argv)
 	newOp->co_opcode = CIFOP_GROW_G;
     else if (strcmp(argv[0], "shrink") == 0)
 	newOp->co_opcode = CIFOP_SHRINK;
+    else if (strcmp(argv[0], "copyup") == 0)
+	newOp->co_opcode = CIFOP_COPYUP;
     else
     {
 	TechError("Unknown statement \"%s\".\n", argv[0]);
@@ -991,6 +952,7 @@ CIFReadTechLine(sectionName, argc, argv)
 	case CIFOP_AND:
 	case CIFOP_ANDNOT:
 	case CIFOP_OR:
+	case CIFOP_COPYUP:
 	    if (argc != 2) goto wrongNumArgs;
 	    CIFParseReadLayers(argv[1], &newOp->co_cifMask);
 	    break;
