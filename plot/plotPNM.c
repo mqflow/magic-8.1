@@ -1165,6 +1165,9 @@ PlotPNMTechLine(sectionName, argc, argv)
 					PNMColorIndexAndBlend(&PaintStyles[k].color,
 					GrStyleTable[i].color);
 			}
+			else
+			    TxError("Unknown drawing style \"%s\" for PNM plot.\n",
+					argv[j]);
 		    }
 		}
 	    }
