@@ -57,6 +57,7 @@ int extHierOneNameSuffix = 0;
 /* Forward declarations */
 int extHierConnectFunc1();
 int extHierConnectFunc2();
+int extHierConnectFunc3();
 Node *extHierNewNode();
 
 
@@ -177,6 +178,7 @@ extHierConnections(ha, cumFlat, oneFlat)
 {
     int pNum;
     CellDef *sourceDef = oneFlat->et_use->cu_def;
+    Label *lab;
 
     extHierCumFlat = cumFlat;
     extHierOneFlat = oneFlat;
@@ -186,6 +188,27 @@ extHierConnections(ha, cumFlat, oneFlat)
 	(void) DBSrPaintArea((Tile *) NULL,
 		sourceDef->cd_planes[pNum], &ha->ha_subArea,
 		&DBAllButSpaceBits, extHierConnectFunc1, (ClientData) ha);
+    }
+
+    /* Look for sticky labels in the child cell that are not	*/
+    /* connected to any geometry.				*/
+
+    for (lab = sourceDef->cd_labels;  lab;  lab = lab->lab_next)
+    {
+	CellDef *cumDef = cumFlat->et_use->cu_def;
+	Rect r = lab->lab_rect;
+	TileTypeBitMask *connected = &DBConnectTbl[lab->lab_type];
+	int i = DBPlane(lab->lab_type);
+
+	ha->hierOneTile = (Tile *)lab;	/* Blatant hack recasting */
+	ha->hierType = lab->lab_type;
+	ha->hierPNumBelow = i;
+
+	GEOCLIP(&r, &ha->ha_subArea);
+	if (lab->lab_flags & LABEL_STICKY)
+	    DBSrPaintArea((Tile *) NULL,
+			cumFlat->et_use->cu_def->cd_planes[i], &r,
+			connected, extHierConnectFunc3, (ClientData) ha);
     }
 }
 
@@ -366,7 +389,7 @@ extHierConnectFunc2(cum, ha)
 
     /* If the tiles don't even touch, they don't connect */
     if (r.r_xtop < r.r_xbot || r.r_ytop < r.r_ybot
-	    || (r.r_xtop == r.r_xbot && r.r_ytop == r.r_ybot))
+		|| (r.r_xtop == r.r_xbot && r.r_ytop == r.r_ybot))
 	return (0);
 
     /*
@@ -418,7 +441,89 @@ extHierConnectFunc2(cum, ha)
 
     return (0);
 }
-
+
+/*
+ * extHierConnectFunc3 --
+ *
+ * Called once for each tile 'cum' in extHierCumFlat->et_use->cu_def
+ * Similar to extHierConnectFunc2, but is called for a label in the
+ * parent cell that does not necessarily have associated geometry.
+ * Value passed in ha_oneTile is the label (recast for convenience;
+ * need to use a union type in HierExtractArg).
+ */
+
+int
+extHierConnectFunc3(cum, ha)
+    Tile *cum;		/* Comes from extHierCumFlat->et_use->cu_def */
+    HierExtractArg *ha;	/* Extraction context */
+{
+    HashTable *table = &ha->ha_connHash;
+    Node *node1, *node2;
+    TileType ttype;
+    HashEntry *he;
+    NodeName *nn;
+    char *name;
+    Rect r;
+    Label *lab = (Label *)(ha->hierOneTile);	/* Lazy recasting */	
+
+    /* Compute the overlap area */
+    r.r_xbot = MAX(lab->lab_rect.r_xbot, LEFT(cum));
+    r.r_xtop = MIN(lab->lab_rect.r_xtop, RIGHT(cum));
+    r.r_ybot = MAX(lab->lab_rect.r_ybot, BOTTOM(cum));
+    r.r_ytop = MIN(lab->lab_rect.r_ytop, TOP(cum));
+
+    /* If the tiles don't even touch, they don't connect */
+    if (r.r_xtop < r.r_xbot || r.r_ytop < r.r_ybot)
+	return (0);
+
+    /*
+     * Only make a connection if the types of 'ha->hierOneTile' and 'cum'
+     * connect.  If they overlap and don't connect, it is an error.
+     * If they do connect, mark their nodes as connected.
+     */
+
+    ttype = TiGetTypeExact(cum);
+
+    if (IsSplit(cum))
+	ttype = (ttype & TT_SIDE) ? SplitRightType(cum) : SplitLeftType(cum);
+
+    if (extConnectsTo(ha->hierType, ttype, ExtCurStyle->exts_nodeConn))
+    {
+	name = (*ha->ha_nodename)(cum, ha->hierPNumBelow, extHierCumFlat, ha, TRUE);
+	he = HashFind(table, name);
+	nn = (NodeName *) HashGetValue(he);
+	node1 = nn ? nn->nn_node : extHierNewNode(he);
+
+	name = lab->lab_text;
+	he = HashFind(table, name);
+	nn = (NodeName *) HashGetValue(he);
+	node2 = nn ? nn->nn_node : extHierNewNode(he);
+
+	if (node1 != node2)
+	{
+	    /*
+	     * Both sets of names will now point to node1.
+	     * We don't need to update node_cap since it
+	     * hasn't been computed yet.
+	     */
+	    for (nn = node2->node_names; nn->nn_next; nn = nn->nn_next)
+		nn->nn_node = node1;
+	    nn->nn_node = node1;
+	    nn->nn_next = node1->node_names;
+	    node1->node_names = node2->node_names;
+	    freeMagic((char *) node2);
+	}
+    }
+    else if (r.r_xtop > r.r_xbot && r.r_ytop > r.r_ybot)
+    {
+	extNumFatal++;
+	if (!DebugIsSet(extDebugID, extDebNoFeedback))
+	    DBWFeedbackAdd(&r, "Illegal overlap (types do not connect)",
+		ha->ha_parentUse->cu_def, 1, STYLE_MEDIUMHIGHLIGHTS);
+    }
+
+    return (0);
+}
 /*
  * ----------------------------------------------------------------------------
  *
@@ -514,6 +619,9 @@ extHierAdjustments(ha, cumFlat, oneFlat, lookFlat)
 	if (np->nreg_pnum == DBNumPlanes) continue;
 
 	tp = extNodeToTile(np, lookFlat);
+
+	/* Ignore regions that do not participate in extraction */
+	if (!extHasRegion(tp, extUnInit)) continue;
 
 	/* Ignore substrate nodes (failsafe:  should not happen) */
 	if (TiGetTypeExact(tp) == TT_SPACE) continue;

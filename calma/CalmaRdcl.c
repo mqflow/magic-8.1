@@ -51,7 +51,7 @@ int calmaNonManhattan;
 extern HashTable calmaDefInitHash;
 
 /* forward declarations */
-void calmaElementSref();
+int  calmaElementSref();
 bool calmaParseElement();
 
 /* Structure used when flattening the GDS hierarchy on read-in */
@@ -389,7 +389,7 @@ calmaParseStructure(filename)
      * cell by painting when instanced.  But---if this cell was
      * instanced before it was defined, then it can't be flattened.
      */
-    if (CalmaFlattenUses && (!was_called) && (npaths < 10))
+    if (CalmaFlattenUses && (!was_called) && (npaths < 10) && (nsrefs == 0))
     {
 	/* To-do:  If CDFLATGDS is already set, need to remove	*/
 	/* existing planes and free memory.			*/
@@ -488,7 +488,7 @@ calmaParseElement(pnsrefs, pnpaths)
 {
     static int node[] = { CALMA_ELFLAGS, CALMA_PLEX, CALMA_LAYER,
 			  CALMA_NODETYPE, CALMA_XY, -1 };
-    int nbytes, rtype;
+    int nbytes, rtype, madeinst;
 
     READRH(nbytes, rtype);
     if (nbytes < 0)
@@ -501,8 +501,9 @@ calmaParseElement(pnsrefs, pnpaths)
     {
 	case CALMA_AREF:
 	case CALMA_SREF:
-	    calmaElementSref();
-	    (*pnsrefs)++;
+	    madeinst = calmaElementSref();
+	    if (madeinst >= 0)
+		(*pnsrefs) += madeinst;
 	    break;
 	case CALMA_BOUNDARY:	
 	    calmaElementBoundary();
@@ -539,7 +540,9 @@ calmaParseElement(pnsrefs, pnpaths)
  * Process a structure reference (either CALMA_SREF or CALMA_AREF).
  *
  * Results:
- *	None.
+ *	Returns 1 if an actual child instance was generated, 0 if
+ *	only the child geometry was copied up, and -1 if an error
+ * 	occurred.
  *
  * Side effects:
  *	Consumes input.
@@ -548,11 +551,12 @@ calmaParseElement(pnsrefs, pnpaths)
  * ----------------------------------------------------------------------------
  */
 
-void
+int
 calmaElementSref()
 {
     int nbytes, rtype, cols, rows, nref, n, i, savescale;
     int xlo, ylo, xhi, yhi, xsep, ysep;
+    bool madeinst = FALSE;
     char *sname = NULL;
     bool isArray = FALSE;
     Transform trans, tinv;
@@ -569,7 +573,8 @@ calmaElementSref()
     calmaSkipSet(calmaElementIgnore);
 
     /* Read subcell name */
-    if (!calmaReadStringRecord(CALMA_SNAME, &sname)) return;
+    if (!calmaReadStringRecord(CALMA_SNAME, &sname))
+	return -1;
 
     /*
      * Create a new cell use with this transform.  If the
@@ -647,20 +652,20 @@ calmaElementSref()
 			def->cd_name, cifReadCellDef->cd_name);
 	calmaReadError(" and can't be used as a subcell.\n");
 	calmaReadError("(Use skipped)\n");
-	return;
+	return -1;
     }
 
     /* Read subcell transform */
     if (!calmaReadTransform(&trans, sname))
     {
 	printf("Couldn't read transform.\n");
-	return;
+	return -1;
     }
 
     /* Get number of columns and rows if array */
     cols = rows = 0;  /* For half-smart compilers that complain otherwise. */
     READRH(nbytes, rtype);
-    if (nbytes < 0) return;
+    if (nbytes < 0) return -1;
     if (rtype == CALMA_COLROW)
     {
 	isArray = TRUE;
@@ -668,7 +673,7 @@ calmaElementSref()
 	READI2(rows);
 	xlo = 0; xhi = cols - 1;
 	ylo = 0; yhi = rows - 1;
-	if (feof(calmaInputFile)) return;
+	if (feof(calmaInputFile)) return -1;
 	(void) calmaSkipBytes(nbytes - CALMAHEADERLENGTH - 4);
     }
     else
@@ -682,11 +687,11 @@ calmaElementSref()
      * For arrays, there will be three; for their meanings, see below.
      */
     READRH(nbytes, rtype)
-    if (nbytes < 0) return;
+    if (nbytes < 0) return -1;
     if (rtype != CALMA_XY)
     {
 	calmaUnexpected(CALMA_XY, rtype);
-	return;
+	return -1;
     }
 
     /* Length of remainder of record */
@@ -745,7 +750,7 @@ calmaElementSref()
 	}
 
 	if (feof(calmaInputFile))
-	    return;
+	    return -1;
     }
 
     /* Skip remainder */
@@ -761,19 +766,19 @@ calmaElementSref()
     while (1)
     {
 	READRH(nbytes, rtype);
-	if (nbytes < 0) return;
+	if (nbytes < 0) return -1;
 	if (rtype == CALMA_PROPATTR)
 	{
 	    READI2(propAttrType);
 	    if (propAttrType == CALMA_PROP_USENAME)
 	    {
 		if (!calmaReadStringRecord(CALMA_PROPVALUE, &useid))
-		    return;
+		    return -1;
 	    }
 	    else if (propAttrType == CALMA_PROP_ARRAY_LIMITS)
 	    {
 		if (!calmaReadStringRecord(CALMA_PROPVALUE, &arraystr))
-		    return;
+		    return -1;
 		else if (arraystr)
 		{
 		    int xl, xh, yl, yh;
@@ -922,6 +927,7 @@ calmaElementSref()
 		DBMakeArray(use, &GeoIdentityTransform, xlo, ylo, xhi, yhi, xsep, ysep);
 	    DBSetTrans(use, &trans);
 	    DBPlaceCell(use, cifReadCellDef);
+	    madeinst = TRUE;
 	}
     }
 
@@ -929,6 +935,8 @@ calmaElementSref()
     if (sname != NULL) freeMagic(sname);
     if (useid != NULL) freeMagic(useid);
     if (arraystr != NULL) freeMagic(arraystr);
+
+    return ((def->cd_flags & CDFLATGDS) ? (madeinst ? 1 : 0) : 1);
 }
 
 
