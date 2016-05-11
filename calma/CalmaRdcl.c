@@ -307,17 +307,26 @@ calmaParseStructure(filename)
     he = HashFind(&calmaDefInitHash, strname);
     if ((def = (CellDef *)HashGetValue(he)) != NULL)
     {
-	calmaReadError("Cell \"%s\" was already defined in this file.\n", strname);
 	if (def->cd_flags & CDPROCESSEDGDS)
 	{
-	    /* If cell definition was marked as processed, then skip */
-	    /* (NOTE:  This is probably a bad policy) */
-	    calmaReadError("Ignoring duplicate definition\n");
+	    /* If cell definition was marked as processed, then skip	*/
+	    /* (NOTE:  This is probably a bad policy in general)	*/
+	    /* However, if post-ordering is set, then this cell was	*/
+	    /* probably just read earlier, so don't gripe about it.	*/
+
+	    if (!CalmaPostOrder)
+	    {
+		calmaReadError("Cell \"%s\" was already defined in this file.\n",
+				strname);
+		calmaReadError("Ignoring duplicate definition\n");
+	    }
 	    calmaNextCell();
 	    return TRUE;
 	}
 	else
 	{
+	    calmaReadError("Cell \"%s\" was already defined in this file.\n",
+				strname);
 	    for (suffix = 1; HashGetValue(he) != NULL; suffix++)
 	    {
 		(void) sprintf(newname, "%s_%d", strname, suffix);
