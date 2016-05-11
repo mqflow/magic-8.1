@@ -307,9 +307,12 @@ calmaParseStructure(filename)
     he = HashFind(&calmaDefInitHash, strname);
     if ((def = (CellDef *)HashGetValue(he)) != NULL)
     {
+	calmaReadError("Cell \"%s\" was already defined in this file.\n", strname);
 	if (def->cd_flags & CDPROCESSEDGDS)
 	{
 	    /* If cell definition was marked as processed, then skip */
+	    /* (NOTE:  This is probably a bad policy) */
+	    calmaReadError("Ignoring duplicate definition\n");
 	    calmaNextCell();
 	    return TRUE;
 	}
@@ -320,7 +323,6 @@ calmaParseStructure(filename)
 		(void) sprintf(newname, "%s_%d", strname, suffix);
 		he = HashFind(&calmaDefInitHash, newname);
 	    }
-	    calmaReadError("Cell \"%s\" was already defined in this file.\n", strname);
 	    calmaReadError("Giving this cell a new name: %s\n", newname);
 	    strncpy(strname, newname, CALMANAMELENGTH*2);
 	}
@@ -348,7 +350,7 @@ calmaParseStructure(filename)
     osrefs = nsrefs = 0;
     npaths = 0;
     calmaNonManhattan = 0;
-    while (calmaParseElement(&nsrefs, &npaths))
+    while (calmaParseElement(filename, &nsrefs, &npaths))
     {
 	if (SigInterruptPending)
 	    goto done;
@@ -357,9 +359,6 @@ calmaParseStructure(filename)
 	osrefs = nsrefs;
 	calmaNonManhattan = 0;
     }
-
-    /* Make sure it ends with an ENDSTR record */
-    if (!calmaSkipExact(CALMA_ENDSTR)) goto syntaxerror;
 
     if (CalmaReadOnly)
     {
@@ -383,6 +382,9 @@ calmaParseStructure(filename)
 	/* magic cell with its GDS pointers to disk. . .	*/
 	/* cifReadCellDef->cd_flags |= CDNOEDIT; */
     }
+
+    /* Make sure it ends with an ENDSTR record */
+    if (!calmaSkipExact(CALMA_ENDSTR)) goto syntaxerror;
 
     /*
      * Don't paint now, just keep the CIF planes, and flatten the
@@ -483,7 +485,8 @@ syntaxerror:
  */
 
 bool
-calmaParseElement(pnsrefs, pnpaths)
+calmaParseElement(filename, pnsrefs, pnpaths)
+    char *filename;
     int *pnsrefs, *pnpaths;
 {
     static int node[] = { CALMA_ELFLAGS, CALMA_PLEX, CALMA_LAYER,
@@ -501,7 +504,7 @@ calmaParseElement(pnsrefs, pnpaths)
     {
 	case CALMA_AREF:
 	case CALMA_SREF:
-	    madeinst = calmaElementSref();
+	    madeinst = calmaElementSref(filename);
 	    if (madeinst >= 0)
 		(*pnsrefs) += madeinst;
 	    break;
@@ -552,7 +555,8 @@ calmaParseElement(pnsrefs, pnpaths)
  */
 
 int
-calmaElementSref()
+calmaElementSref(filename)
+    char *filename;
 {
     int nbytes, rtype, cols, rows, nref, n, i, savescale;
     int xlo, ylo, xhi, yhi, xsep, ysep;
@@ -612,7 +616,7 @@ calmaElementSref()
 	    savePlanes = calmaExact();
 
 	    /* Read cell definition "sname". */
-	    calmaParseStructure();
+	    calmaParseStructure(filename);
 
 	    /* Put things back to the way they were. */
 	    fseek(calmaInputFile, originalFilePos, SEEK_SET);
