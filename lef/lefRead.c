@@ -1860,7 +1860,7 @@ LefRead(inName, importForeign)
     }
 
     TxPrintf("Reading LEF data from file %s.\n", filename);
-    TxPrintf("This action is undoable.\n");
+    TxPrintf("This action cannot be undone.\n");
     UndoDisable();
 
     /* Initialize */

@@ -377,6 +377,8 @@ CIFPaintWirePath(pathheadp, width, endcap, plane, ptable, ui)
 		/* Wire reverses direction.  Break wire here,	*/
 		/* draw, and start new polygon.			*/
 
+		TxError("Warning: direction reversal in path.\n");
+
 		phi = theta;
 		if (endcap)
 		{

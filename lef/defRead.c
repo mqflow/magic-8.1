@@ -1275,7 +1275,7 @@ DefRead(inName)
     /* Initialize */
 
     TxPrintf("Reading DEF data from file %s.\n", filename);
-    TxPrintf("This action is undoable.\n");
+    TxPrintf("This action cannot be undone.\n");
     UndoDisable();
 
     /* This works for CIF reads;  maybe should only do this if the top	*/
