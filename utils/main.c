@@ -761,9 +761,8 @@ mainInitFinal()
 	result = Tcl_EvalFile(magicinterp, rname);
 	if (result != TCL_OK)
 	{
-	    TxError("%s\n", Tcl_GetStringResult(magicinterp));
-	    TxError("System pre-startup file \"%s\" not found or unreadable!\n",
-			rname);
+	    TxError("Error parsing pre-startup file \"%s\": %s\n", rname,
+				Tcl_GetStringResult(magicinterp));
 	    Tcl_ResetResult(magicinterp);
 	}
     }
@@ -815,9 +814,8 @@ mainInitFinal()
 	result = Tcl_EvalFile(magicinterp, rname);
 	if (result != TCL_OK)
 	{
-	    TxError("%s\n", Tcl_GetStringResult(magicinterp));
-	    TxError("System startup file \"%s\" not found or unreadable!\n",
-			rname);
+	    TxError("Error parsing system startup file \"%s\": %s\n", rname,
+				Tcl_GetStringResult(magicinterp));
 	    Tcl_ResetResult(magicinterp);
 	}
     }
@@ -855,20 +853,42 @@ mainInitFinal()
 
 	if (home != NULL && (RCFileName[0] != '/'))
 	{
+	    Tcl_Channel fc;
+
 	    (void) sprintf(startupFileName, "%s/%s", home, RCFileName);
 
-	    result = Tcl_EvalFile(magicinterp, startupFileName);
-	    if (result != TCL_OK)
+	    fc = Tcl_OpenFileChannel(magicinterp, startupFileName, "r", 0);
+	    if (fc != NULL)
 	    {
-		Tcl_ResetResult(magicinterp);
+		Tcl_Close(magicinterp, fc);
+		result = Tcl_EvalFile(magicinterp, startupFileName);
+		if (result != TCL_OK)
+		{
+		    TxError("Error parsing user \"%s\": %s\n", RCFileName,
+				Tcl_GetStringResult(magicinterp));
+		    Tcl_ResetResult(magicinterp);
+		}
+	    }
+	    else
+	    {
 		/* Try the (deprecated) name ".magic" */
 		(void) sprintf(startupFileName, "%s/.magic", home);
-		result = Tcl_EvalFile(magicinterp, startupFileName);
-		if (result == TCL_OK)
+		fc = Tcl_OpenFileChannel(magicinterp, startupFileName, "r", 0);
+		if (fc != NULL)
+		{
 		    TxPrintf("Note:  Use of the file name \"~/.magic\" is deprecated."
 			"  Please change this to \"~/.magicrc\".\n");
-		else
-		    Tcl_ResetResult(magicinterp);	// Not an error
+
+		    Tcl_Close(magicinterp, fc);
+		    result = Tcl_EvalFile(magicinterp, startupFileName);
+
+		    if (result != TCL_OK)
+		    {
+			TxError("Error parsing user \".magic\": %s\n",
+				Tcl_GetStringResult(magicinterp));
+			Tcl_ResetResult(magicinterp);
+		    }
+		}
 	    }
 	}
 
@@ -915,7 +935,7 @@ mainInitFinal()
 		    {
 			// Print error message but continue anyway
 
-			TxError("Error parsing \".magic\": %s\n",
+			TxError("Error parsing local \".magic\": %s\n",
 				Tcl_GetStringResult(magicinterp));
 			Tcl_ResetResult(magicinterp);
 			TxPrintf("Bad local startup file \".magic\","
@@ -936,7 +956,7 @@ mainInitFinal()
 			result = Tcl_EvalFile(magicinterp, "magic_setup");
 			if (result != TCL_OK)
 			{
-			    TxError("Error parsing \"magic_setup\": %s\n",
+			    TxError("Error parsing local \"magic_setup\": %s\n",
 					Tcl_GetStringResult(magicinterp));
 			    TxError("%s\n", Tcl_GetStringResult(magicinterp));
 			    Tcl_ResetResult(magicinterp);	// Still not an error
