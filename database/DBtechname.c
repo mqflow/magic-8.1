@@ -436,7 +436,8 @@ DBTechPrintTypes(mask, dolist)
 {
     TileType i;
     NameList *p;
-    bool first;
+    bool firstline = TRUE;
+    bool firstname;
     DefaultType *dtp;
     char *keepname;
 
@@ -446,7 +447,7 @@ DBTechPrintTypes(mask, dolist)
     for (i = TT_TECHDEPBASE; i < DBNumUserLayers; i++)
     {
 	if (!TTMaskHasType(mask, i)) continue;
-	first = TRUE;
+	firstname = TRUE;
 	for (p = dbTypeNameLists.sn_next; p != &dbTypeNameLists;
 		p = p->sn_next)
 	{
@@ -454,27 +455,42 @@ DBTechPrintTypes(mask, dolist)
 	    {
 		if (dolist) 
 		{
-		    if (first) keepname = p->sn_name;
+		    if (firstname) keepname = p->sn_name;
 		    else if (strlen(p->sn_name) > strlen(keepname))
 			keepname = p->sn_name;
 		}
 		else
 		{
-		    if (first) TxPrintf("    %s", p->sn_name);
+		    if (firstname) TxPrintf("    %s", p->sn_name);
 		    else TxPrintf(" or %s", p->sn_name);
 		}
-		first = FALSE;
+		firstname = FALSE;
 	    }
 	}
+
+	if (!firstline)
+	{
+	    if (dolist)
+	    {
+#ifdef MAGIC_WRAPPER
+		Tcl_AppendResult(magicinterp, " ", (char *)NULL);
+#else
+		TxPrintf(" ", keepname);
+#endif
+	    }
+	}
+
 	if (dolist)
 	{
 #ifdef MAGIC_WRAPPER
-	    Tcl_AppendResult(magicinterp, keepname, " ", (char *)NULL);
+	    Tcl_AppendResult(magicinterp, keepname, (char *)NULL);
 #else
-	    TxPrintf("%s ", keepname);
+	    TxPrintf("%s", keepname);
 #endif
 	}
-	else if (!first) TxPrintf("\n");
+	else TxPrintf("\n");
+
+	firstline = FALSE;
     }
 
     /* List built-in types that are normally painted by name */
@@ -483,7 +499,7 @@ DBTechPrintTypes(mask, dolist)
 	if (!TTMaskHasType(mask, dtp->dt_type)) continue;
 	if (dtp->dt_print)
 	{
-	    first = TRUE;
+	    firstname = TRUE;
 	    for (p = dbTypeNameLists.sn_next; p != &dbTypeNameLists;
 		p = p->sn_next)
 	    {
@@ -491,27 +507,42 @@ DBTechPrintTypes(mask, dolist)
 		{
 		    if (dolist) 
 		    {
-		        if (first) keepname = p->sn_name;
+		        if (firstname) keepname = p->sn_name;
 		        else if (strlen(p->sn_name) > strlen(keepname))
 			    keepname = p->sn_name;
 		    }
 		    else
 		    {
-		        if (first) TxPrintf("    %s", p->sn_name);
+		        if (firstname) TxPrintf("    %s", p->sn_name);
 		        else TxPrintf(" or %s", p->sn_name);
 		    }
-		    first = FALSE;
+		    firstname = FALSE;
 		}
 	    }
+
+	    if (!firstline)
+	    {
+		if (dolist)
+		{
+#ifdef MAGIC_WRAPPER
+		    Tcl_AppendResult(magicinterp, " ", (char *)NULL);
+#else
+		    TxPrintf(" ", keepname);
+#endif
+		}
+	    }
+
 	    if (dolist)
 	    {
 #ifdef MAGIC_WRAPPER
-		Tcl_AppendResult(magicinterp, keepname, " ", (char *)NULL);
+		Tcl_AppendResult(magicinterp, keepname, (char *)NULL);
 #else
-		TxPrintf("%s ", keepname);
+		TxPrintf("%s", keepname);
 #endif
 	    }
-	    else if (!first) TxPrintf("\n");
+	    else TxPrintf("\n");
+
+	    firstline = FALSE;
 	}
     }
 }
