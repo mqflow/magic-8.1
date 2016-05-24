@@ -55,11 +55,9 @@ extern short	RuntimeFlags;		/* A number of flags, defined below */
 #define MAIN_MAKE_WINDOW	0x8	/* True if we are to produce a window
 					 * on startup.
 					 */
-#ifdef MAGIC_WRAPPER
 #define MAIN_TK_CONSOLE		0x10	/* True if the Tcl version is running
 					 * via the "tkcon" console window.
 					 */
-#endif
 
 /*
  * Macros which convert the RuntimeFlags bits to their original use as

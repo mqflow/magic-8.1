@@ -114,6 +114,8 @@ extern bool GrX11Init(), GrX11Create();
 extern void GrX11Delete(), GrX11Configure(), GrX11Raise(), GrX11Lower();
 extern void GrX11Lock(), GrX11Unlock(), GrX11IconUpdate();
 extern void grXWStdin();
+extern bool grx11GetCursorPos();
+
 
 
 /*---------------------------------------------------------
