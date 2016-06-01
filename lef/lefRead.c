@@ -1173,8 +1173,8 @@ LefReadPin(lefMacro, f, pinname, pinNum, oscale)
     static char *pin_classes[] = {
 	"DEFAULT",
 	"INPUT",
-	"OUTPUT TRISTATE",
 	"OUTPUT",
+	"OUTPUT TRISTATE",
 	"INOUT",
 	"FEEDTHRU",
 	NULL
@@ -1183,8 +1183,8 @@ LefReadPin(lefMacro, f, pinname, pinNum, oscale)
     static int lef_class_to_bitmask[] = {
 	PORT_CLASS_DEFAULT,
 	PORT_CLASS_INPUT,
-	PORT_CLASS_TRISTATE,
 	PORT_CLASS_OUTPUT,
+	PORT_CLASS_TRISTATE,
 	PORT_CLASS_BIDIRECTIONAL,
 	PORT_CLASS_FEEDTHROUGH
     };
