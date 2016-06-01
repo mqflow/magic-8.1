@@ -134,6 +134,8 @@ ResPrintExtTran(outextfile, transistors)
 		}
 #endif
 
+		/* Output according to device type */
+
 		/* fet type xl yl xh yh area perim sub gate t1 t2 */
 		fprintf(outextfile,"fet %s %d %d %d %d %d %d "
 				"%s \"%s\" %d %s \"%s\" %d %s \"%s\" %d %s\n",

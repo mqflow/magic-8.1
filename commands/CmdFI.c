@@ -311,7 +311,8 @@ CmdFeedback(w, cmd)
 		    plane = DBNewPlane((ClientData)0);
 		    TTMaskZero(&feedSimpleMask);
 		    TTMaskSetType(&feedSimpleMask, 1);
-		    PaintPolygon(plist, points, plane, ptable, (PaintUndoInfo *)NULL);
+		    PaintPolygon(plist, points, plane, ptable,
+				(PaintUndoInfo *)NULL, FALSE);
 		    i = DBWFeedbackCount;
 		    DBSrPaintArea((Tile *)NULL, plane, &TiPlaneRect, &feedSimpleMask,
 			feedPolyFunc, (ClientData)&fpargs);

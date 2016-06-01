@@ -531,7 +531,7 @@ LefRedefined(lefl, redefname)
 {
     lefLayer *slef, *newlefl;
     char *altName;
-    linkedRect *viaLR;
+    LinkedRect *viaLR;
     HashSearch hs;
     HashEntry *he;
     int records;
@@ -558,7 +558,7 @@ LefRedefined(lefl, redefname)
 	/* Only one name associated with the record, so	*/
 	/* just clear all the allocated information.	*/
 
-	for (viaLR = lefl->info.via.lr; viaLR != NULL; viaLR = viaLR->rect_next)
+	for (viaLR = lefl->info.via.lr; viaLR != NULL; viaLR = viaLR->r_next)
 	    freeMagic(viaLR);
 	newlefl = lefl;
     }
@@ -581,7 +581,7 @@ LefRedefined(lefl, redefname)
     newlefl->obsType = -1;
     newlefl->info.via.area = GeoNullRect;
     newlefl->info.via.cell = (CellDef *)NULL;
-    newlefl->info.via.lr = (linkedRect *)NULL;
+    newlefl->info.via.lr = (LinkedRect *)NULL;
 
     return newlefl;
 }
@@ -823,7 +823,7 @@ LefReadPolygon(f, curlayer, oscale, ppoints)
     float oscale;
     int *ppoints;
 {
-    linkedRect *lr = NULL, *newRect;
+    LinkedRect *lr = NULL, *newRect;
     Point *plist = NULL;
     char *token;
     float px, py;
@@ -857,10 +857,10 @@ LefReadPolygon(f, curlayer, oscale, ppoints)
 	/* use the r_ll point of the rect to store each point	*/
 	/* as we read it in.					*/
 
-	newRect = (linkedRect *)mallocMagic(sizeof(linkedRect));
-	newRect->area.r_xbot = (int)roundf(px / oscale);
-	newRect->area.r_ybot = (int)roundf(py / oscale);
-	newRect->rect_next = lr;
+	newRect = (LinkedRect *)mallocMagic(sizeof(LinkedRect));
+	newRect->r_r.r_xbot = (int)roundf(px / oscale);
+	newRect->r_r.r_ybot = (int)roundf(py / oscale);
+	newRect->r_next = lr;
 	lr = newRect;
 	lpoints++;
     }
@@ -868,17 +868,17 @@ LefReadPolygon(f, curlayer, oscale, ppoints)
     *ppoints = lpoints;
     if (lpoints == 0) return NULL;
 
-    /* Convert linkedRect structure into a simple point list */
+    /* Convert LinkedRect structure into a simple point list */
 
     plist = (Point *)mallocMagic(lpoints * sizeof(Point));
     lpoints = 0;
     while (lr != NULL)
     {
-	plist[*ppoints - lpoints - 1].p_x = lr->area.r_xbot;
-	plist[*ppoints - lpoints - 1].p_y = lr->area.r_ybot;
+	plist[*ppoints - lpoints - 1].p_x = lr->r_r.r_xbot;
+	plist[*ppoints - lpoints - 1].p_y = lr->r_r.r_ybot;
 	freeMagic(lr);
 	lpoints++;
-	lr = lr->rect_next;
+	lr = lr->r_next;
     }	
     return plist;	
 }
@@ -892,15 +892,17 @@ LefReadPolygon(f, curlayer, oscale, ppoints)
  *------------------------------------------------------------
  */
 
-void
-LefPaintPolygon(lefMacro, pointList, points, curlayer)
+LinkedRect *
+LefPaintPolygon(lefMacro, pointList, points, curlayer, keep)
     CellDef *lefMacro;
     Point *pointList;
     int points;
     TileType curlayer;
+    bool keep;
 {
     int pNum;
     PaintUndoInfo ui;
+    LinkedRect *rlist = NULL, *rptr;
 
     ui.pu_def = lefMacro;
     for (pNum = PL_PAINTBASE; pNum < DBNumPlanes; pNum++)
@@ -908,10 +910,16 @@ LefPaintPolygon(lefMacro, pointList, points, curlayer)
 	if (DBPaintOnPlane(curlayer, pNum))
 	{
 	    ui.pu_pNum = pNum;
-	    PaintPolygon(pointList, points, lefMacro->cd_planes[pNum],
-			DBStdPaintTbl(curlayer, pNum), &ui);
+	    rlist = PaintPolygon(pointList, points, lefMacro->cd_planes[pNum],
+			DBStdPaintTbl(curlayer, pNum), &ui, keep);
+
+	    /* Annotate each rectangle in the list with the type painted */
+	    if (keep)
+		for (rptr = rlist; rptr; rptr = rptr->r_next)
+		    rptr->r_type = curlayer;
 	}
     }
+    return rlist;
 }
 
 /*
@@ -942,7 +950,7 @@ LefPaintPolygon(lefMacro, pointList, points, curlayer)
 enum lef_geometry_keys {LEF_LAYER = 0, LEF_WIDTH, LEF_PATH,
 	LEF_RECT, LEF_POLYGON, LEF_VIA, LEF_GEOMETRY_END};
 
-linkedRect *
+LinkedRect *
 LefReadGeometry(lefMacro, f, oscale, do_list)
     CellDef *lefMacro;
     FILE *f;
@@ -953,7 +961,7 @@ LefReadGeometry(lefMacro, f, oscale, do_list)
 
     char *token;
     int keyword;
-    linkedRect *newRect, *rectList;
+    LinkedRect *newRect, *rectList;
     Point *pointList;
     int points;
     Rect *paintrect, *contact;
@@ -1024,10 +1032,10 @@ LefReadGeometry(lefMacro, f, oscale, do_list)
 		    /* Remember the area and layer */
 		    if (do_list)
 		    {
-			newRect = (linkedRect *)mallocMagic(sizeof(linkedRect));
-			newRect->type = curlayer;
-			newRect->area = *paintrect;
-			newRect->rect_next = rectList;
+			newRect = (LinkedRect *)mallocMagic(sizeof(LinkedRect));
+			newRect->r_type = curlayer;
+			newRect->r_r = *paintrect;
+			newRect->r_next = rectList;
 			rectList = newRect;
 		    }
 		}
@@ -1039,7 +1047,8 @@ LefReadGeometry(lefMacro, f, oscale, do_list)
 		{
 		    if (lefMacro)
 		    {
-			LefPaintPolygon(lefMacro, pointList, points, curlayer);
+			rectList = LefPaintPolygon(lefMacro, pointList, points,
+					curlayer, TRUE);
 			if ((!do_list) && (otherlayer != -1))
 			    LefPaintPolygon(lefMacro, pointList, points, otherlayer);
 		    }
@@ -1089,7 +1098,7 @@ LefReadPort(lefMacro, f, pinName, pinNum, pinDir, pinUse, oscale)
     float oscale;
 {
     Label *newlab;
-    linkedRect *rectList;
+    LinkedRect *rectList;
 
     rectList = LefReadGeometry(lefMacro, f, oscale, TRUE);
 
@@ -1098,7 +1107,7 @@ LefReadPort(lefMacro, f, pinName, pinNum, pinDir, pinUse, oscale)
 	if (pinNum >= 0)
 	{
 	    /* Label this area */
-	    DBPutLabel(lefMacro, &rectList->area, -1, pinName, rectList->type, 0);
+	    DBPutLabel(lefMacro, &rectList->r_r, -1, pinName, rectList->r_type, 0);
 
 	    /* Set this label to be a port */
 
@@ -1116,7 +1125,7 @@ LefReadPort(lefMacro, f, pinName, pinNum, pinDir, pinUse, oscale)
 	}
 
 	freeMagic((char *)rectList);
-	rectList = rectList->rect_next;
+	rectList = rectList->r_next;
     }
 }
 
@@ -1552,7 +1561,7 @@ LefAddViaGeometry(f, lefl, curlayer, oscale)
     float oscale;		/* output scaling	*/
 {
     Rect *currect;
-    linkedRect *viaLR;
+    LinkedRect *viaLR;
 
     /* Rectangles for vias are read in units of 1/2 lambda */
     currect = LefReadRect(f, curlayer, (oscale / 2));
@@ -1619,18 +1628,18 @@ LefAddViaGeometry(f, lefl, curlayer, oscale)
     }
     else 
     {
-	viaLR = (linkedRect *)mallocMagic(sizeof(linkedRect));
-	viaLR->rect_next = lefl->info.via.lr;
+	viaLR = (LinkedRect *)mallocMagic(sizeof(LinkedRect));
+	viaLR->r_next = lefl->info.via.lr;
 	lefl->info.via.lr = viaLR;
-	viaLR->type = curlayer;
-	viaLR->area = *currect;
+	viaLR->r_type = curlayer;
+	viaLR->r_r = *currect;
 
 	/* Make sure that the primary record is a contact type. */
 	if (DBIsContact(curlayer) && !DBIsContact(lefl->type))
 	{
-	    viaLR->type = lefl->type;
+	    viaLR->r_type = lefl->type;
 	    lefl->type = curlayer;
-	    viaLR->area = lefl->info.via.area;
+	    viaLR->r_r = lefl->info.via.area;
 	    lefl->info.via.area = *currect;
 	}
     }
@@ -1907,7 +1916,7 @@ LefRead(inName, importForeign)
 		    lefl->lefClass = CLASS_VIA;
 		    lefl->info.via.area = GeoNullRect;
 		    lefl->info.via.cell = (CellDef *)NULL;
-		    lefl->info.via.lr = (linkedRect *)NULL;
+		    lefl->info.via.lr = (LinkedRect *)NULL;
 		    HashSetValue(he, lefl);
 		    LefReadLayerSection(f, tsave, keyword, lefl);
 		    lefl->canonName = (char *)he->h_key.h_name;

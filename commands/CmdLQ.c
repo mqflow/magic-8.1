@@ -986,7 +986,7 @@ CmdPolygon(w, cmd)
 	{
 	    ui.pu_pNum = pNum;
 	    PaintPolygon(plist, points, def->cd_planes[pNum],
-			DBStdPaintTbl(type, pNum), &ui);
+			DBStdPaintTbl(type, pNum), &ui, FALSE);
 	}
     }
 

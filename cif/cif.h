@@ -83,6 +83,6 @@ extern void CIFPrintReadStyle();
 extern int CIFOutputScaleFactor();
 
 extern void PaintWireList();
-extern void PaintPolygon();
+extern LinkedRect *PaintPolygon();
 
 #endif /* _CIF_H */
