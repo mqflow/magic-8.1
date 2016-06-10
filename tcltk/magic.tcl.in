@@ -156,7 +156,7 @@ proc echo {args} {
 
 # Parse argument list for "-c[onsole]" and "-now[rapper]".
 
-set cellname ""
+set celllist {}
 set do_wrapper true
 set do_recover false
 set argafter {magic::initialize}
@@ -213,7 +213,7 @@ for {set i 0} {$i < $argc} {incr i 1} {
          lappend argafter $x
       }
       default {
-         set cellname $x
+         lappend celllist $x
          lappend argafter $x
       }
    }
@@ -343,9 +343,32 @@ drc off
 
 if {[info commands magic::openwrapper] != {}} {
    if {[windownames layout] == {}} {
-      set winname [magic::openwrapper $cellname]
+      set winname [magic::openwrapper]
       magic::techmanager initall
       magic::scrollupdate $winname
+
+      foreach cellname $celllist {
+	 set fext [file extension $cellname]
+         puts stdout "handling file entry $cellname extension $fext"
+	 switch $fext {
+	     .lef -
+	     .LEF {lef read $cellname}
+	     .def -
+	     .DEF {def read $cellname}
+	     .gds -
+	     .GDS -
+	     .gds2 -
+	     .GDS2 -
+	     .gdsii -
+	     .GDSII {gds read $cellname}
+	     .cif -
+	     .CIF {cif read $cellname}
+	     .tcl {source $cellname}
+	     .mag -
+	     "" {magic::load $cellname}
+	     default {puts stderr "don't know how to load file $cellname"}
+	 }
+      }
    }
 } else {
    # Initial geometry handler for the default window, non-wrapper version
@@ -360,7 +383,7 @@ puts stdout "Using technology \"[tech name]\", version [lindex [tech version] 0]
 if {![box exists]} {
    box 0 0 1 1		;# create a unit box
 }
-if {[llength $cellname] > 0} {
+if {[llength $celllist] > 0} {
    view
 } else {
    view -9 -9 10 10

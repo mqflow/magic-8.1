@@ -397,8 +397,6 @@ subcktHierVisit(use, hierName, is_top)
     EFNode *snode;
     bool hasports = FALSE;
 
-    if (def->def_flags & DEF_NODEVICES) return 0;
-
     /* Avoid generating records for circuits that have no ports.	*/
     /* These are already absorbed into the parent.  All other		*/
     /* subcircuits have at least one port marked by the EF_PORT flag.	*/
@@ -414,8 +412,10 @@ subcktHierVisit(use, hierName, is_top)
 
     if (hasports || is_top)
 	return subcktVisit(use, hierName, is_top);
-    else
+    else if (def->def_flags & DEF_NODEVICES)
 	return 0;
+    else
+	return subcktVisit(use, hierName, is_top);
 }
 
 /*
@@ -1684,6 +1684,7 @@ esHierVisit(hc, cdata)
     char *resstr = NULL;
     DefFlagsData *dfd;
     int flags;
+    int locDoSubckt = esDoSubckt;
 
     dfd = (DefFlagsData *)cdata;
     topdef = dfd->def;
@@ -1697,11 +1698,28 @@ esHierVisit(hc, cdata)
     {
 	if (def->def_devs == NULL && def->def_uses == NULL)
 	{
-	    for (snode = (EFNode *) def->def_firstn.efnode_next;
+	    if (locDoSubckt == AUTO)
+	    {
+		/* Determine if there are ports, and don't	*/
+		/* kill the cell if it has any.			*/
+		locDoSubckt = FALSE;
+		for (snode = (EFNode *) def->def_firstn.efnode_next;
 			snode != &def->def_firstn;
 			snode = (EFNode *) snode->efnode_next)
-		snode->efnode_flags &= ~(EF_PORT | EF_SUBS_PORT);
-	    if (def != topdef) return 0;
+		    if (snode->efnode_flags & (EF_PORT | EF_SUBS_PORT))
+		    {
+			locDoSubckt = TRUE;
+			break;
+		    }
+	    }
+	    if (locDoSubckt == FALSE)
+	    {
+		for (snode = (EFNode *) def->def_firstn.efnode_next;
+			snode != &def->def_firstn;
+			snode = (EFNode *) snode->efnode_next)
+		    snode->efnode_flags &= ~(EF_PORT | EF_SUBS_PORT);
+		if (def != topdef) return 0;
+	    }
 	}
     } 
 

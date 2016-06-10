@@ -212,11 +212,10 @@ ResPrintExtNode(outextfile, nodelist, nodename)
 	  if (snode->rn_name == NULL)
 	  {
 	       (void)sprintf(tmpname,"%s",nodename);
-	       cp = tmpname+strlen(tmpname)-1;
-               if (*cp == '!' || *cp == '#')
-               {
-                    *cp = '\0';
-               }
+
+	       cp = tmpname + strlen(tmpname) - 1;
+               if (*cp == '!' || *cp == '#') *cp = '\0';
+
      	       (void)sprintf(newname,"%s%s%d",tmpname,".n",nodenum++);
      	       entry = HashFind(&ResNodeTable,newname);
 	       node = ResInitializeNode(entry);

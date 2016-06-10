@@ -422,7 +422,9 @@ CmdExtToSpice(w, cmd)
 		case IDX_TOP:
 		    if (cmd->tx_argc == 3)
 		    {
-			Tcl_SetResult(magicinterp, (esDoSubckt) ? "on" : "off", NULL);
+			Tcl_SetResult(magicinterp,
+				(esDoSubckt == 2) ? "auto" :
+				(esDoSubckt == 1) ? "on" : "off", NULL);
 			return;
 		    }
 		    break;

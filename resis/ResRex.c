@@ -99,6 +99,7 @@ ExtResisForDef(celldef, resisdata)
     HashEntry	*entry;
     tranPtr	*tptr,*oldtptr;
     ResSimNode  *node;
+    int		result;
 
     ResTranList = NULL;
     ResOriginalNodes = NULL;
@@ -106,24 +107,29 @@ ExtResisForDef(celldef, resisdata)
     Maxtnumber = 0;
     HashInit(&ResNodeTable, INITFLATSIZE, HT_STRINGKEYS);
     /* read in .sim file */
-    if (ResReadSim(celldef->cd_name,
+    result = ResReadSim(celldef->cd_name,
 	      	ResSimTransistor,ResSimCapacitor,ResSimResistor,
-		ResSimAttribute,ResSimMerge) == 0)
-    {
+		ResSimAttribute,ResSimMerge) == 0;
+
+    if (result == 0)
 	/* read in .nodes file   */
-	if (ResReadNode(celldef->cd_name) == 0)
-	{
-	    /* Check for subcircuit ports */
-	    ResCheckPorts(celldef);
+	result = ResReadNode(celldef->cd_name);
 
-	    /* Extract networks for nets that require it. */
-	    if (!(ResOptionsFlags & ResOpt_FastHenry) || 
+    /* Check for subcircuit ports */
+    if (ResOptionsFlags & ResOpt_Blackbox)
+	result &= ResCheckBlackbox(celldef);
+    else
+	result &= ResCheckPorts(celldef);
+
+    if (result == 0) 
+    {
+	/* Extract networks for nets that require it. */
+	if (!(ResOptionsFlags & ResOpt_FastHenry) || 
 			DBIsSubcircuit(celldef))
-		ResCheckSimNodes(celldef, resisdata);
+	    ResCheckSimNodes(celldef, resisdata);
 
-	    if (ResOptionsFlags & ResOpt_Stat)
-		ResPrintStats((ResGlobalParams *)NULL,"");
-	}
+	if (ResOptionsFlags & ResOpt_Stat)
+	    ResPrintStats((ResGlobalParams *)NULL,"");
     }
 
     HashStartSearch(&hs);
@@ -191,8 +197,8 @@ CmdExtResis(win, cmd)
 
     static char *onOff[] =
     {
-	"on",
 	"off",
+	"on",
 	NULL
     };
 
@@ -207,6 +213,7 @@ CmdExtResis(win, cmd)
 	"skip     mask        don't extract these types",
 	"box      type        extract the signal under the box on layer type",
 	"cell	   cellname    extract the network for the cell named cellname",
+	"blackbox [on/off]    treat subcircuits with ports as black boxes",
 	"fasthenry [freq]      extract subcircuit network geometry into .fh file",
 	"geometry	      extract network centerline geometry (experimental)",
 	"help                 print this message",
@@ -219,7 +226,7 @@ CmdExtResis(win, cmd)
 typedef enum {
 	RES_BAD=-2, RES_AMBIG, RES_TOL,
 	RES_ALL, RES_SIMP, RES_EXTOUT, RES_LUMPED,
-	RES_SILENT, RES_SKIP, RES_BOX, RES_CELL,
+	RES_SILENT, RES_SKIP, RES_BOX, RES_CELL, RES_BLACKBOX,
 	RES_FASTHENRY, RES_GEOMETRY, RES_HELP,
 #ifdef LAPLACE
 	RES_LAPLACE,
@@ -249,6 +256,7 @@ typedef enum {
 	case RES_EXTOUT:
 	case RES_LUMPED:
 	case RES_SILENT:
+	case RES_BLACKBOX:
 	    if (cmd->tx_argc > 2)
 	    {
 		value = Lookup(cmd->tx_argv[2], onOff);
@@ -314,6 +322,23 @@ typedef enum {
 			| ResOpt_Simplify | ResOpt_Tdi);
 	    break;
 
+	case RES_BLACKBOX:
+	    if (cmd->tx_argc == 2)
+	    {
+		value = (ResOptionsFlags & ResOpt_Blackbox) ?
+			TRUE : FALSE;
+		TxPrintf("%s\n", onOff[value]);
+	    }
+	    else
+	    {
+		value = Lookup(cmd->tx_argv[2], onOff);
+
+		if (value)
+	      	   ResOptionsFlags |= ResOpt_Blackbox; 
+		else
+	      	   ResOptionsFlags &= ~ResOpt_Blackbox;
+	    }
+	    return;
 	case RES_SIMP:
 	    if (cmd->tx_argc == 2)
 	    {
@@ -504,7 +529,8 @@ typedef enum {
     resisdata.mainDef = mainDef;
 
     /* Do subcircuits (if any) first */
-    (void) DBCellSrDefs(0, resSubcircuitFunc, (ClientData) &resisdata);
+    if (!(ResOptionsFlags & ResOpt_Blackbox))
+	(void) DBCellSrDefs(0, resSubcircuitFunc, (ClientData) &resisdata);
 
     ExtResisForDef(mainDef, &resisdata);
 
@@ -554,6 +580,129 @@ resSubcircuitFunc(cellDef, rdata)
 }
 
 
+
+/*
+ *-------------------------------------------------------------------------
+ *
+ * Callback routine for ResCheckBlackBox.  For each label found in a
+ * subcell, transform the label position back to the top level and
+ * add to the list of nodes for extresis.
+ *
+ *-------------------------------------------------------------------------
+ */
+
+int
+resPortFunc(scx, lab, tpath, result)
+    SearchContext *scx;
+    Label *lab;
+    TerminalPath *tpath;
+    int *result;
+{
+    Rect r;
+    int pclass, puse;
+    Point portloc;
+    HashEntry *entry;
+    ResSimNode *node;
+
+    GeoTransRect(&scx->scx_trans, &lab->lab_rect, &r);
+
+    // To be expanded.  Currently this handles digital signal inputs
+    // and outputs, for standard cells.
+
+    if (lab->lab_flags & PORT_DIR_MASK) {
+	pclass = lab->lab_flags & PORT_CLASS_MASK;
+	puse = lab->lab_flags & PORT_USE_MASK;
+
+	if (puse == PORT_USE_SIGNAL) {
+
+	    if (lab->lab_flags & (PORT_DIR_NORTH | PORT_DIR_SOUTH))
+		portloc.p_x = (r.r_xbot + r.r_xtop) >> 1;
+	    else if (lab->lab_flags & (PORT_DIR_EAST | PORT_DIR_WEST))
+		portloc.p_y = (r.r_ybot + r.r_ytop) >> 1;
+
+	    if (lab->lab_flags & PORT_DIR_NORTH)
+		portloc.p_y = r.r_ytop;
+	    if (lab->lab_flags & PORT_DIR_SOUTH)
+		portloc.p_y = r.r_ybot;
+	    if (lab->lab_flags & PORT_DIR_EAST)
+		portloc.p_x = r.r_xtop;
+	    if (lab->lab_flags & PORT_DIR_WEST)
+		portloc.p_x = r.r_xbot;
+
+	    if ((pclass == PORT_CLASS_INPUT) || (pclass == PORT_CLASS_OUTPUT)) {
+		int len;
+		char *nodename;
+
+		// Port name is the instance name / pin name
+		// To do:  Make use of tpath
+		len = strlen(scx->scx_use->cu_id) + strlen(lab->lab_text) + 2;
+		nodename = (char *) mallocMagic((unsigned) len);
+		sprintf(nodename, "%s/%s", scx->scx_use->cu_id, lab->lab_text);
+
+		entry = HashFind(&ResNodeTable, nodename);
+		node = ResInitializeNode(entry);
+
+		/* Digital outputs are drivers */
+		if (pclass == PORT_CLASS_OUTPUT) node->status |= FORCE;
+
+		node->drivepoint = portloc;
+		node->status |= DRIVELOC | PORTNODE;
+		node->rs_bbox = r;
+		node->location = portloc;
+		node->rs_ttype = lab->lab_type;
+		node->type = lab->lab_type;
+
+		*result = 0;
+		freeMagic(nodename);
+	    }
+	}
+    }
+    return 0;	/* Keep the search going */
+}
+
+/*
+ *-------------------------------------------------------------------------
+ *
+ * ResCheckBlackbox--
+ *
+ *	For standard cell parasitic extraction, search all children
+ *	of cellDef for ports, and add each port to the list of nodes
+ *	for extresist to process.  If the port use is "ground" or
+ *	"power", then don't process the node.  If the port class is
+ *	"output", then make this node a (forced) driver.
+ *	
+ * Results: 0 if one or more nodes was created, 1 otherwise
+ *
+ * Side Effects: Adds driving nodes to the extresis network database.
+ *
+ *-------------------------------------------------------------------------
+ */
+
+int
+ResCheckBlackbox(cellDef)
+    CellDef *cellDef;
+{
+    int result = 1;
+    SearchContext scx;
+    CellUse dummy;
+
+    dummy.cu_expandMask = 0;
+    dummy.cu_transform = GeoIdentityTransform;
+    dummy.cu_def = cellDef;
+    dummy.cu_id = NULL;
+
+    scx.scx_area = cellDef->cd_bbox;
+    scx.scx_trans = GeoIdentityTransform;
+    scx.scx_use = (CellUse *)&dummy;
+
+    /* Do a search on all children */
+
+    DBTreeSrLabels(&scx, &DBAllButSpaceAndDRCBits, 0, NULL,
+		TF_LABEL_ATTACH, resPortFunc, (ClientData)&result);
+
+    return result;
+}
+
 /*
  *-------------------------------------------------------------------------
  *
@@ -566,14 +715,14 @@ resSubcircuitFunc(cellDef, rdata)
  *	the extresis algorithm will treat them as being part of valid
  *	networks.
  *	
- * Results: none
+ * Results: 0 if one or more nodes was created, 1 otherwise
  *
  * Side Effects: Adds driving nodes to the extresis network database.
  *
  *-------------------------------------------------------------------------
  */
 
-void
+int
 ResCheckPorts(cellDef)
     CellDef *cellDef;
 {
@@ -581,6 +730,7 @@ ResCheckPorts(cellDef)
     Label *lab;
     HashEntry *entry;
     ResSimNode *node;
+    int result = 1;
 
     for (lab = cellDef->cd_labels; lab; lab = lab->lab_next)
     {
@@ -604,6 +754,7 @@ ResCheckPorts(cellDef)
 		portloc.p_x = lab->lab_rect.r_xbot;
 
 	    entry = HashFind(&ResNodeTable, lab->lab_text);
+	    result = 0;
 	    if ((node = (ResSimNode *) HashGetValue(entry)) != NULL)
 	    {
 		TxError("Port: name = %s exists, forcing drivepoint\n",
@@ -636,6 +787,7 @@ ResCheckPorts(cellDef)
 	    node->type = lab->lab_type;
 	}
     }
+    return result;
 }
  
 /*

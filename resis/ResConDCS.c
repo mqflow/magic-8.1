@@ -42,6 +42,8 @@ struct conSrArg2
     TileTypeBitMask     *csa2_connect;  /* Table indicating what connects
                                          * to what.
                                          */
+    SearchContext	*csa2_topscx;	/* Original top-level search context */
+    int			 csa2_xMask;	/* Cell window mask for search */
     Rect                *csa2_bounds;   /* Area that limits the search */
 
     conSrArea		*csa2_list;	/* List of areas to process */
@@ -52,6 +54,7 @@ struct conSrArg2
 #define CSA2_LIST_START_SIZE 256
 
 extern int dbcUnconnectFunc();
+extern int dbcConnectLabelFunc();
 extern int dbcConnectFuncDCS();
 #ifdef ARIEL
 extern int resSubSearchFunc();
@@ -96,6 +99,7 @@ dbcConnectFuncDCS(tile, cx)
     TileType		t2, t1, loctype, ctype;
     TileType		dinfo = 0;
     SearchContext	*scx = cx->tc_scx;
+    SearchContext	scx2;
     int			pNum;
     CellDef		*def;
 
@@ -249,6 +253,16 @@ dbcConnectFuncDCS(tile, cx)
     DBNMPaintPlane(def->cd_planes[pNum], dinfo,
 		&newarea, DBStdPaintTbl(loctype, pNum),
 		(PaintUndoInfo *) NULL);
+
+    /* Check the source def for any labels belonging to this	*/
+    /* tile area and plane, and add them to the destination	*/
+
+    scx2 = *csa2->csa2_topscx;
+    scx2.scx_area = newarea;
+    DBTreeSrLabels(&scx2, connectMask, csa2->csa2_xMask, NULL,
+    		TF_LABEL_ATTACH, dbcConnectLabelFunc,
+    		(ClientData)csa2);
+    // DBCellCopyLabels(&scx2, connectMask, csa2->csa2_xMask, csa2->csa2_use, NULL);
 
     /* Only extend those sides bordering the diagonal tile */
 
@@ -413,8 +427,10 @@ DBTreeCopyConnectDCS(scx, mask, xMask, connect, area, destUse)
     TileType		newtype;
 
     csa2.csa2_use = destUse;
+    csa2.csa2_xMask = xMask;
     csa2.csa2_bounds = area;
     csa2.csa2_connect = connect;
+    csa2.csa2_topscx = scx;
 
     csa2.csa2_size = CSA2_LIST_START_SIZE;
     csa2.csa2_list = (conSrArea *)mallocMagic(CSA2_LIST_START_SIZE

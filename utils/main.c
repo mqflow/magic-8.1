@@ -117,9 +117,18 @@ static char *MainFileName = NULL;
 /* RC file specified on the command line */
 static char *RCFileName = NULL;	
 
-/* the first filename specified on the command line */
+/* Definition of file types that magic can read */
+#define FN_MAGIC_DB	0
+#define FN_LEF_FILE	1
+#define FN_DEF_FILE	2
+#define FN_GDS_FILE	3
+#define FN_CIF_FILE	4
+#define FN_TCL_SCRIPT	5
+
+/* List of filenames specified on the command line */
 typedef struct filename {
     char *fn;
+    unsigned char fn_type;
     struct filename *fn_prev;
 } FileName;
 FileName *CurrentName;
@@ -358,6 +367,7 @@ mainDoArgs(argc, argv)
 		CurrentName = (FileName *) mallocMagic(sizeof(FileName));
 		CurrentName->fn = MainFileName;
 		CurrentName->fn_prev = (FileName *) NULL;
+		CurrentName->fn_type = FN_MAGIC_DB;
 	    }
 	    else
 	    {
@@ -366,6 +376,7 @@ mainDoArgs(argc, argv)
 		temporary = (FileName *) mallocMagic(sizeof(FileName));
 		temporary->fn = StrDup((char **) NULL, *argv);
 		temporary->fn_prev = CurrentName;
+		temporary->fn_type = FN_MAGIC_DB;
 		CurrentName = temporary;
 	    }
 
@@ -383,6 +394,27 @@ mainDoArgs(argc, argv)
 		    }
 		    c--;
 		    d--;
+		}
+
+		// Additional checks
+		if ((c = strrchr(CurrentName->fn, '.')) != NULL)
+		{
+#ifdef LEF_MODULE
+		    if (!strcasecmp(c, ".lef"))
+			CurrentName->fn_type = FN_LEF_FILE;
+		    else if (!strcasecmp(c, ".def"))
+			CurrentName->fn_type = FN_DEF_FILE;
+#endif
+#ifdef CIF_MODULE
+		    if (!strcasecmp(c, ".cif"))
+			CurrentName->fn_type = FN_CIF_FILE;
+		    else if (!strncasecmp(c, ".gds", 3))
+			CurrentName->fn_type = FN_GDS_FILE;
+#endif
+#ifdef MAGIC_WRAPPER
+		    if (!strcasecmp(c, ".tcl"))
+			CurrentName->fn_type = FN_TCL_SCRIPT;
+#endif
 		}
 	    }
 	}
@@ -1097,7 +1129,33 @@ mainInitFinal()
 	{
 	    temporary = CurrentName;
 	    CurrentName = temporary->fn_prev;
-	    DBWreload(temporary->fn);
+	    TxPrintf("Loading \"%s\" from command line.\n", temporary->fn);
+	    switch (temporary->fn_type)
+	    {
+		case FN_MAGIC_DB:
+		    DBWreload(temporary->fn);
+		    break;
+#ifdef LEF_MODULE
+		case FN_LEF_FILE:
+		    LefRead(temporary->fn, FALSE);
+		    break;
+		case FN_DEF_FILE:
+		    DefRead(temporary->fn);
+		    break;
+#endif
+#ifdef MAGIC_WRAPPER
+		case FN_TCL_SCRIPT:
+		    result = Tcl_EvalFile(magicinterp, temporary->fn);
+		    if (result != TCL_OK)
+		    {
+			TxError("Error parsing \"%s\": %s\n",
+				temporary->fn,
+				Tcl_GetStringResult(magicinterp));
+			Tcl_ResetResult(magicinterp);
+		    }
+		    break;
+#endif
+	    }
 	    freeMagic(temporary);
 	}
     }

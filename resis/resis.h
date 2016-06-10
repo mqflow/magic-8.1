@@ -546,7 +546,8 @@ typedef struct capval
 #define		ResOpt_Pname		0x00002000
 #define		ResOpt_Geometry		0x00004000
 #define		ResOpt_FastHenry	0x00008000
-#define		ResOpt_Dump		0x00010000
+#define		ResOpt_Blackbox		0x00010000
+#define		ResOpt_Dump		0x00020000
 #define 	ResOpt_DoSubstrate	0x00040000
 #define		ResOpt_GndPlugs		0x00200000
 #define		ResOpt_VddPlugs		0x00400000
@@ -617,7 +618,8 @@ extern Tile			*ResFindTile();
 extern resTransistor		*ResImageAddPlug();
 extern resTransistor		*ResGetTransistor();
 extern tileJunk 		*resAddField();
-extern void			ResCheckPorts();
+extern int			ResCheckPorts();
+extern int			ResCheckBlackbox();
 extern void			ResCheckSimNodes();
 extern void			ResSortByGate();
 extern void			ResFixTranName();
