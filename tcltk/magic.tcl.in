@@ -395,7 +395,7 @@ if {[llength $celllist] > 0} {
 if {$do_recover} {crash recover}
 
 # Unset global TCL variables so they don't conflict with magic nodes.
-unset cellname nlist do_recover
+unset celllist nlist do_recover
 
 if {$drcstate == 1} {
    drc on
