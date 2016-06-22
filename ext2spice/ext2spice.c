@@ -2808,12 +2808,10 @@ int
 spcresistVisit(hierName1, hierName2, res)
     HierName *hierName1;
     HierName *hierName2;
-    int res;
+    float res;
 {
-    res = (res + 500) / 1000;
-
-    fprintf(esSpiceF, "R%d %s %s %d\n", esResNum++, nodeSpiceName(hierName1),
-                                          nodeSpiceName(hierName2), res);
+    fprintf(esSpiceF, "R%d %s %s %g\n", esResNum++, nodeSpiceName(hierName1),
+			nodeSpiceName(hierName2), res / 1000.);
 
     return 0;
 }

@@ -1434,15 +1434,13 @@ int
 simresistVisit(hierName1, hierName2, res)
     HierName *hierName1;
     HierName *hierName2;
-    int res;
+    float res;
 {
-    res = (res+ 500)/1000;
-
     fprintf(esSimF, "r ");
     EFHNOut(hierName1, esSimF);
     fprintf(esSimF, " ");
     EFHNOut(hierName2, esSimF);
-    fprintf(esSimF, " %d\n", res);
+    fprintf(esSimF, " %g\n", res / 1000.);
     return 0;
 }
 

@@ -393,7 +393,7 @@ readfile:
 		break;
 
 	    /*
-	     * rnode name C x y layer
+	     * rnode name R C x y layer
 	     * These are nodes resulting from resistance extraction and
 	     * so have no "intrinsic" resistance per se.
 	     */

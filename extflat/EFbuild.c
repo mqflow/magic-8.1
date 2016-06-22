@@ -1145,7 +1145,7 @@ efBuildResistor(def, nodeName1, nodeName2, resistance)
     Def *def;		/* Def to which this connection is to be added */
     char *nodeName1;	/* Name of first node in resistor */
     char *nodeName2;	/* Name of second node in resistor */
-    int resistance;	/* Resistor value */
+    float resistance;	/* Resistor value */
 {
     Connection *conn;
 

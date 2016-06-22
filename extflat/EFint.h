@@ -128,7 +128,7 @@ typedef struct conn
     ConnName	 conn_1;	/* First node in connection */
     ConnName	 conn_2;	/* Second (optional) node in connection */
     union {
-	int	 conn_val_res;	/* Value of capacitance (attofarads) or */
+	float	 conn_val_res;	/* Value of capacitance (attofarads) or */
 	EFCapValue conn_val_cap;	/* resistance (milliohms). */
     } conn_value;
 

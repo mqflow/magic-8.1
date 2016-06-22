@@ -46,7 +46,7 @@ typedef struct resistor
      struct resistor    *rr_nextResistor; /*  Doubly linked list pointers */
      struct resistor    *rr_lastResistor;  
      struct resnode  	*rr_node[2];
-     int		rr_value;	  /* Resistor's value in milliohms  */
+     float		rr_value;	  /* Resistor's value in milliohms  */
      int		rr_status;	  /* Status bit used for processing */
      union 
      {

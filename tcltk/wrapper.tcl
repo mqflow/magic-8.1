@@ -620,13 +620,15 @@ proc magic::toolupdate {win {yesno "yes"} {layerlist "none"}} {
 
    foreach layer $layerlist {
       switch $layer {
-	 none {}
+	 none {set canon ""}
+	 allSame {set canon ""}
+	 "*" {set canon ""}
 	 errors {set canon $layer}
 	 subcell {set canon $layer}
 	 labels {set canon $layer}
 	 default {set canon [magic::tech layer $layer]}
       }
-      if {$layer != "none" && $canon != ""} {
+      if {$canon != ""} {
          if {$yesno == "yes"} {
 	    ${framename}.toolbar.b$canon configure -image img_$canon 
 	    ${framename}.toolbar.p$canon configure -image pale_$canon 
