@@ -623,6 +623,8 @@ proc magic::toolupdate {win {yesno "yes"} {layerlist "none"}} {
 	 none {set canon ""}
 	 allSame {set canon ""}
 	 "*" {set canon ""}
+	 "$" {set canon ""}
+	 connect {set canon ""}
 	 errors {set canon $layer}
 	 subcell {set canon $layer}
 	 labels {set canon $layer}
