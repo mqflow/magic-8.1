@@ -33,7 +33,6 @@ PATH: /sbin
 PATH: /usr/bin
 PATH: /usr/sbin
 PATH: /usr/local/bin
-PATH: /home/tim/src/timberwolf-6.3/bin
 
 
 ## ----------- ##
@@ -126,7 +125,7 @@ configure: failed program was:
 | #define PACKAGE_BUGREPORT ""
 | #define PACKAGE_URL ""
 | #define MAGIC_VERSION "8.1"
-| #define MAGIC_REVISION "99"
+| #define MAGIC_REVISION "103"
 | /* end confdefs.h.  */
 | #include <ac_nonexistent.h>
 configure:3467: result: gcc -E
@@ -147,7 +146,7 @@ configure: failed program was:
 | #define PACKAGE_BUGREPORT ""
 | #define PACKAGE_URL ""
 | #define MAGIC_VERSION "8.1"
-| #define MAGIC_REVISION "99"
+| #define MAGIC_REVISION "103"
 | /* end confdefs.h.  */
 | #include <ac_nonexistent.h>
 configure:3587: checking for g++
@@ -300,7 +299,7 @@ configure: failed program was:
 | #define PACKAGE_BUGREPORT ""
 | #define PACKAGE_URL ""
 | #define MAGIC_VERSION "8.1"
-| #define MAGIC_REVISION "99"
+| #define MAGIC_REVISION "103"
 | #define STDC_HEADERS 1
 | #define HAVE_SYS_TYPES_H 1
 | #define HAVE_SYS_STAT_H 1
@@ -341,7 +340,7 @@ configure: failed program was:
 | #define PACKAGE_BUGREPORT ""
 | #define PACKAGE_URL ""
 | #define MAGIC_VERSION "8.1"
-| #define MAGIC_REVISION "99"
+| #define MAGIC_REVISION "103"
 | #define STDC_HEADERS 1
 | #define HAVE_SYS_TYPES_H 1
 | #define HAVE_SYS_STAT_H 1
@@ -431,7 +430,7 @@ configure: failed program was:
 | #define PACKAGE_BUGREPORT ""
 | #define PACKAGE_URL ""
 | #define MAGIC_VERSION "8.1"
-| #define MAGIC_REVISION "99"
+| #define MAGIC_REVISION "103"
 | #define STDC_HEADERS 1
 | #define HAVE_SYS_TYPES_H 1
 | #define HAVE_SYS_STAT_H 1
@@ -504,7 +503,7 @@ configure: failed program was:
 | #define PACKAGE_BUGREPORT ""
 | #define PACKAGE_URL ""
 | #define MAGIC_VERSION "8.1"
-| #define MAGIC_REVISION "99"
+| #define MAGIC_REVISION "103"
 | #define STDC_HEADERS 1
 | #define HAVE_SYS_TYPES_H 1
 | #define HAVE_SYS_STAT_H 1
@@ -596,29 +595,29 @@ configure:6270: checking for tclConfig.sh
 configure:6344: result: /usr/lib64/tclConfig.sh
 configure:6360: checking for tkConfig.sh
 configure:6433: result: /usr/lib64/tkConfig.sh
-configure:6548: checking for wish executable
-configure:6576: result: /usr/bin/wish
-configure:6582: checking for tclsh executable
-configure:6608: result: /usr/bin/tclsh
-configure:7313: checking GL/gl.h usability
-configure:7313: gcc -c -g   conftest.c >&5
-configure:7313: $? = 0
-configure:7313: result: yes
-configure:7313: checking GL/gl.h presence
-configure:7313: gcc -E -x c   conftest.c
-configure:7313: $? = 0
-configure:7313: result: yes
-configure:7313: checking for GL/gl.h
-configure:7313: result: yes
-configure:7331: checking for glXCreateContext in -lGL
-configure:7356: gcc -o conftest -g     -lm conftest.c -lGL   >&5
-configure:7356: $? = 0
-configure:7365: result: yes
-configure:7381: checking for gluNewTess in -lGLU
-configure:7406: gcc -o conftest -g     -lm conftest.c -lGLU  -lGL  >&5
-configure:7406: $? = 0
-configure:7415: result: yes
-configure:8188: creating ./config.status
+configure:6567: checking for wish executable
+configure:6595: result: /usr/bin/wish
+configure:6601: checking for tclsh executable
+configure:6627: result: /usr/bin/tclsh
+configure:7332: checking GL/gl.h usability
+configure:7332: gcc -c -g   conftest.c >&5
+configure:7332: $? = 0
+configure:7332: result: yes
+configure:7332: checking GL/gl.h presence
+configure:7332: gcc -E -x c   conftest.c
+configure:7332: $? = 0
+configure:7332: result: yes
+configure:7332: checking for GL/gl.h
+configure:7332: result: yes
+configure:7350: checking for glXCreateContext in -lGL
+configure:7375: gcc -o conftest -g     -lm conftest.c -lGL   >&5
+configure:7375: $? = 0
+configure:7384: result: yes
+configure:7400: checking for gluNewTess in -lGLU
+configure:7425: gcc -o conftest -g     -lm conftest.c -lGLU  -lGL  >&5
+configure:7425: $? = 0
+configure:7434: result: yes
+configure:8207: creating ./config.status
 
 ## ---------------------- ##
 ## Running config.status. ##
@@ -740,7 +739,7 @@ CPPFLAGS=''
 CSH='/bin/csh'
 CXX='g++'
 CXXFLAGS='-g -O2'
-DEFS='-DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DMAGIC_VERSION=\"8.1\" -DMAGIC_REVISION=\"99\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DSIZEOF_VOID_P=8 -DSIZEOF_UNSIGNED_INT=4 -DSIZEOF_UNSIGNED_LONG=8 -DSIZEOF_UNSIGNED_LONG_LONG=8 -DSTDC_HEADERS=1 -DHAVE_SETENV=1 -DHAVE_PUTENV=1 -DHAVE_SYS_MMAN_H=1 -DHAVE_DIRENT_H=1 -DHAVE_LIMITS_H=1 -DHAVE_PATHS_H=1 -DHAVE_VA_COPY=1 -DHAVE___VA_COPY=1 -DFILE_LOCKS=1 -DCALMA_MODULE=1 -DCIF_MODULE=1 -DX11_BACKING_STORE=1 -DPLOT_MODULE=1 -DLEF_MODULE=1 -DROUTE_MODULE=1 -DUSE_NEW_MACROS=1 -DHAVE_LIBGL=1 -DHAVE_LIBGLU=1 -DVECTOR_FONTS=1 -DMAGIC_WRAPPER=1 -DTHREE_D=1 -Dlinux=1 -DSYSV=1 -DISC=1'
+DEFS='-DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DMAGIC_VERSION=\"8.1\" -DMAGIC_REVISION=\"103\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DSIZEOF_VOID_P=8 -DSIZEOF_UNSIGNED_INT=4 -DSIZEOF_UNSIGNED_LONG=8 -DSIZEOF_UNSIGNED_LONG_LONG=8 -DSTDC_HEADERS=1 -DHAVE_SETENV=1 -DHAVE_PUTENV=1 -DHAVE_SYS_MMAN_H=1 -DHAVE_DIRENT_H=1 -DHAVE_LIMITS_H=1 -DHAVE_PATHS_H=1 -DHAVE_VA_COPY=1 -DHAVE___VA_COPY=1 -DFILE_LOCKS=1 -DCALMA_MODULE=1 -DCIF_MODULE=1 -DX11_BACKING_STORE=1 -DPLOT_MODULE=1 -DLEF_MODULE=1 -DROUTE_MODULE=1 -DUSE_NEW_MACROS=1 -DHAVE_LIBGL=1 -DHAVE_LIBGLU=1 -DVECTOR_FONTS=1 -DMAGIC_WRAPPER=1 -DTHREE_D=1 -Dlinux=1 -DSYSV=1 -DISC=1'
 DEPEND_FLAG='-MM'
 ECHO_C=''
 ECHO_N='printf'
@@ -764,7 +763,7 @@ LIBS='-lGLU -lGL '
 LIB_SPECS=' -L/usr/lib64 -ltk8.6 -L/usr/lib64 -ltcl8.6'
 LTLIBOBJS=''
 M4='/bin/m4'
-MAGIC_REVISION='99'
+MAGIC_REVISION='103'
 MAGIC_VERSION='8.1'
 OA=''
 OA_LIBS=''
@@ -862,7 +861,7 @@ unused=' readline lisp'
 #define PACKAGE_BUGREPORT ""
 #define PACKAGE_URL ""
 #define MAGIC_VERSION "8.1"
-#define MAGIC_REVISION "99"
+#define MAGIC_REVISION "103"
 #define STDC_HEADERS 1
 #define HAVE_SYS_TYPES_H 1
 #define HAVE_SYS_STAT_H 1
