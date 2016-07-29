@@ -1161,7 +1161,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    $m add command -label "Pan Down         " -command {}
    $m add separator
    $m add command -label "Grid on          " -command {magic::grid on  }
-   $m add command -label "Grid off         " -command {magic::grif off }
+   $m add command -label "Grid off         " -command {magic::grid off }
    $m add command -label "Snap to grid on  " -command {magic::snap on  }
    $m add command -label "Snap to grid off " -command {magic::snap off }
    $m add command -label "Measure box      " -command {magic::box }
