@@ -1993,7 +1993,7 @@ dbFgets(line, len, f)
 	cs = line, l = len;
 	while (--l > 0 && (c = getc(f)) != EOF)
 	{
-	    *cs++ = c;
+	    if (c != '\r') *cs++ = c;
 	    if (c == '\n')
 		break;
 	}
