@@ -43,6 +43,7 @@ static char sccsid[] = "@(#)ExtBasic.c	4.13 MAGIC (Berkeley) 12/5/85";
 #include "dbwind/dbwind.h"
 #include "utils/styles.h"
 #include "utils/stack.h"
+#include "utils/utils.h"
 
 /* These must be in the order of "known devices" in extract.h.		*/
 
@@ -139,7 +140,7 @@ int extResistorTileFunc();
 int extSpecialPerimFunc();
 
 void extFindDuplicateLabels();
-void extOutputTrans();
+void extOutputDevices();
 void extOutputParameters();
 void extTransOutTerminal();
 void extTransBad();
@@ -192,7 +193,7 @@ extBasic(def, outFile)
     glob_subsnode = (NodeRegion *)NULL;
 
     /*
-     * Build up a list of the transistor regions for extOutputTrans()
+     * Build up a list of the device regions for extOutputDevices()
      * below.  We're only interested in pointers from each region to
      * a tile in that region, not the back pointers from the tiles to
      * the regions.
@@ -258,9 +259,194 @@ extBasic(def, outFile)
     if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING))
 	extOutputCoupling(&extCoupleHash, outFile);
 
-    /* Output transistors and connectivity between nodes */
+    /* Output devices and connectivity between nodes */
     if (!SigInterruptPending)
-	extOutputTrans(def, transList, outFile);
+    {
+	int llx, lly, urx, ury, devidx, l, w;
+	char *token, *modelname, *subsnode;
+	char *propvalue, *propptr;
+	bool propfound;
+
+	modelname = NULL;
+	subsnode = NULL;
+	propfound = FALSE;
+	propvalue = NULL;
+        propptr = (char *)DBPropGet(def, "device", &propfound);
+	
+	if (propfound)
+	{
+	    /* Sanity checking on syntax of property line, plus	*/
+	    /* conversion of values to internal units.		*/
+	    propvalue = StrDup((char **)NULL, propptr);
+	    token = strtok(propvalue, " ");
+	    devidx = Lookup(token, extDevTable);
+	    if (devidx < 0)
+	    {
+		TxError("Extract error:  \"device\" property has unknown "
+				"device type.\n", token);
+		propfound = FALSE;
+	    }
+	    if (propfound)
+	    {
+		token = strtok(NULL, " ");
+		if (token == NULL)
+		    propfound = FALSE;
+		else
+		    modelname = StrDup((char **)NULL, token);
+	    }
+	    if (propfound)
+	    {
+		token = strtok(NULL, " ");
+		if ((token == NULL) || !sscanf(token, "%d", &llx))
+		    propfound = FALSE;
+		else
+		    llx *= ExtCurStyle->exts_unitsPerLambda;
+	    }
+	    if (propfound)
+	    {
+		token = strtok(NULL, " ");
+		if ((token == NULL) || !sscanf(token, "%d", &lly))
+		    propfound = FALSE;
+		else
+		    lly *= ExtCurStyle->exts_unitsPerLambda;
+	    }
+	    if (propfound)
+	    {
+		token = strtok(NULL, " ");
+		if ((token == NULL) || !sscanf(token, "%d", &urx))
+		    propfound = FALSE;
+		else
+		    urx *= ExtCurStyle->exts_unitsPerLambda;
+	    }
+	    if (propfound)
+	    {
+		token = strtok(NULL, " ");
+		if ((token == NULL) || !sscanf(token, "%d", &ury))
+		    propfound = FALSE;
+		else
+		    ury *= ExtCurStyle->exts_unitsPerLambda;
+	    }
+	    if (propfound)
+	    {
+		switch (devidx)
+		{
+		    case DEV_FET:
+			/* Read area */
+			token = strtok(NULL, " ");
+			if ((token == NULL) || !sscanf(token, "%d", &w))
+			    propfound = FALSE;
+			else
+			    w *= ExtCurStyle->exts_unitsPerLambda *
+			    	   ExtCurStyle->exts_unitsPerLambda;
+			/* Read perimeter */
+			token = strtok(NULL, " ");
+			if ((token == NULL) || !sscanf(token, "%d", &l))
+			    propfound = FALSE;
+			else
+			    l *= ExtCurStyle->exts_unitsPerLambda;
+			break;
+		    case DEV_MOSFET:
+		    case DEV_ASYMMETRIC:
+		    case DEV_BJT:
+			/* Read width */
+			token = strtok(NULL, " ");
+			if ((token == NULL) || !sscanf(token, "%d", &w))
+			    propfound = FALSE;
+			else
+			    w *= ExtCurStyle->exts_unitsPerLambda;
+			/* Read length */
+			token = strtok(NULL, " ");
+			if ((token == NULL) || !sscanf(token, "%d", &l))
+			    propfound = FALSE;
+			else
+			    l *= ExtCurStyle->exts_unitsPerLambda;
+			break;
+		    case DEV_RES:
+			if (strcmp(modelname, "None"))
+			{
+			    /* Read width */
+			    token = strtok(NULL, " ");
+			    if ((token == NULL) || !sscanf(token, "%d", &w))
+				propfound = FALSE;
+			    else
+				w *= ExtCurStyle->exts_unitsPerLambda;
+			    /* Read length */
+			    token = strtok(NULL, " ");
+			    if ((token == NULL) || !sscanf(token, "%d", &l))
+				propfound = FALSE;
+			    else
+				l *= ExtCurStyle->exts_unitsPerLambda;
+			    break;
+			}
+			break;
+		    case DEV_CAP:
+		    case DEV_CAPREV:
+			if (strcmp(modelname, "None"))
+			{
+			    /* Read area */
+			    token = strtok(NULL, " ");
+			    if ((token == NULL) || !sscanf(token, "%d", &w))
+				propfound = FALSE;
+			    else
+				w *= ExtCurStyle->exts_unitsPerLambda *
+				     ExtCurStyle->exts_unitsPerLambda;
+			    /* Read perimeter */
+			    token = strtok(NULL, " ");
+			    if ((token == NULL) || !sscanf(token, "%d", &l))
+				propfound = FALSE;
+			    else
+				l *= ExtCurStyle->exts_unitsPerLambda;
+			    break;
+			}
+			break;
+		}
+	    }
+
+	    if (propfound)
+	    {
+		if (devidx == DEV_FET)
+		    fprintf(outFile, "fet");
+		else
+		    fprintf(outFile, "device %s", extDevTable[devidx]);
+		fprintf(outFile, " %s %d %d %d %d", modelname,
+				llx, lly, urx, ury);
+		switch (devidx) {
+		    case DEV_FET:
+		    case DEV_MOSFET:
+		    case DEV_ASYMMETRIC:
+		    case DEV_BJT:
+			fprintf(outFile, " %d %d", w, l);
+			break;
+		    case DEV_RES:
+		    case DEV_CAP:
+		    case DEV_CAPREV:
+			if (strcmp(modelname, "None"))
+			    fprintf(outFile, " %d %d", w, l);
+			break;
+		}
+		/* Print remainder of arguments verbatim. */
+		/* Note:  There should be additional checks on 	*/
+		/* node triplets including area and perim. conversions */
+		while (1) {
+		    token = strtok(NULL, " ");
+		    if (token == NULL)
+			break;
+		    else
+			fprintf(outFile, " %s", token);
+		}
+	    }
+	    else if (devidx >= 0)
+	    {
+		TxError("Extract error:  \"device %s\" property syntax"
+				" error\n", extDevTable[devidx]);
+	    }
+	    if (modelname) freeMagic(modelname);
+	    if (propvalue) freeMagic(propvalue);
+	}
+
+	if (!propfound)
+	    extOutputDevices(def, transList, outFile);
+    }
 
     /* Clean up */
     if (coupleInitialized)
@@ -1355,7 +1541,7 @@ extOutputDevParams(reg, t, outFile, length, width)
 /*
  * ----------------------------------------------------------------------------
  *
- * extOutputTrans --
+ * extOutputDevices --
  *
  * For each TransRegion in the supplied list, corresponding to a single
  * transistor in the layout, compute and output:
@@ -1384,7 +1570,7 @@ extOutputDevParams(reg, t, outFile, length, width)
  */
 
 void
-extOutputTrans(def, transList, outFile)
+extOutputDevices(def, transList, outFile)
     CellDef *def;		/* Cell being extracted */
     TransRegion *transList;	/* Transistor regions built up in first pass */
     FILE *outFile;		/* Output file */
