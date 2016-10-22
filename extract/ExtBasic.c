@@ -317,6 +317,7 @@ extBasic(def, outFile)
 		    propfound = FALSE;
 		else
 		    urx *= ExtCurStyle->exts_unitsPerLambda;
+		if (urx <= llx) urx++;
 	    }
 	    if (propfound)
 	    {
@@ -325,6 +326,7 @@ extBasic(def, outFile)
 		    propfound = FALSE;
 		else
 		    ury *= ExtCurStyle->exts_unitsPerLambda;
+		if (ury <= lly) ury++;
 	    }
 	    if (propfound)
 	    {

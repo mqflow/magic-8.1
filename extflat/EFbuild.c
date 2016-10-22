@@ -572,6 +572,7 @@ efBuildDevice(def, class, type, r, argc, argv)
     int n, nterminals, pn;
     DevTerm *term;
     Dev *newdev, devtmp;
+    DevParam *newparm, *devp, *sparm;
     char ptype, *pptr, **av;
     int argstart = 1;	/* start of terminal list in argv[] */
     bool hasModel = strcmp(type, "None") ? TRUE : FALSE;
@@ -585,6 +586,7 @@ efBuildDevice(def, class, type, r, argc, argv)
     devtmp.dev_perim = 0;
     devtmp.dev_length = 0;
     devtmp.dev_width = 0;
+    devtmp.dev_params = NULL;
 
     switch (class)
     {
@@ -611,9 +613,34 @@ efBuildDevice(def, class, type, r, argc, argv)
 	    argstart = 0;
     }
 
+    devp = efGetDeviceParams(type);
+
     /* Parse initial arguments for parameters */
     while ((pptr = strchr(argv[argstart], '=')) != NULL)
     {
+	// Check if this parameter is in the table.
+	// If so, handle appropriately.  Otherwise, the
+	// parameter gets saved verbatim locally.  The
+	// "parameters" line comes before any "device" line
+	// in the .ext file, so the table should be complete.
+
+	*pptr = '\0';
+	for (sparm = devp; sparm; sparm = sparm->parm_next)
+	    if (!strcasecmp(sparm->parm_type, argv[argstart]))
+		break;
+	*pptr = '=';
+	if (sparm == NULL)
+	{
+	    /* Copy the parameter into dev_params */
+	    /* (parm_type and parm_scale records are not used) */
+	    newparm = (DevParam *)mallocMagic(sizeof(DevParam));
+	    newparm->parm_name = StrDup((char **)NULL, argv[argstart]);
+	    newparm->parm_next = devtmp.dev_params;
+	    devtmp.dev_params = newparm;
+	    argstart++;
+	    continue;
+	}
+
 	pptr++;
 	switch(*argv[argstart])
 	{
@@ -636,7 +663,7 @@ efBuildDevice(def, class, type, r, argc, argv)
 		    pn = *(argv[argstart] + 1) - '0';
 		    if (pn == 0)
 			devtmp.dev_perim = atoi(pptr);
-		    /* Otherwise, punt */
+		    /* Otherwise, use verbatim */
 		}
 		break;
 	    case 'l':
@@ -693,7 +720,7 @@ efBuildDevice(def, class, type, r, argc, argv)
     newdev->dev_perim = devtmp.dev_perim;
     newdev->dev_length = devtmp.dev_length;
     newdev->dev_width = devtmp.dev_width;
-    newdev->dev_params = NULL;
+    newdev->dev_params = devtmp.dev_params;
 
     newdev->dev_nterm = nterminals;
     newdev->dev_rect = *r;
