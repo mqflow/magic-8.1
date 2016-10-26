@@ -379,10 +379,12 @@ CmdTech(w, cmd)
 	    break;
 
 	case TECH_REVERT:
+	    {
+	    TileTypeBitMask lockmask, *rMask;
+	    TileType ctype;
+
 	    if (cmd->tx_argc == 3)
 	    {
-		TileTypeBitMask lockmask, *rMask;
-		TileType ctype;
 
 		TTMaskZero(&lockmask);
 		if (!strcmp(cmd->tx_argv[2], "*"))
@@ -393,6 +395,7 @@ CmdTech(w, cmd)
 		TTMaskClearMask(&DBActiveLayerBits, &lockmask);
 		TTMaskAndMask(&lockmask, &DBTechActiveLayerBits);
 		TTMaskSetMask(&DBActiveLayerBits, &lockmask);
+
 	    }
 	    else if (cmd->tx_argc == 2)
 	    {
@@ -402,6 +405,35 @@ CmdTech(w, cmd)
 	    }
 	    else
 		goto wrongNumArgs;
+
+	    // Handle contact types, which involve a bit more than
+	    // just setting the active layer mask, as paint/erase
+	    // tables need to be manipulated
+
+	    for (ctype = TT_TECHDEPBASE; ctype < DBNumUserLayers; ctype++)
+		if (DBIsContact(ctype))
+		    if (TTMaskHasType(&DBActiveLayerBits, ctype))
+			DBUnlockContact(ctype);
+		    else
+			DBLockContact(ctype);
+
+	    for (ctype = DBNumUserLayers; ctype < DBNumTypes; ctype++)
+	    {
+		TileTypeBitMask testmask;
+		rMask = DBResidueMask(ctype);
+		TTMaskAndMask3(&testmask, &DBActiveLayerBits, rMask);
+		if (TTMaskEqual(&testmask, rMask))
+		{
+		    TTMaskSetType(&DBActiveLayerBits, ctype);
+		    DBUnlockContact(ctype);
+		}
+		else if (TTMaskIntersect(&DBActiveLayerBits, rMask))
+		{
+		    TTMaskClearType(&DBActiveLayerBits, ctype);
+		    DBLockContact(ctype);
+		}
+	    }
+	    }
 	    break;
 
 	case TECH_DRC:
