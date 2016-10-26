@@ -469,6 +469,7 @@ set Opts(netlist) 0
 set Opts(colormap) 0
 set Opts(wind3d) 0
 set Opts(crosshair) 0
+set Opts(hidelocked) 0
 set Opts(toolbar) 0
 set Opts(drc) 1
 
@@ -681,7 +682,11 @@ proc magic::maketoolbar { framename } {
 
    # Generate layer images and buttons for toolbar
 
-   set all_layers [concat {errors labels subcell} [magic::tech layer "*"]]
+   if {$Opts(hidelocked) == 0} {
+       set all_layers [concat {errors labels subcell} [magic::tech layer "*"]]
+   } else {
+       set all_layers [concat {errors labels subcell} [magic::tech unlocked]]
+   }
    foreach layername $all_layers {
       button ${framename}.toolbar.b$layername -image img_$layername -command \
 		"$win see $layername"
@@ -1256,6 +1261,10 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 		grid ${framename}.toolbar -row 1 -column 2 -rowspan 2 -sticky new ; \
 		} else { \
 		grid forget ${framename}.toolbar } }]
+
+   $m add check -label "Toolbar Hide Locked" \
+	-variable Opts(hidelocked) \
+	-command "magic::maketoolbar ${framename}"
 
    .winmenu add radio -label ${framename} -variable Opts(target) -value ${winname}
    if {$tk_version >= 8.5} {
