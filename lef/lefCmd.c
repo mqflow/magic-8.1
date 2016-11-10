@@ -121,20 +121,22 @@ CmdLef(w, cmd)
 
     if (option != LEF_HELP)
     {
-        windCheckOnlyWindow(&w, DBWclientID);
-        if (w == (MagWindow *) NULL)
-        {
-            if (ToolGetBox(&selectedDef,NULL) == FALSE)
-            {
-                TxError("Point to a window first\n");
-                return;
-            }
-            selectedUse = selectedDef->cd_parents;
-        }
-        else
-        {
-            selectedUse = (CellUse *)w->w_surfaceID;
-        }
+        selectedUse = CmdGetSelectedCell((Transform *)NULL);
+	if (selectedUse == NULL)
+	{
+	    windCheckOnlyWindow(&w, DBWclientID);
+	    if (w == (MagWindow *) NULL)
+	    {
+		if (ToolGetBox(&selectedDef,NULL) == FALSE)
+		{
+		    TxError("Point to a window first\n");
+		    return;
+		}
+		selectedUse = selectedDef->cd_parents;
+	    }
+	    else
+		selectedUse = (CellUse *)w->w_surfaceID;
+	}
     }
 
     switch (option)
@@ -189,14 +191,16 @@ CmdLef(w, cmd)
 		}
 		else if (cmd->tx_argc != 3) goto wrongNumArgs;
 	    }
-            else if (cmd->tx_argc != 3) goto wrongNumArgs;
-            namep = cmd->tx_argv[2];
-            selectedUse = CmdGetSelectedCell((Transform *) NULL);
+            else if (cmd->tx_argc != 2) goto wrongNumArgs;
             if (selectedUse == NULL)
             {
                 TxError("No cell selected\n");
                 return;
             }
+            if (cmd->tx_argc == 2)
+		namep = selectedUse->cu_def->cd_name;
+	    else
+		namep = cmd->tx_argv[2];
 	    if (!is_lef)
 		DefWriteCell(selectedUse->cu_def, namep, allSpecial);
 	    else

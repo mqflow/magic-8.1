@@ -340,7 +340,7 @@ lefYankGeometry(tile, cdata)
 {
     lefClient *lefdata = (lefClient *)cdata;
     Rect area;
-    TileType ttype;
+    TileType ttype, otype, ptype;
     LefMapping *lefMagicToLefLayer;
     TileTypeBitMask *sMask;
 
@@ -360,11 +360,13 @@ lefYankGeometry(tile, cdata)
 	    return 0;
 	}
 
-    ttype = TiGetTypeExact(tile);
+    otype = TiGetTypeExact(tile);
 
     if (IsSplit(tile))
-	ttype = (ttype & TT_SIDE) ? SplitRightType(tile) :
+	ttype = (otype & TT_SIDE) ? SplitRightType(tile) :
 			SplitLeftType(tile);
+    else
+	ttype = otype;
 
     /* Output geometry only for defined routing layers	*/
     /* If we have encountered a contact type, then	*/
@@ -406,8 +408,15 @@ lefYankGeometry(tile, cdata)
     while (ttype < DBNumTypes)
     {
 	if (lefMagicToLefLayer[ttype].lefInfo != NULL)
-	    if (!IsSplit(tile))
-		DBPaint(lefdata->lefYank, &area, ttype);
+	{
+	    if (IsSplit(tile))
+		// Set only the side being yanked
+		ptype = (otype & (TT_DIAGONAL | TT_SIDE | TT_DIRECTION)) |
+			((otype & TT_SIDE) ? (ttype << 14) : ttype);
+	    else
+		ptype = ttype;
+	    DBPaint(lefdata->lefYank, &area, ptype);
+	}
 
 	if (sMask == NULL) break;
 
@@ -440,8 +449,15 @@ lefWriteGeometry(tile, cdata)
     lefClient *lefdata = (lefClient *)cdata;
     FILE *f = lefdata->file;
     float scale = lefdata->oscale;
-    TileType ttype = TiGetTypeExact(tile);
+    TileType ttype, otype = TiGetTypeExact(tile);
     LefMapping *lefMagicToLefLayer = lefdata->lefMagicMap;
+
+    /* Get layer type */
+    if (IsSplit(tile))
+	ttype = (otype & TT_SIDE) ? SplitRightType(tile) :
+			SplitLeftType(tile);
+    else
+	ttype = otype;
 
     /* Only LEF routing layer types will be in the yank buffer */
 
@@ -455,7 +471,47 @@ lefWriteGeometry(tile, cdata)
 	*(lefdata->lastType) = ttype;
     }
 
-    fprintf(f, "	    RECT %.4f %.4f %.4f %.4f ;\n",
+    if (IsSplit(tile))
+	if (otype & TT_SIDE)
+	{
+	    if (otype & TT_DIRECTION)
+		fprintf(f, "	    POLYGON %.4f %.4f %.4f %.4f %.4f %.4f ;\n",
+			scale * (float)(LEFT(tile) - lefdata->origin.p_x),
+			scale * (float)(TOP(tile) - lefdata->origin.p_y),
+			scale * (float)(RIGHT(tile) - lefdata->origin.p_x),
+			scale * (float)(TOP(tile) - lefdata->origin.p_y),
+			scale * (float)(RIGHT(tile) - lefdata->origin.p_x),
+			scale * (float)(BOTTOM(tile) - lefdata->origin.p_y));
+	    else
+		fprintf(f, "	    POLYGON %.4f %.4f %.4f %.4f %.4f %.4f ;\n",
+			scale * (float)(RIGHT(tile) - lefdata->origin.p_x),
+			scale * (float)(TOP(tile) - lefdata->origin.p_y),
+			scale * (float)(RIGHT(tile) - lefdata->origin.p_x),
+			scale * (float)(BOTTOM(tile) - lefdata->origin.p_y),
+			scale * (float)(LEFT(tile) - lefdata->origin.p_x),
+			scale * (float)(BOTTOM(tile) - lefdata->origin.p_y));
+	}
+	else
+	{
+	    if (otype & TT_DIRECTION)
+		fprintf(f, "	    POLYGON %.4f %.4f %.4f %.4f %.4f %.4f ;\n",
+			scale * (float)(LEFT(tile) - lefdata->origin.p_x),
+			scale * (float)(TOP(tile) - lefdata->origin.p_y),
+			scale * (float)(RIGHT(tile) - lefdata->origin.p_x),
+			scale * (float)(BOTTOM(tile) - lefdata->origin.p_y),
+			scale * (float)(LEFT(tile) - lefdata->origin.p_x),
+			scale * (float)(BOTTOM(tile) - lefdata->origin.p_y));
+	    else
+		fprintf(f, "	    POLYGON %.4f %.4f %.4f %.4f %.4f %.4f ;\n",
+			scale * (float)(LEFT(tile) - lefdata->origin.p_x),
+			scale * (float)(TOP(tile) - lefdata->origin.p_y),
+			scale * (float)(RIGHT(tile) - lefdata->origin.p_x),
+			scale * (float)(TOP(tile) - lefdata->origin.p_y),
+			scale * (float)(LEFT(tile) - lefdata->origin.p_x),
+			scale * (float)(BOTTOM(tile) - lefdata->origin.p_y));
+	}
+    else
+	fprintf(f, "	    RECT %.4f %.4f %.4f %.4f ;\n",
 		scale * (float)(LEFT(tile) - lefdata->origin.p_x),
 		scale * (float)(BOTTOM(tile) - lefdata->origin.p_y),
 		scale * (float)(RIGHT(tile) - lefdata->origin.p_x),

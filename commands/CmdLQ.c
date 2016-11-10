@@ -1129,14 +1129,13 @@ CmdPort(w, cmd)
 	PORT_USE_CLOCK
     };
 
-    if (cmd->tx_argc > 6)
+    if (cmd->tx_argc > 6 || cmd->tx_argc == 1)
+        goto portWrongNumArgs;
+    else
     {
-	TxError("Usage: %s [num] [connect_direction...]\n", cmd->tx_argv[0]);
-	return;
+	option = Lookup(cmd->tx_argv[1], cmdPortOption);
+	if (option < 0 || option == PORT_HELP) goto portWrongNumArgs;
     }
-
-    option = Lookup(cmd->tx_argv[1], cmdPortOption);
-    if (option < 0 || option == PORT_HELP) goto portWrongNumArgs;
 
     /*
      * Check for unique label in box area

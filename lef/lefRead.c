@@ -1047,8 +1047,23 @@ LefReadGeometry(lefMacro, f, oscale, do_list)
 		{
 		    if (lefMacro)
 		    {
-			rectList = LefPaintPolygon(lefMacro, pointList, points,
+			LinkedRect *rectNew, *rectTest;
+
+			rectNew = LefPaintPolygon(lefMacro, pointList, points,
 					curlayer, TRUE);
+
+			// Add the new list of rectangles to the current list
+			// of rectangles to be made into port labels.
+
+			if (rectList != NULL)
+			{
+			    for (rectTest = rectList; rectTest && rectTest->r_next;
+					rectTest = rectTest->r_next);
+			    rectTest->r_next = rectNew;
+			}
+			else
+			    rectList = rectNew;
+
 			if ((!do_list) && (otherlayer != -1))
 			    LefPaintPolygon(lefMacro, pointList, points, otherlayer);
 		    }
