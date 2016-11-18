@@ -613,7 +613,14 @@ resPortFunc(scx, lab, tpath, result)
 	pclass = lab->lab_flags & PORT_CLASS_MASK;
 	puse = lab->lab_flags & PORT_USE_MASK;
 
-	if (puse == PORT_USE_SIGNAL) {
+	// Ad hoc rule:  If port use is not declared, but port
+	// direction is either INPUT or OUTPUT, then use SIGNAL is implied.
+
+	if ((puse == 0) && ((pclass == PORT_CLASS_INPUT)
+		|| (pclass == PORT_CLASS_OUTPUT)))
+	    puse = PORT_USE_SIGNAL;
+
+	if (puse == PORT_USE_SIGNAL || puse == PORT_USE_CLOCK) {
 
 	    if (lab->lab_flags & (PORT_DIR_NORTH | PORT_DIR_SOUTH))
 		portloc.p_x = (r.r_xbot + r.r_xtop) >> 1;

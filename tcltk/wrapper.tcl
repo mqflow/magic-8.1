@@ -799,6 +799,8 @@ proc magic::techrebuild {winpath {cmdstr ""}} {
       set Opts(toolbar) 0
       maketoolbar ${framename}
       magic::techmanager init
+   } elseif {${cmdstr} == "lock" || ${cmdstr} == "unlock"} {
+      maketoolbar ${framename}
    }
 }
 
