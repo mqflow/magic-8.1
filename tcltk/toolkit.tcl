@@ -50,6 +50,15 @@ proc magic::add_toolkit_button {framename button_text gencell_type library} {
 	"magic::gencell_params {} $gencell_type $library"
 }
 
+#----------------------------------------------------------------
+# Add a separator to the toolkit menu
+#----------------------------------------------------------------
+
+proc magic::add_toolkit_separator {framename} {
+   set m ${framename}.titlebar.mbuttons.toolkit.toolmenu
+   $m add separator
+}
+
 #-----------------------------------------------------
 # Device selection
 #-----------------------------------------------------
@@ -94,7 +103,10 @@ proc magic::gencell_setparams {gname} {
    foreach s $slist {
       if {[regexp {^.params.edits.(.*)_ent$} $s valid pname] != 0} {
 	 set value [$s get]
-	 cellname property $gname $pname $value
+         cellname property $gname $pname $value
+      } elseif {[regexp {^.params.edits.(.*)_chk$} $s valid pname] != 0} {
+	 set value [subst \$magic::${pname}_val]
+         cellname property $gname $pname $value
       }
    }
 }
@@ -112,6 +124,10 @@ proc magic::gencell_getparam {gname pname} {
       if {[regexp {^.params.edits.(.*)_ent$} $s valid ptest] != 0} {
 	 if {$pname == $ptest} {
 	    return [$s get]
+	 }
+      } elseif {[regexp {^.params.edits.(.*)_chk$} $s valid ptest] != 0} {
+	 if {$pname == $ptest} {
+	    return [subst \$magic::${ptest}_val]
 	 }
       }
    }
@@ -193,7 +209,7 @@ proc magic::gencell_draw {gname gencell_type library} {
 }
 
 #-----------------------------------------------------
-#  Add a standard parameter to the gencell window 
+#  Add a standard entry parameter to the gencell window 
 #-----------------------------------------------------
 
 proc magic::add_param {gname pname ptext default_value} {
@@ -207,12 +223,35 @@ proc magic::add_param {gname pname ptext default_value} {
    }
    if {$value == {}} {set value $default_value}
    
-   set numrows [lindex [grid size .params.edits] 0]
+   set numrows [lindex [grid size .params.edits] 1]
    label .params.edits.${pname}_lab -text $ptext
    entry .params.edits.${pname}_ent -background white
-   grid .params.edits.${pname}_lab -row $numrows -column 0
-   grid .params.edits.${pname}_ent -row $numrows -column 1
+   grid .params.edits.${pname}_lab -row $numrows -column 0 -sticky ens
+   grid .params.edits.${pname}_ent -row $numrows -column 1 -sticky ewns
    .params.edits.${pname}_ent insert end $value
+}
+
+#----------------------------------------------------------
+#  Add a standard checkbox parameter to the gencell window 
+#----------------------------------------------------------
+
+proc magic::add_checkbox {gname pname ptext default_value} {
+
+   # Check if the parameter exists.  If so, override the default
+   # value with the current value.
+
+   set value {}
+   if {[cellname list exists $gname] != 0} {
+      set value [cellname property $gname $pname]
+   }
+   if {$value == {}} {set value $default_value}
+   
+   set numrows [lindex [grid size .params.edits] 1]
+   label .params.edits.${pname}_lab -text $ptext
+   checkbutton .params.edits.${pname}_chk -variable magic::${pname}_val
+   grid .params.edits.${pname}_lab -row $numrows -column 0 -sticky ens
+   grid .params.edits.${pname}_chk -row $numrows -column 1 -sticky wns
+   set magic::${pname}_val $value
 }
 
 #-----------------------------------------------------

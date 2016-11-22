@@ -24,6 +24,7 @@ TCL_FILES = \
 	strip_reflibs.tcl \
 	drc.tcl \
 	toolkit.tcl \
+	bsitools.tcl \
 	magic.tcl
 
 BIN_FILES = \

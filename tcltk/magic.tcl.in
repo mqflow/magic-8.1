@@ -261,6 +261,14 @@ if {[file exists ${CAD_ROOT}/magic/tcl/toolkit.tcl]} {
 }
 
 #----------------------------------------------------------------------
+# Check for presence of the alternative BSI toolkit script and include it
+
+if {[file exists ${CAD_ROOT}/magic/tcl/bsitools.tcl]} {
+   source ${CAD_ROOT}/magic/tcl/bsitools.tcl
+   set Opts(bsitools) 0
+}
+
+#----------------------------------------------------------------------
 # Magic start function drops back to interpreter after initialization & setup
 
 set auto_noexec 1	;# don't EVER call UNIX commands w/o "shell" in front
