@@ -102,9 +102,12 @@ proc magic::gencell_setparams {gname} {
    set slist [grid slaves .params.edits]
    foreach s $slist {
       if {[regexp {^.params.edits.(.*)_ent$} $s valid pname] != 0} {
-	 set value [$s get]
+	 set value [subst \$magic::${pname}_val]
          cellname property $gname $pname $value
       } elseif {[regexp {^.params.edits.(.*)_chk$} $s valid pname] != 0} {
+	 set value [subst \$magic::${pname}_val]
+         cellname property $gname $pname $value
+      } elseif {[regexp {^.params.edits.(.*)_sel$} $s valid pname] != 0} {
 	 set value [subst \$magic::${pname}_val]
          cellname property $gname $pname $value
       }
@@ -123,9 +126,13 @@ proc magic::gencell_getparam {gname pname} {
    foreach s $slist {
       if {[regexp {^.params.edits.(.*)_ent$} $s valid ptest] != 0} {
 	 if {$pname == $ptest} {
-	    return [$s get]
+	    return [subst \$magic::${ptest}_val]
 	 }
       } elseif {[regexp {^.params.edits.(.*)_chk$} $s valid ptest] != 0} {
+	 if {$pname == $ptest} {
+	    return [subst \$magic::${ptest}_val]
+	 }
+      } elseif {[regexp {^.params.edits.(.*)_sel$} $s valid pname] != 0} {
 	 if {$pname == $ptest} {
 	    return [subst \$magic::${ptest}_val]
 	 }
@@ -224,11 +231,12 @@ proc magic::add_param {gname pname ptext default_value} {
    if {$value == {}} {set value $default_value}
    
    set numrows [lindex [grid size .params.edits] 1]
-   label .params.edits.${pname}_lab -text $ptext
+   label .params.edits.${pname}_lab -text $ptext -textvariable magic::${pname}_val
    entry .params.edits.${pname}_ent -background white
    grid .params.edits.${pname}_lab -row $numrows -column 0 -sticky ens
    grid .params.edits.${pname}_ent -row $numrows -column 1 -sticky ewns
    .params.edits.${pname}_ent insert end $value
+   set magic::${pname}_val $value
 }
 
 #----------------------------------------------------------
@@ -251,6 +259,36 @@ proc magic::add_checkbox {gname pname ptext default_value} {
    checkbutton .params.edits.${pname}_chk -variable magic::${pname}_val
    grid .params.edits.${pname}_lab -row $numrows -column 0 -sticky ens
    grid .params.edits.${pname}_chk -row $numrows -column 1 -sticky wns
+   set magic::${pname}_val $value
+}
+
+#----------------------------------------------------------
+#  Add a selectable-list parameter to the gencell window 
+#----------------------------------------------------------
+
+proc magic::add_selectlist {gname pname ptext all_values default_value} {
+
+   # Check if the parameter exists.  If so, override the default
+   # value with the current value.
+
+   set value {}
+   if {[cellname list exists $gname] != 0} {
+      set value [cellname property $gname $pname]
+   }
+   if {$value == {}} {set value $default_value}
+   
+   set numrows [lindex [grid size .params.edits] 1]
+   label .params.edits.${pname}_lab -text $ptext
+   menubutton .params.edits.${pname}_sel -menu .params.edits.${pname}_sel.menu \
+		-relief groove -text ${value} 
+   grid .params.edits.${pname}_lab -row $numrows -column 0 -sticky ens
+   grid .params.edits.${pname}_sel -row $numrows -column 1 -sticky wns
+   menu .params.edits.${pname}_sel.menu -tearoff 0
+   foreach item ${all_values} {
+       .params.edits.${pname}_sel.menu add radio -label $item \
+	-variable magic::${pname}_val -value $item \
+	-command ".params.edits.${pname}_sel configure -text $item"
+   }
    set magic::${pname}_val $value
 }
 
