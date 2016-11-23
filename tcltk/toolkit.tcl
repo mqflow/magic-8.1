@@ -19,6 +19,8 @@
 # the window that prompts for the device parameters prior to
 # creating the device.  The second checks the parameters for
 # legal values.  The third draws the device.
+#
+# If "library" is not specified then it defaults to "toolkit".
 #--------------------------------------------------------------
 
 # Initialize toolkit menus to the wrapper window
@@ -29,33 +31,45 @@ global Opts
 # Add a menu button to the Magic wrapper window for the toolkit
 #----------------------------------------------------------------
 
-proc magic::add_toolkit_menu {framename button_text} {
-   menubutton ${framename}.titlebar.mbuttons.toolkit \
+proc magic::add_toolkit_menu {framename button_text {library toolkit}} {
+   menubutton ${framename}.titlebar.mbuttons.${library} \
 		-text $button_text \
 		-relief raised \
-		-menu ${framename}.titlebar.mbuttons.toolkit.toolmenu \
+		-menu ${framename}.titlebar.mbuttons.${library}.toolmenu \
 		-borderwidth 2
 
-   menu ${framename}.titlebar.mbuttons.toolkit.toolmenu -tearoff 0
-   pack ${framename}.titlebar.mbuttons.toolkit -side left
+   menu ${framename}.titlebar.mbuttons.${library}.toolmenu -tearoff 0
+   pack ${framename}.titlebar.mbuttons.${library} -side left
+}
+
+#-----------------------------------------------------------------
+# Add a menu item to the toolkit menu calling the default function
+#-----------------------------------------------------------------
+
+proc magic::add_toolkit_button {framename button_text gencell_type \
+		{library toolkit}} {
+   set m ${framename}.titlebar.mbuttons.${library}.toolmenu
+   $m add command -label "$button_text" -command \
+	"magic::gencell_params {} $gencell_type $library"
 }
 
 #----------------------------------------------------------------
-# Add a menu item to the toolkit menu
+# Add a menu item to the toolkit menu that calls the provided
+# function
 #----------------------------------------------------------------
 
-proc magic::add_toolkit_button {framename button_text gencell_type library} {
-   set m ${framename}.titlebar.mbuttons.toolkit.toolmenu
-   $m add command -label "$button_text" -command \
-	"magic::gencell_params {} $gencell_type $library"
+proc magic::add_toolkit_command {framename button_text \
+		command {library toolkit}} {
+   set m ${framename}.titlebar.mbuttons.${library}.toolmenu
+   $m add command -label "$button_text" -command $command
 }
 
 #----------------------------------------------------------------
 # Add a separator to the toolkit menu
 #----------------------------------------------------------------
 
-proc magic::add_toolkit_separator {framename} {
-   set m ${framename}.titlebar.mbuttons.toolkit.toolmenu
+proc magic::add_toolkit_separator {framename {library toolkit}} {
+   set m ${framename}.titlebar.mbuttons.${library}.toolmenu
    $m add separator
 }
 

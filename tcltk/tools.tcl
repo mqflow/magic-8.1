@@ -8,34 +8,39 @@
 # Suspend and resume drawing in windows
 # Modified 8/17/04 so that calls to suspendall and resumeall
 # may nest.
+# Modified 11/23/16
 
 proc magic::suspendall {} {
    global Winopts
-   foreach window [magic::windownames layout] {
-      set framename [winfo parent $window]
-      if {$framename == "."} {
-	 set framename $window
-      }
-      if {[catch {incr Winopts(${framename},suspend)}]} {
-	 set Winopts(${framename},suspend) 1
-	 $window update suspend
+   if {[info commands winfo] != ""} {
+      foreach window [magic::windownames layout] {
+         set framename [winfo parent $window]
+         if {$framename == "."} {
+	    set framename $window
+         }
+         if {[catch {incr Winopts(${framename},suspend)}]} {
+	    set Winopts(${framename},suspend) 1
+	    $window update suspend
+         }
       }
    }
 }
 
 proc magic::resumeall {} {
    global Winopts
-   foreach window [magic::windownames layout] {
-      set framename [winfo parent $window]
-      if {$framename == "."} {
-	 set framename $window
-      }
-      if {[catch {incr Winopts($framename,suspend) -1}]} {
-	 error "resume called without suspend"
-      } else {
-	 if { $Winopts(${framename},suspend) <= 0 } {
-	    unset Winopts(${framename},suspend)
-	    $window update resume
+   if {[info commands winfo] != ""} {
+      foreach window [magic::windownames layout] {
+         set framename [winfo parent $window]
+         if {$framename == "."} {
+	    set framename $window
+         }
+         if {[catch {incr Winopts($framename,suspend) -1}]} {
+      	    error "resume called without suspend"
+         } else {
+	    if { $Winopts(${framename},suspend) <= 0 } {
+	       unset Winopts(${framename},suspend)
+	       $window update resume
+	    }
 	 }
       }
    }
@@ -102,7 +107,7 @@ proc magic::pushstack {{name ""}} {
    tag load {}
    load $name
    catch {magic::cellmanager}
-   magic::captions
+   cat {magic::captions}
    tag load $ltag
    return
 }
@@ -118,7 +123,7 @@ proc magic::popstack {} {
       tag load $ltag
       set editstack [lrange $editstack 0 end-1]
       catch {magic::cellmanager}
-      magic::captions
+      catch {magic::captions}
    }
    return
 }
