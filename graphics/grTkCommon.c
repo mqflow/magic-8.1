@@ -1150,8 +1150,11 @@ ImgLayerConfigureInstance(instancePtr)
 		grDrawOffScreenBox(&r);
 		break;
 	}
-	if (masterPtr->layerLock >= 0)
+	if (masterPtr->layerLock >= 0) {
+	    GrSetStuff(STYLE_BLACK);
+	    grInformDriver();
 	    GrDrawGlyphNum(masterPtr->layerLock, 0, 0);
+	}
 	GrUnlock(&tmpmw);
     }
 
