@@ -188,6 +188,15 @@ efReadDef(def, dosubckt, resist, noscale, toplevel)
     inf = PaOpen(name, "r", ".ext", EFSearchPath, EFLibPath, &efReadFileName);
     if (inf == NULL)
     {
+	/* Complementary to .ext file write:  If file is in a read-only	*/
+	/* directory, then .ext	file is written to CWD.			*/
+	char *proot;
+	proot = strrchr(name, '/');
+	if (proot != NULL)
+	    inf = PaOpen(proot + 1, "r", ".ext", ".", ".", &efReadFileName);
+    }
+    if (inf == NULL)
+    {
 #ifdef MAGIC_WRAPPER
 	char *tclres = Tcl_Alloc(128);
 	sprintf(tclres, "Cannot read extract file %s.ext\n", name);

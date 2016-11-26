@@ -189,9 +189,31 @@ extFileOpen(def, file, mode, prealfile)
     if ((rfile = PaOpen(name, mode, ".ext", Path, CellLibPath, prealfile)) != NULL)
 	return rfile;
 
-    if (name == def->cd_name) return NULL;
-    name = def->cd_name;
-    return (PaOpen(name, mode, ".ext", Path, CellLibPath, prealfile));
+    if (!strcmp(mode, "r")) return NULL;	/* Not even readable */
+
+    /* If mode is "w" and name has path components other than the cwd	*/
+    /* then try writing to the cwd IF there is no .mag file by the	*/
+    /* same name in the cwd that would conflict.			*/
+
+    name = strrchr(def->cd_name, '/');
+    if (name != NULL)
+    {
+	FILE *testf;
+
+	name++;
+	ends = strrchr(def->cd_file, '/');
+	if (ends != NULL)
+	{
+	    testf = PaOpen(ends + 1, "r", ".mag", ".", ".", NULL);
+	    if (testf)
+	    {
+		fclose(testf);
+		return NULL;
+	    }
+	}
+        return (PaOpen(name, mode, ".ext", ".", ".", prealfile));
+    }
+    return NULL;
 }
 
 /*
