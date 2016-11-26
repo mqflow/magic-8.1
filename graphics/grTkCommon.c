@@ -368,9 +368,9 @@ grtkCreateBackingStore(MagWindow *w)
     pmap = XCreatePixmap(grXdpy, wind, width, height, Tk_Depth(tkwind));
     w->w_backingStore = (ClientData)pmap;
 
-    /* TxPrintf("grtkCreateBackingStore area %d %d %d %d\n",
+    TxPrintf("grtkCreateBackingStore area %d %d %d %d\n",
 	w->w_screenArea.r_xbot, w->w_screenArea.r_ybot,
-	w->w_screenArea.r_xtop, w->w_screenArea.r_ytop); */
+	w->w_screenArea.r_xtop, w->w_screenArea.r_ytop);
 }
 
 /*

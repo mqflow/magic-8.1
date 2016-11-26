@@ -779,7 +779,7 @@ keys_and_buttons:
 		XConfigureEvent *ConfigureEvent = (XConfigureEvent*) xevent;
 		Rect	screenRect;
 		int width, height;
-		bool result;
+		bool result, need_resize;
 		    
 		width = ConfigureEvent->width;
 		height = ConfigureEvent->height;
@@ -792,11 +792,16 @@ keys_and_buttons:
             	screenRect.r_ytop = glTransYs(ConfigureEvent->y);
             	screenRect.r_ybot = glTransYs(ConfigureEvent->y + height);
 
+		need_resize = (screenRect.r_xbot != mw->w_screenArea.r_xbot ||
+			screenRect.r_xtop != mw->w_screenArea.r_xtop ||
+			screenRect.r_ybot != mw->w_screenArea.r_ybot ||
+			screenRect.r_ytop != mw->w_screenArea.r_ytop);
+
 		/* Redraw the window */
 
 		WindReframe(mw, &screenRect, FALSE, FALSE);
 		WindRedisplay(mw);
-
+		if (need_resize) (*GrCreateBackingStorePtr)(mw);
             }
             break;
 	case VisibilityNotify:

@@ -1079,8 +1079,8 @@ keys_and_buttons:
 			    grtkCreateBackingStore(mw);
 			    if (mw->w_backingStore != (ClientData)NULL)
 			    {
-				WindAreaChanged(mw, &mw->w_allArea);
-				WindUpdate();
+			    	WindAreaChanged(mw, &mw->w_allArea);
+			    	WindUpdate();
 			    }
 			}
 			break;
@@ -1125,6 +1125,7 @@ keys_and_buttons:
 	    {
 		XConfigureEvent *ConfigureEvent = (XConfigureEvent*) xevent;
 		Rect screenRect;
+		bool need_resize;
 		    
 		entry = HashLookOnly(&grTkWindowTable, (char *)wind);
 		mw = (entry)?(MagWindow *)HashGetValue(entry):0;
@@ -1138,8 +1139,14 @@ keys_and_buttons:
             	screenRect.r_ybot = grXsToMagic(ConfigureEvent->y+
 					    ConfigureEvent->height);
 
+		need_resize = (screenRect.r_xbot != mw->w_screenArea.r_xbot ||
+			screenRect.r_xtop != mw->w_screenArea.r_xtop ||
+			screenRect.r_ybot != mw->w_screenArea.r_ybot ||
+			screenRect.r_ytop != mw->w_screenArea.r_ytop);
+
 		WindReframe(mw, &screenRect, FALSE, FALSE);
 		WindRedisplay(mw);
+		if (need_resize) grtkCreateBackingStore(mw);
             }
             break;
 
