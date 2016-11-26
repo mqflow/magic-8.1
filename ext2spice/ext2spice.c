@@ -1311,7 +1311,7 @@ subcktVisit(use, hierName, is_top)
     EFNodeName *nodeName;
     int portorder, portmax, imp_max;
     char stmp[MAX_STR_SIZE];
-    char *instname;
+    char *instname, *subcktname;
     DevParam *plist, *pptr;
 
     if (is_top == TRUE) return 0;	/* Ignore the top-level cell */
@@ -1445,7 +1445,12 @@ subcktVisit(use, hierName, is_top)
     }    
     freeMagic(instname);
 
-    fprintf(esSpiceF, " %s\n", def->def_name);	/* subcircuit model name */
+    /* SPICE subcircuit names must begin with A-Z.  This will also be   */
+    /* enforced when writing X subcircuit calls.                        */
+    subcktname = def->def_name;
+    while (!isalpha(*subcktname)) subcktname++;
+
+    fprintf(esSpiceF, " %s\n", subcktname);	/* subcircuit model name */
     return 0;
 }
 
@@ -1512,8 +1517,14 @@ topVisit(def)
     int portorder, portmax;
     DevParam *plist, *pptr;
     char *instname;
+    char *subcktname;
 
-    fprintf(esSpiceF, ".subckt %s", def->def_name);
+    /* SPICE subcircuit names must begin with A-Z.  This will also be	*/
+    /* enforced when writing X subcircuit calls.			*/
+    subcktname = def->def_name;
+    while (!isalpha(*subcktname)) subcktname++;
+
+    fprintf(esSpiceF, ".subckt %s", subcktname);
 
     /* Note that the ports of the subcircuit will not necessarily be	*/
     /* ALL the entries in the hash table, so we have to check.		*/
