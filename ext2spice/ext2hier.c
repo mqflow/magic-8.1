@@ -485,7 +485,22 @@ spcdevHierVisit(hc, dev, scale)
     if (dev->dev_nterm >= 2)
 	source = drain = &dev->dev_terms[1];
     if (dev->dev_nterm >= 3)
-	drain = &dev->dev_terms[2];
+    {
+        /* If any terminal is marked with attribute "D" or "S"  */
+        /* (label "D$" or "S$" at poly-diffusion interface),    */
+        /* then force order of source and drain accordingly.    */
+
+        if ((dev->dev_terms[1].dterm_attrs &&
+                !strcmp(dev->dev_terms[1].dterm_attrs, "D")) ||
+                (dev->dev_terms[2].dterm_attrs &&
+                !strcmp(dev->dev_terms[2].dterm_attrs, "S")))
+        {
+            drain = &dev->dev_terms[1];
+            source = &dev->dev_terms[2];
+        }
+        else
+            drain = &dev->dev_terms[2];
+    }
     else if (dev->dev_nterm == 1)	// Is a device with one terminal an error?
 	source = drain = &dev->dev_terms[0];
     subnode = dev->dev_subsnode;
