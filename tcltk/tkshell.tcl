@@ -73,7 +73,7 @@ proc tkshell::MakeEvaluator { {t .eval} {prompt "tcl> "} {prefix ""}} {
   $t insert insert $eval(prompt) prompt
   $t mark set limit insert
   $t mark gravity limit left
-  focus $t
+  # focus $t
   ::set eval(text) $t
 
   # Key bindings that limit input and eval things. The break in
