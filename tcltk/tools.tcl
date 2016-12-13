@@ -107,7 +107,7 @@ proc magic::pushstack {{name ""}} {
    tag load {}
    load $name
    catch {magic::cellmanager}
-   cat {magic::captions}
+   catch {magic::captions}
    tag load $ltag
    return
 }
