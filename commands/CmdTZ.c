@@ -1221,12 +1221,15 @@ cmdWhatCellFunc(selUse, realUse, transform, foundAny)
 				 * use found.
 				 */
 {
+    /* Forward reference */
+    char *dbGetUseName();
+
     if (!*foundAny)
     {
 	TxPrintf("Selected subcell(s):\n");
 	*foundAny = TRUE;
     }
-    TxPrintf("    Instance \"%s\" of cell \"%s\"\n", realUse->cu_id,
+    TxPrintf("    Instance \"%s\" of cell \"%s\"\n", dbGetUseName(realUse),
 	    realUse->cu_def->cd_name);
     return 0;
 }
@@ -1243,10 +1246,12 @@ cmdWhatCellListFunc(selUse, realUse, transform, newobj)
     Tcl_Obj *newobj;		/* Tcl list object holding use names */
 {
     Tcl_Obj *tuple;
+    /* Forward reference */
+    char *dbGetUseName();
 
     tuple = Tcl_NewListObj(0, NULL);
     Tcl_ListObjAppendElement(magicinterp, tuple,
-		Tcl_NewStringObj(realUse->cu_id, -1));
+		Tcl_NewStringObj(dbGetUseName(realUse), -1));
     Tcl_ListObjAppendElement(magicinterp, tuple,
 		Tcl_NewStringObj(realUse->cu_def->cd_name, -1));
     Tcl_ListObjAppendElement(magicinterp, newobj, tuple);

@@ -318,7 +318,12 @@ DBTreeFindUse(name, use, scx)
 	 * an array.
 	 */
 	if (!dbParseArray(cp, use, scx))
-	    return;
+	{
+	    /* Allow non-indexed match of array */
+	    if (strcmp(name, use->cu_id)) return;
+	    if (!dbParseArray("[0][0]", use, scx)) return;
+	    break;
+	}
 	while (*cp && *cp++ != '/')
 	    /* Nothing */;
 	name = cp;

@@ -1114,8 +1114,8 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # #################################
    set m [menu ${framename}.titlebar.mbuttons.file.toolmenu -tearoff 0]
    $m add command -label "Open...   "        -command {magic::promptload magic}
-   $m add command -label "Save      "        -command {magic::save }
-   # $m add command -label "Save      "        -command {magic::promptsave magic}
+   # $m add command -label "Save      "        -command {magic::save }
+   $m add command -label "Save      "        -command {magic::promptsave magic}
    # $m add command -label "Save as..."        -command {echo "not implemented"}
    # $m add command -label "Save selection..." -command {echo "not implemented"}
    $m add separator

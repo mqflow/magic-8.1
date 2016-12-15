@@ -110,6 +110,8 @@ typedef struct LA1
  *	array position [x y]
  *	array help
  *
+ *	array -list [count | width | height | pitch [x y] | position [x y]]
+ *
  * Results:
  *	None.
  *
@@ -143,21 +145,36 @@ CmdArray(w, cmd)
     };
 
     char **msg;
-    int option;
+    int option, locargc, argstart;
+    bool doList = FALSE;
     ArrayInfo a;
     Rect toolRect;
     LinkedArray *lahead = NULL, *la;
     int xval, yval;
 
+#ifdef MAGIC_WRAPPER
+    Tcl_Obj *tobj;
+#endif
+
     extern int selGetArrayFunc();
 
-    if (cmd->tx_argc == 1)
+    locargc = cmd->tx_argc;
+    argstart = 1;
+
+    if (locargc <= 1)
 	goto badusage;
     else
     {
-	option = Lookup(cmd->tx_argv[1], cmdArrayOption);
+	if (!strncmp(cmd->tx_argv[argstart], "-list", 5))
+	{
+	    doList = TRUE;
+	    locargc--;
+	    argstart++;
+	}
+	
+	option = Lookup(cmd->tx_argv[argstart], cmdArrayOption);
 	if (option < 0) {
-	    if (cmd->tx_argc == 3 || cmd->tx_argc == 5)
+	    if (locargc == 3 || locargc == 5)
 		option = ARRAY_DEFAULT;
 	    else
 		goto badusage;
@@ -181,44 +198,65 @@ CmdArray(w, cmd)
     switch (option)
     {
 	case ARRAY_COUNT:
-	    if (cmd->tx_argc == 2)
+	    if (locargc == 2)
 	    {
 		for (la = lahead; la != NULL; la = la->ar_next)
 		{
-		    if (la->cellUse->cu_id != NULL)
-			TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+#ifdef MAGIC_WRAPPER
+		    if (doList)
+		    {
+			tobj = Tcl_NewListObj(0, NULL);
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->arrayInfo.ar_xlo));
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->arrayInfo.ar_xhi));
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->arrayInfo.ar_ylo));
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->arrayInfo.ar_yhi));
+			Tcl_SetObjResult(magicinterp, tobj);
+		    }
 		    else
-			TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
-		    TxPrintf("x index %d to %d, y index %d to %d\n",
+		    {
+#endif
+			if (la->cellUse->cu_id != NULL)
+			    TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+			else
+			    TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
+			TxPrintf("x index %d to %d, y index %d to %d\n",
 				la->arrayInfo.ar_xlo,
 				la->arrayInfo.ar_xhi,
 				la->arrayInfo.ar_ylo,
 				la->arrayInfo.ar_yhi);
+#ifdef MAGIC_WRAPPER
+		    }
+#endif
 		}
 		break;
 	    }
-	    else if ((cmd->tx_argc != 4) && (cmd->tx_argc != 6))
+	    else if ((locargc != 4) && (locargc != 6))
 		goto badusage;
 
-	    if (!StrIsInt(cmd->tx_argv[2]) || !StrIsInt(cmd->tx_argv[3])) 
+	    if (!StrIsInt(cmd->tx_argv[argstart + 1])
+			|| !StrIsInt(cmd->tx_argv[argstart + 2])) 
 		goto badusage;
 
-	    if (cmd->tx_argc == 4)
+	    if (locargc == 4)
 	    {
 		a.ar_xlo = 0;
 		a.ar_ylo = 0;
-		a.ar_xhi = atoi(cmd->tx_argv[2]) - 1;
-		a.ar_yhi = atoi(cmd->tx_argv[3]) - 1;
+		a.ar_xhi = atoi(cmd->tx_argv[argstart + 1]) - 1;
+		a.ar_yhi = atoi(cmd->tx_argv[argstart + 2]) - 1;
 		if ( (a.ar_xhi < 0) || (a.ar_yhi < 0) ) goto badusage;
 	    }
-	    else if (cmd->tx_argc == 6)
+	    else if (locargc == 6)
 	    {
-		if (!StrIsInt(cmd->tx_argv[4]) || 
-			!StrIsInt(cmd->tx_argv[5])) goto badusage;
-		a.ar_xlo = atoi(cmd->tx_argv[2]);
-		a.ar_xhi = atoi(cmd->tx_argv[3]);
-		a.ar_ylo = atoi(cmd->tx_argv[4]);
-		a.ar_yhi = atoi(cmd->tx_argv[5]);
+		if (!StrIsInt(cmd->tx_argv[argstart + 3]) || 
+			!StrIsInt(cmd->tx_argv[argstart + 4])) goto badusage;
+		a.ar_xlo = atoi(cmd->tx_argv[argstart + 1]);
+		a.ar_xhi = atoi(cmd->tx_argv[argstart + 2]);
+		a.ar_ylo = atoi(cmd->tx_argv[argstart + 3]);
+		a.ar_yhi = atoi(cmd->tx_argv[argstart + 4]);
 	    }
 
 	    if (!ToolGetBox((CellDef **) NULL, &toolRect))
@@ -232,117 +270,178 @@ CmdArray(w, cmd)
 	    break;
 
 	case ARRAY_WIDTH:
-	    if (cmd->tx_argc == 2)
+	    if (locargc == 2)
 	    {
 		for (la = lahead; la != NULL; la = la->ar_next)
 		{
-		    if (la->cellUse->cu_id != NULL)
-			TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+#ifdef MAGIC_WRAPPER
+		    if (doList)
+		    {
+			tobj = Tcl_NewListObj(0, NULL);
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->arrayInfo.ar_xsep));
+			Tcl_SetObjResult(magicinterp, tobj);
+		    }
 		    else
-			TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
-		    TxPrintf("x separation %d\n", la->arrayInfo.ar_xsep);
+		    {
+#endif
+			if (la->cellUse->cu_id != NULL)
+			    TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+			else
+			    TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
+			TxPrintf("x separation %d\n", la->arrayInfo.ar_xsep);
+#ifdef MAGIC_WRAPPER
+		    }
+#endif
 		}
 		break;
 	    }
-	    if ((cmd->tx_argc != 3) || (!StrIsInt(cmd->tx_argv[2])))
+	    if ((locargc != 3) || (!StrIsInt(cmd->tx_argv[argstart + 1])))
 		goto badusage;
 
-	    xval = atoi(cmd->tx_argv[2]);
-	    yval = atoi(cmd->tx_argv[3]);
+	    xval = atoi(cmd->tx_argv[argstart + 1]);
+	    yval = atoi(cmd->tx_argv[argstart + 2]);
 
 	    TxPrintf("Unimplemented function.\n");
 	    break;
 
 	case ARRAY_HEIGHT:
-	    if (cmd->tx_argc == 2)
+	    if (locargc == 2)
 	    {
 		for (la = lahead; la != NULL; la = la->ar_next)
 		{
-		    if (la->cellUse->cu_id != NULL)
-			TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+#ifdef MAGIC_WRAPPER
+		    if (doList)
+		    {
+			tobj = Tcl_NewListObj(0, NULL);
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->arrayInfo.ar_ysep));
+			Tcl_SetObjResult(magicinterp, tobj);
+		    }
 		    else
-			TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
-		    TxPrintf("y separation %d\n", la->arrayInfo.ar_ysep);
+		    {
+#endif
+			if (la->cellUse->cu_id != NULL)
+			    TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+			else
+			    TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
+			TxPrintf("y separation %d\n", la->arrayInfo.ar_ysep);
+#ifdef MAGIC_WRAPPER
+		    }
+#endif
 		}
 		break;
 	    }
-	    if ((cmd->tx_argc != 3) || (!StrIsInt(cmd->tx_argv[2])))
+	    if ((locargc != 3) || (!StrIsInt(cmd->tx_argv[argstart + 1])))
 		goto badusage;
 
-	    xval = atoi(cmd->tx_argv[2]);
-	    yval = atoi(cmd->tx_argv[3]);
+	    xval = atoi(cmd->tx_argv[argstart + 1]);
+	    yval = atoi(cmd->tx_argv[argstart + 2]);
 
 	    TxPrintf("Unimplemented function.\n");
 	    break;
 
 	case ARRAY_PITCH:
-	    if (cmd->tx_argc == 2)
+	    if (locargc == 2)
 	    {
 		for (la = lahead; la != NULL; la = la->ar_next)
 		{
-		    if (la->cellUse->cu_id != NULL)
-			TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+#ifdef MAGIC_WRAPPER
+		    if (doList)
+		    {
+			tobj = Tcl_NewListObj(0, NULL);
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->arrayInfo.ar_xsep));
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->arrayInfo.ar_ysep));
+			Tcl_SetObjResult(magicinterp, tobj);
+		    }
 		    else
-			TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
-		    TxPrintf("x separation %d ", la->arrayInfo.ar_xsep);
-		    TxPrintf("y separation %d\n", la->arrayInfo.ar_ysep);
+		    {
+#endif
+			if (la->cellUse->cu_id != NULL)
+			    TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+			else
+			    TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
+			TxPrintf("x separation %d ", la->arrayInfo.ar_xsep);
+			TxPrintf("y separation %d\n", la->arrayInfo.ar_ysep);
+#ifdef MAGIC_WRAPPER
+		    }
+#endif
 		}
 		break;
 	    }
-	    if ((cmd->tx_argc != 4) || (!StrIsInt(cmd->tx_argv[2])) ||
-				(!StrIsInt(cmd->tx_argv[3])))
+	    if ((locargc != 4) || (!StrIsInt(cmd->tx_argv[argstart + 1])) ||
+				(!StrIsInt(cmd->tx_argv[argstart + 2])))
 		goto badusage;
 
-	    xval = atoi(cmd->tx_argv[2]);
-	    yval = atoi(cmd->tx_argv[3]);
+	    xval = atoi(cmd->tx_argv[argstart + 1]);
+	    yval = atoi(cmd->tx_argv[argstart + 2]);
 
 	    TxPrintf("Unimplemented function.\n");
 	    break;
 
 	case ARRAY_POSITION:
-	    if (cmd->tx_argc == 2)
+	    if (locargc == 2)
 	    {
 		for (la = lahead; la != NULL; la = la->ar_next)
 		{
-		    if (la->cellUse->cu_id != NULL)
-			TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+#ifdef MAGIC_WRAPPER
+		    if (doList)
+		    {
+			tobj = Tcl_NewListObj(0, NULL);
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->cellUse->cu_bbox.r_xbot));
+			Tcl_ListObjAppendElement(magicinterp, tobj,
+				Tcl_NewIntObj(la->cellUse->cu_bbox.r_ybot));
+			Tcl_SetObjResult(magicinterp, tobj);
+		    }
 		    else
-			TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
-		    TxPrintf("x=%d ", la->cellUse->cu_bbox.r_xbot);
-		    TxPrintf("y=%d\n", la->cellUse->cu_bbox.r_ybot);
+		    {
+#endif
+			if (la->cellUse->cu_id != NULL)
+			    TxPrintf("Cell use \"%s\":", la->cellUse->cu_id);
+			else
+			    TxPrintf("Cell \"%s\":", la->cellUse->cu_def->cd_name);
+			TxPrintf("x=%d ", la->cellUse->cu_bbox.r_xbot);
+			TxPrintf("y=%d\n", la->cellUse->cu_bbox.r_ybot);
+#ifdef MAGIC_WRAPPER
+		    }
+#endif
 		}
 		break;
 	    }
 
-	    if ((cmd->tx_argc != 4) || (!StrIsInt(cmd->tx_argv[2])) ||
-				(!StrIsInt(cmd->tx_argv[3])))
+	    if ((locargc != 4) || (!StrIsInt(cmd->tx_argv[argstart + 1])) ||
+				(!StrIsInt(cmd->tx_argv[argstart + 2])))
 		goto badusage;
 
-	    xval = atoi(cmd->tx_argv[2]);
-	    yval = atoi(cmd->tx_argv[3]);
+	    xval = atoi(cmd->tx_argv[argstart + 1]);
+	    yval = atoi(cmd->tx_argv[argstart + 2]);
 
 	    TxPrintf("Unimplemented function.\n");
 	    break;
 
 	case ARRAY_DEFAULT:
-	    if (!StrIsInt(cmd->tx_argv[1]) || !StrIsInt(cmd->tx_argv[2])) 
+	    if (!StrIsInt(cmd->tx_argv[argstart])
+			|| !StrIsInt(cmd->tx_argv[argstart + 1])) 
 		    goto badusage;
-	    if (cmd->tx_argc == 3)
+	    if (locargc == 3)
 	    {
 		a.ar_xlo = 0;
 		a.ar_ylo = 0;
-		a.ar_xhi = atoi(cmd->tx_argv[1]) - 1;
-		a.ar_yhi = atoi(cmd->tx_argv[2]) - 1;
+		a.ar_xhi = atoi(cmd->tx_argv[argstart]) - 1;
+		a.ar_yhi = atoi(cmd->tx_argv[argstart + 1]) - 1;
 		if ( (a.ar_xhi < 0) || (a.ar_yhi < 0) ) goto badusage;
 	    }
 	    else
 	    {
-		if (!StrIsInt(cmd->tx_argv[3]) || 
-			!StrIsInt(cmd->tx_argv[4])) goto badusage;
-		a.ar_xlo = atoi(cmd->tx_argv[1]);
-		a.ar_xhi = atoi(cmd->tx_argv[2]);
-		a.ar_ylo = atoi(cmd->tx_argv[3]);
-		a.ar_yhi = atoi(cmd->tx_argv[4]);
+		if (!StrIsInt(cmd->tx_argv[argstart + 2]) || 
+			!StrIsInt(cmd->tx_argv[argstart + 3])) goto badusage;
+		a.ar_xlo = atoi(cmd->tx_argv[argstart]);
+		a.ar_xhi = atoi(cmd->tx_argv[argstart + 1]);
+		a.ar_ylo = atoi(cmd->tx_argv[argstart + 2]);
+		a.ar_yhi = atoi(cmd->tx_argv[argstart + 3]);
 	    }
 
 	    if (!ToolGetBox((CellDef **) NULL, &toolRect))
