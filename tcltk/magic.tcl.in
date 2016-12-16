@@ -254,18 +254,13 @@ if {[file exists ${CAD_ROOT}/magic/tcl/mazeroute.tcl]} {
 
 #----------------------------------------------------------------------
 # Check for presence of the toolkit script and include it
+# NOTE:  This supercedes the older toolkit which is now
+# named toolkit_rev0.tcl, and the intermediate bsitools.tcl,
+# which are folded into the newer toolkit.tcl.
 
 if {[file exists ${CAD_ROOT}/magic/tcl/toolkit.tcl]} {
    source ${CAD_ROOT}/magic/tcl/toolkit.tcl
    set Opts(toolkit) 0
-}
-
-#----------------------------------------------------------------------
-# Check for presence of the alternative BSI toolkit script and include it
-
-if {[file exists ${CAD_ROOT}/magic/tcl/bsitools.tcl]} {
-   source ${CAD_ROOT}/magic/tcl/bsitools.tcl
-   set Opts(bsitools) 0
 }
 
 #----------------------------------------------------------------------

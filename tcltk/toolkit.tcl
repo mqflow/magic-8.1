@@ -4,6 +4,8 @@
 # Tim Edwards
 # February 11, 2007
 # Revision 0
+# December 15, 2016
+# Revision 1
 #--------------------------------------------------------------
 # Sets up the environment for a toolkit.  The toolkit must
 # supply a namespace that is the "library name".  For each
@@ -145,6 +147,19 @@ proc magic::gencell {gencell_name {instance {}} args} {
 	}
         # need to incorporate argpar?
         set parameters [cellname list property $gname parameters]
+	
+	# if "nocell" is set in parameters, then overwrite additional
+        # parameters from the instance.  Reserved parameters names are
+	# nx, ny, pitchx, and pitchy
+	if {[dict exists $parameters nocell]} {
+	    set arcount [array -list count]
+	    set arpitch [array -list pitch]
+
+	    dict set parameters nx [expr [lindex $arcount 1] - [lindex $arcount 0] + 1]
+	    dict set parameters ny [expr [lindex $arcount 3] - [lindex $arcount 2] + 1]
+	    dict set parameters pitchx [lindex $arpitch 0]
+	    dict set parameters pitchy [lindex $arpitch 1]
+	}
 	magic::gencell_dialog $ginst $gencell_type $library $parameters
     } else {
 	# Parse out library name from gencell_name, otherwise default
@@ -161,13 +176,28 @@ proc magic::gencell {gencell_name {instance {}} args} {
 	    magic::gencell_dialog {} $gencell_type $library $parameters
 	} else {
 	    # Check if instance exists or not
-	    if {[instance exists $instance]} {
+	    if {[instance list exists $instance] != ""} {
 		# Case:  Change existing instance, parameters in args (if any)
 		set cellname [instance list celldef $instance]
 		set parameters [cellname list property $gname parameters]
-		magic::gencell_dialog $instance $gencell_type $library $parameters
-	    }
-	    else {
+		if {[dict exists $parameters nocell]} {
+		    set arcount [array -list count]
+		    set arpitch [array -list pitch]
+	
+		    dict set parameters nx [lindex $arcount 1]
+		    dict set parameters ny [lindex $arcount 3]
+		    dict set parameters pitchx $delx
+		    dict set parameters pitchy $dely
+		}
+		if {[dict size $argpar] == 0} {
+		    # No changes entered on the command line, so start dialog
+		    magic::gencell_dialog $instance $gencell_type $library $parameters
+		} else {
+		    # Apply specified changes without invoking the dialog
+		    set parameters [dict merge $parameters $argpar]
+		    magic::gencell_change $instance $gencell_type $library $parameters
+		}
+	    } else {
 		# Case:  Non-interactive, create new device with parameters
 		# in args (if any)
 	        set parameters [magic::gencell_defaults $gencell_type $library $argpar]
@@ -205,39 +235,70 @@ proc magic::gencell_getparams {} {
 }
 
 #-------------------------------------------------------------
+# gencell_setparams
+#
+#   Fill in values in the dialog from a set of parameters
+#-------------------------------------------------------------
+
+proc magic::gencell_setparams {parameters} {
+   set slist [grid slaves .params.edits]
+   foreach s $slist {
+      if {[regexp {^.params.edits.(.*)_ent$} $s valid pname] != 0} {
+	 set value [dict get $parameters $pname]
+         set magic::${pname}_val $value
+      } elseif {[regexp {^.params.edits.(.*)_chk$} $s valid pname] != 0} {
+	 set value [dict get $parameters $pname]
+         set magic::${pname}_val $value
+      } elseif {[regexp {^.params.edits.(.*)_sel$} $s valid pname] != 0} {
+	 set value [dict get $parameters $pname]
+         set magic::${pname}_val $value
+      }
+   }
+}
+
+#-------------------------------------------------------------
 # gencell_change
 #
 #   Redraw a gencell with new parameters.
 #-------------------------------------------------------------
 
-proc magic::gencell_change {instance gencell_type library args} {
+proc magic::gencell_change {instance gencell_type library parameters} {
     suspendall
-    set parameters [dict create {*}$args]
-    dict for {key value} [magic::gencell_getparams] {
-	dict set parameters $key $value
+
+    if {$parameters == {}} {
+        # Get device defaults
+	set pdefaults [eval "${library}::${gencell_type}_defaults"]
+        # Pull user-entered values from dialog
+        set parameters [dict merge $pdefaults [magic::gencell_getparams]]
     }
+    eval "${library}::${gencell_type}_check \$parameters"
+
+    set snaptype [snap list]
+    snap internal
+    set savebox [box values]
+
+    set gname [instance list celldef $instance]
     if [dict exists $parameters nocell] {
-        puts stdout "deleting instance $instance"
         select cell $instance
 	delete
 	set newinst [eval "${library}::${gencell_type}_draw \$parameters"]
-        puts stdout "created instance $newinst"
+	pushstack $gname
+	property parameters $parameters
+	popstack
         select cell $newinst
-        puts stdout "renaming back to $instance"
 	identify $instance
     } else {
-        set gname [instance list celldef $instance]
-	if {[eval "${library}::${gencell_type}_check $gname \$parameters"]} {
-	    pushstack $gname
-	    select cell
-	    erase *
-	    eval "${library}::${gencell_type}_draw \$parameters"
-	    cellname property $gname parameters $parameters
-	    popstack
-	} else {
-	    error "Parameter out of range!"
-	}
+	pushstack $gname
+	select cell
+	tech unlock *
+	erase *
+	eval "${library}::${gencell_type}_draw \$parameters"
+	property parameters $parameters
+	tech revert
+	popstack
     }
+    eval "box values $savebox"
+    snap $snaptype
     resumeall
 }
 
@@ -252,12 +313,19 @@ proc magic::gencell_change {instance gencell_type library args} {
 #   the drawing routine is going to do to the stack!
 #-------------------------------------------------------------
 
-proc magic::gencell_create {gencell_type library args} {
+proc magic::gencell_create {gencell_type library parameters} {
     suspendall
-    set parameters [dict create {*}$args]
-    dict for {key value} [magic::gencell_getparams] {
-	dict set parameters $key $value
+
+    # Get device defaults
+    set pdefaults [eval "${library}::${gencell_type}_defaults"]
+    if {$parameters == {}} {
+        # Pull user-entered values from dialog
+        set parameters [dict merge $pdefaults [magic::gencell_getparams]]
+    } else {
+        set parameters [dict merge $pdefaults $parameters]
     }
+
+    eval "${library}::${gencell_type}_check \$parameters"
 
     set snaptype [snap list]
     snap internal
@@ -265,6 +333,13 @@ proc magic::gencell_create {gencell_type library args} {
 
     if [dict exists $parameters nocell] {
 	set instname [eval "${library}::${gencell_type}_draw \$parameters"]
+	set gname [instance list celldef $instname]
+	pushstack $gname
+	property library $library 
+	property gencell $gencell_type
+	property parameters $parameters
+	popstack
+	eval "box values $savebox"
     } else {
 	# Give cell a unique name
 	set pidx 1
@@ -275,14 +350,14 @@ proc magic::gencell_create {gencell_type library args} {
 	cellname create $gname
 	pushstack $gname
 	eval "${library}::${gencell_type}_draw \$parameters"
-	cellname property $gname library $library 
-	cellname property $gname gencell $gencell_type
-	cellname property $gname parameters $parameters
+	property library $library 
+	property gencell $gencell_type
+	property parameters $parameters
 	popstack
+	eval "box values $savebox"
 	set instname [getcell $gname]
 	expand
     }
-    eval "box values $savebox"
     snap $snaptype
     resumeall
     return $instname
@@ -307,6 +382,36 @@ proc magic::add_entry {pname ptext parameters} {
    grid .params.edits.${pname}_ent -row $numrows -column 1 -sticky ewns
    .params.edits.${pname}_ent insert end $value
    set magic::${pname}_val $value
+}
+
+#----------------------------------------------------------
+# Add a dependency between entries.  When one updates, the
+# others will be recomputed according to the callback
+# function.
+#
+# The callback function is passed the value of all
+# parameters for the device, overridden by the values
+# in the dialog.  The routine computes the dependent
+# values and writes them back to the parameter dictionary.
+#----------------------------------------------------------
+
+proc magic::add_dependency {callback gencell_type library args} {
+    foreach pname $args {
+	# Add callback on enter or focus out
+	bind .params.edits.${pname}_ent <Return> \
+		"magic::update_dialog $callback $pname $gencell_type $library"
+    }
+}
+
+#----------------------------------------------------------
+# Execute callback procedure
+#----------------------------------------------------------
+
+proc magic::update_dialog {callback pname gencell_type library} {
+    set pdefaults [eval "${library}::${gencell_type}_defaults"]
+    set parameters [dict merge $pdefaults [magic::gencell_getparams]]
+    $callback $pname $parameters
+    magic::gencell_setparams $parameters
 }
 
 #----------------------------------------------------------
@@ -367,10 +472,8 @@ proc magic::add_selectlist {pname ptext all_values parameters} {
 
 proc magic::gencell_defaults {gencell_type library parameters} {
     set basedict [eval "${library}::${gencell_type}_defaults"]
-    foreach key [dict keys $parameters] {
-	dict set basedict $key [dict get $parameters $key]
-    }
-    return $basedict
+    set newdict [dict merge $basedict $parameters]
+    return $newdict
 }
 
 #-------------------------------------------------------------
@@ -399,6 +502,13 @@ proc magic::gencell_defaults {gencell_type library parameters} {
 
 proc magic::gencell_dialog {instance gencell_type library parameters} {
 
+   if {$parameters == {}} {
+      # "Create" dialog changes to "Change" dialog with same parameters
+      set pdefaults [eval "${library}::${gencell_type}_defaults"]
+      # Pull user-entered values from dialog
+      set parameters [dict merge $pdefaults [magic::gencell_getparams]]
+   }
+
    if {$instance == {}} {
       set pidx 1
       while {[cellname list exists ${gencell_type}_$pidx] != 0} {
@@ -425,7 +535,7 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
 
    catch {destroy .params}
    toplevel .params
-   label .params.title -text "$ttext ${library}::$gencell_type"
+   label .params.title -text "$ttext \"$gencell_type\" library \"$library\""
    frame .params.edits
    frame .params.buttons
    pack .params.title
@@ -435,11 +545,11 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
    if {$instance == {}} {
 	button .params.buttons.apply -text "Create" -command \
 		[subst {set inst \[magic::gencell_create \
-		$gencell_type $library $parameters\] ; \
+		$gencell_type $library {}\] ; \
 		magic::gencell_dialog \$inst $gencell_type $library {} }]
    } else {
 	button .params.buttons.apply -text "Apply" -command \
-		"magic::gencell_change $instance $gencell_type $library $parameters"
+		"magic::gencell_change $instance $gencell_type $library {}"
    }
    button .params.buttons.close -text "Close" -command {destroy .params}
 
