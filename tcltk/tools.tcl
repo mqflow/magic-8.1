@@ -18,8 +18,7 @@ proc magic::suspendall {} {
          if {$framename == "."} {
 	    set framename $window
          }
-         if {[catch {incr Winopts(${framename},suspend)}]} {
-	    set Winopts(${framename},suspend) 1
+         if {[incr Winopts(${framename},suspend)] == 1} {
 	    $window update suspend
          }
       }
@@ -34,9 +33,10 @@ proc magic::resumeall {} {
          if {$framename == "."} {
 	    set framename $window
          }
-         if {[catch {incr Winopts($framename,suspend) -1}]} {
+         if {$Winopts($framename,suspend) <= 0} {
       	    error "resume called without suspend"
          } else {
+	    incr Winopts($framename,suspend) -1
 	    if { $Winopts(${framename},suspend) <= 0 } {
 	       unset Winopts(${framename},suspend)
 	       $window update resume
@@ -102,6 +102,7 @@ proc magic::pushstack {{name ""}} {
    if {[catch {lindex $editstack end}]} {
       set editstack {}
    }
+   lappend editstack [view get]
    lappend editstack [cellname list window]
    set ltag [tag load]
    tag load {}
@@ -120,8 +121,9 @@ proc magic::popstack {} {
       set ltag [tag load]
       tag load {}
       load [lindex $editstack end]             
+      view [lindex $editstack end-1]             
       tag load $ltag
-      set editstack [lrange $editstack 0 end-1]
+      set editstack [lrange $editstack 0 end-2]
       catch {magic::cellmanager}
       catch {magic::captions}
    }

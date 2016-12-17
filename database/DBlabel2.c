@@ -321,7 +321,10 @@ DBTreeFindUse(name, use, scx)
 	{
 	    /* Allow non-indexed match of array */
 	    if (strcmp(name, use->cu_id)) return;
-	    if (!dbParseArray("[0][0]", use, scx)) return;
+	    /* Check for both 1- and 2-dimensional arrays */
+	    if (!dbParseArray("[0][0]", use, scx))
+		if (!dbParseArray("[0]", use, scx))
+		    return;
 	    break;
 	}
 	while (*cp && *cp++ != '/')
