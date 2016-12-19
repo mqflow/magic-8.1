@@ -10,19 +10,23 @@
 # Sets up the environment for a toolkit.  The toolkit must
 # supply a namespace that is the "library name".  For each
 # parameter-defined device ("gencell") type, the toolkit must
-# supply four procedures:
+# supply five procedures:
 #
 # 1. ${library}::${gencell_type}_defaults {}
-# 2. ${library}::${gencell_type}_dialog   {parameters}
-# 3. ${library}::${gencell_type}_check    {parameters}
-# 4. ${library}::${gencell_type}_draw     {parameters}
+# 2. ${library}::${gencell_type}_convert  {parameters}
+# 3. ${library}::${gencell_type}_dialog   {parameters}
+# 4. ${library}::${gencell_type}_check    {parameters}
+# 5. ${library}::${gencell_type}_draw     {parameters}
 #
 # The first defines the parameters used by the gencell, and
 # declares default parameters to use when first generating
 # the window that prompts for the device parameters prior to
-# creating the device.  The second builds the dialog window
-# for entering device parameters.  The third checks the
-# parameters for legal values.  The fourth draws the device.
+# creating the device.  The second converts between parameters
+# in a SPICE netlist and parameters used by the dialog,
+# performing units conversion and parameter name conversion as
+# needed.  The third builds the dialog window for entering
+# device parameters.  The fourth checks the parameters for
+# legal values.  The fifth draws the device.
 #
 # If "library" is not specified then it defaults to "toolkit".
 # Otherwise, where specified, the name "gencell_fullname"
@@ -91,7 +95,7 @@ proc magic::add_toolkit_separator {framename {library toolkit}} {
 # Add "Ctrl-P" key callback for device selection
 #-----------------------------------------------------
 
-magic::macro ^P "magic::gencell {}"
+magic::macro ^P "magic::gencell {} ; raise .params"
 
 #-------------------------------------------------------------
 # Add tag callback to select to update the gencell window
@@ -127,11 +131,25 @@ magic::tag select "[magic::tag select]; magic::gencell_update %1"
 # Note that macro Ctrl-P calls gencell this way.  If gencell_name
 # is not specified and nothing is selected, then gencell{}
 # does nothing.
+#
+# "args" must be a list of the cell parameters in key:value pairs,
+# and an odd number is not legal;  the exception is that if the
+# first argument is "-spice", then the list of parameters is
+# expected to be in the format used in a SPICE netlist, and the
+# parameter names and values will be treated accordingly.
 #-------------------------------------------------------------
 
 proc magic::gencell {gencell_name {instance {}} args} {
 
+    # Pull "-spice" out of args, if it is the first argument
+    if {[lindex $args 0] == "-spice"} {
+	set spicemode 1
+	set args [lrange $args 1 end]
+    } else {
+	set spicemode 0
+    }
     set argpar [dict create {*}$args]
+
     if {$gencell_name == {}} { 
 	# Find selected item  (to-do:  handle multiple selections)
 
@@ -178,6 +196,12 @@ proc magic::gencell {gencell_name {instance {}} args} {
 
 	if {$instance == {}} {
 	    # Case:  Interactive, new device with parameters in args (if any)
+	    if {$spicemode == 1} {
+		# Legal not to have a *_convert routine
+		if {[info commands ${library}::${gencell_type}_convert] != ""} {
+		    set argpar [${library}::${gencell_type}_convert $argpar]
+		}
+	    }
 	    set parameters [magic::gencell_defaults $gencell_type $library $argpar]
 	    magic::gencell_dialog {} $gencell_type $library $parameters
 	} else {
@@ -201,12 +225,18 @@ proc magic::gencell {gencell_name {instance {}} args} {
 		    magic::gencell_dialog $instance $gencell_type $library $parameters
 		} else {
 		    # Apply specified changes without invoking the dialog
+		    if {$spicemode == 1} {
+			set argpar [${library}::${gencell_type}_convert $argpar]
+		    }
 		    set parameters [dict merge $parameters $argpar]
 		    magic::gencell_change $instance $gencell_type $library $parameters
 		}
 	    } else {
 		# Case:  Non-interactive, create new device with parameters
 		# in args (if any)
+		if {$spicemode == 1} {
+		    set argpar [${library}::${gencell_type}_convert $argpar]
+		}
 	        set parameters [magic::gencell_defaults $gencell_type $library $argpar]
 		set inst_defaultname [magic::gencell_create \
 				$gencell_type $library $parameters]
@@ -275,11 +305,11 @@ proc magic::gencell_change {instance gencell_type library parameters} {
 
     if {$parameters == {}} {
         # Get device defaults
-	set pdefaults [eval "${library}::${gencell_type}_defaults"]
+	set pdefaults [${library}::${gencell_type}_defaults]
         # Pull user-entered values from dialog
         set parameters [dict merge $pdefaults [magic::gencell_getparams]]
     }
-    set parameters [eval "${library}::${gencell_type}_check \$parameters"]
+    set parameters [${library}::${gencell_type}_check $parameters]
     magic::gencell_setparams $parameters
 
     set snaptype [snap list]
@@ -290,7 +320,7 @@ proc magic::gencell_change {instance gencell_type library parameters} {
     if [dict exists $parameters nocell] {
         select cell $instance
 	delete
-	set newinst [eval "${library}::${gencell_type}_draw \$parameters"]
+	set newinst [${library}::${gencell_type}_draw $parameters]
 	pushstack $gname
 	property parameters $parameters
 	popstack
@@ -301,7 +331,7 @@ proc magic::gencell_change {instance gencell_type library parameters} {
 	select cell
 	tech unlock *
 	erase *
-	eval "${library}::${gencell_type}_draw \$parameters"
+	${library}::${gencell_type}_draw $parameters
 	property parameters $parameters
 	tech revert
 	popstack
@@ -327,7 +357,7 @@ proc magic::gencell_create {gencell_type library parameters} {
     suspendall
 
     # Get device defaults
-    set pdefaults [eval "${library}::${gencell_type}_defaults"]
+    set pdefaults [${library}::${gencell_type}_defaults]
     if {$parameters == {}} {
         # Pull user-entered values from dialog
         set parameters [dict merge $pdefaults [magic::gencell_getparams]]
@@ -335,7 +365,7 @@ proc magic::gencell_create {gencell_type library parameters} {
         set parameters [dict merge $pdefaults $parameters]
     }
 
-    set parameters [eval "${library}::${gencell_type}_check \$parameters"]
+    set parameters [${library}::${gencell_type}_check $parameters]
     magic::gencell_setparams $parameters
 
     set snaptype [snap list]
@@ -343,7 +373,7 @@ proc magic::gencell_create {gencell_type library parameters} {
     set savebox [box values]
 
     if [dict exists $parameters nocell] {
-	set instname [eval "${library}::${gencell_type}_draw \$parameters"]
+	set instname [${library}::${gencell_type}_draw $parameters]
 	set gname [instance list celldef $instname]
 	pushstack $gname
 	property library $library 
@@ -360,7 +390,7 @@ proc magic::gencell_create {gencell_type library parameters} {
         set gname ${gencell_type}_$pidx
 	cellname create $gname
 	pushstack $gname
-	eval "${library}::${gencell_type}_draw \$parameters"
+	${library}::${gencell_type}_draw $parameters
 	property library $library 
 	property gencell $gencell_type
 	property parameters $parameters
@@ -424,7 +454,7 @@ proc magic::add_dependency {callback gencell_type library args} {
 #----------------------------------------------------------
 
 proc magic::update_dialog {callback pname gencell_type library} {
-    set pdefaults [eval "${library}::${gencell_type}_defaults"]
+    set pdefaults [${library}::${gencell_type}_defaults]
     set parameters [dict merge $pdefaults [magic::gencell_getparams]]
     set parameters [$callback $pname $parameters]
     magic::gencell_setparams $parameters
@@ -487,7 +517,7 @@ proc magic::add_selectlist {pname ptext all_values parameters} {
 #-------------------------------------------------------------
 
 proc magic::gencell_defaults {gencell_type library parameters} {
-    set basedict [eval "${library}::${gencell_type}_defaults"]
+    set basedict [${library}::${gencell_type}_defaults]
     set newdict [dict merge $basedict $parameters]
     return $newdict
 }
@@ -508,10 +538,6 @@ proc magic::gencell_update {{command {}}} {
 		    # the list returned by "what -list".
 		    set instance [lindex [lindex [lindex [what -list] 2] 0] 0]
 		    magic::gencell_dialog $instance {} {} {}
-		} else {
-		    # Something was selected, but not a cell.  Revert
-		    # window to default.
-		    magic::gencell_dialog {} {} {} {}
 		}
 	    }
 	}
@@ -575,7 +601,7 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
       if {$gencell_type == {} || $library == {}} {return}
 
       if {$parameters == {}} {
-	 set parameters [eval "${library}::${gencell_type}_defaults"]
+	 set parameters [${library}::${gencell_type}_defaults]
       }
       set ttext "Edit device"
    } else {
@@ -612,7 +638,7 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
 
    # Invoke the callback procedure that creates the parameter entries
 
-   eval "${library}::${gencell_type}_dialog \$parameters"
+   ${library}::${gencell_type}_dialog $parameters
 }
 
 #-------------------------------------------------------------
