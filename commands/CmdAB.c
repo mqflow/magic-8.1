@@ -610,7 +610,8 @@ CmdBox(w, cmd)
     Rect rootBox, editbox, *boxptr;
     Point ll;
     int option, direction, distancex, distancey;
-    int width, height, area;
+    int width, height;
+    dlong area;
     int argc;
     int tcorner;
     float iscale, oscale;
@@ -1079,7 +1080,7 @@ CmdBox(w, cmd)
 
 	    width = boxptr->r_xtop - boxptr->r_xbot;
 	    height = boxptr->r_ytop - boxptr->r_ybot;
-	    area = width * height;
+	    area = (dlong)width * (dlong)height;
 
 	    TxPrintf("%s cell box:\n", (refEdit) ? "Edit" : "Root");
 
@@ -1119,7 +1120,7 @@ CmdBox(w, cmd)
 			boxptr->r_xbot, boxptr->r_ybot,
 			boxptr->r_xtop, boxptr->r_ytop);
 	    if (area > 0)
-		TxPrintf("  %-10d", area);
+		TxPrintf("  %-10lld", area);
 	    TxPrintf("\n");
 	    break;
 
