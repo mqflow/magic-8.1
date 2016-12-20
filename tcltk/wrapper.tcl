@@ -470,6 +470,7 @@ set Opts(colormap) 0
 set Opts(wind3d) 0
 set Opts(crosshair) 0
 set Opts(hidelocked) 0
+set Opts(hidespecial) 0
 set Opts(toolbar) 0
 set Opts(drc) 1
 
@@ -681,11 +682,16 @@ proc magic::maketoolbar { framename } {
    set win ${framename}.magic
 
    # Generate layer images and buttons for toolbar
+   if {$Opts(hidespecial) == 0} {
+       set special_layers {errors labels subcell}
+   } else {
+       set special_layers {}
+   }
 
    if {$Opts(hidelocked) == 0} {
-       set all_layers [concat {errors labels subcell} [magic::tech layer "*"]]
+       set all_layers [concat $special_layers [magic::tech layer "*"]]
    } else {
-       set all_layers [concat {errors labels subcell} [magic::tech unlocked]]
+       set all_layers [concat $special_layers [magic::tech unlocked]]
    }
    foreach layername $all_layers {
       button ${framename}.toolbar.b$layername -image img_$layername -command \

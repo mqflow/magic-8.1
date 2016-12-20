@@ -1806,7 +1806,9 @@ CmdSetLabel(w, cmd)
     Tcl_Obj *lobj;
 #endif
 
-    static char *cmdLabelYesNo[] = { "no", "false", "off", "yes", "true", "on", 0 };
+    static char *cmdLabelYesNo[] = { "no", "false", "off", "0",
+		"yes", "true", "on", "1", 0 };
+
     static char *cmdLabelSetOption[] =
     {
 	"text <text>		change/get label text",
@@ -1984,7 +1986,7 @@ CmdSetLabel(w, cmd)
 		    TxError("Unknown sticky option \"%s\"\n", cmd->tx_argv[2]);
 		    break;
 		}
-		flags = (option < 3) ? 0 : LABEL_STICKY;
+		flags = (option <= 3) ? 0 : LABEL_STICKY;
 	    }
 	    if (EditCellUse)
 	    {

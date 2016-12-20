@@ -1,5 +1,14 @@
 # Text helper window
 
+set textdefaults [dict create \
+	text "" \
+	font "FreeSans" \
+	size "1" \
+	just "center" \
+	rotate "0" \
+	offset "0 0" \
+]
+	
 proc magic::make_texthelper { mgrpath } {
    global typedflt typesticky
    toplevel ${mgrpath}
@@ -20,7 +29,7 @@ proc magic::make_texthelper { mgrpath } {
 
    label ${mgrpath}.text.tlab -text "Text string: "
    label ${mgrpath}.font.tlab -text "Font: "
-   label ${mgrpath}.size.tlab -text "Size: "
+   label ${mgrpath}.size.tlab -text "Size (um): "
    label ${mgrpath}.just.tlab -text "Justification: "
    label ${mgrpath}.rotate.tlab -text "Rotation: "
    label ${mgrpath}.offset.tlab -text "Offset from reference: "
@@ -120,11 +129,22 @@ proc magic::analyze_labels {} {
    set tlist [lsort -uniq [setlabel text]]
    set jlist [lsort -uniq [setlabel justify]]
    set flist [lsort -uniq [setlabel font]]
-   set slist [lsort -uniq [setlabel size]]
    set rlist [lsort -uniq [setlabel rotate]]
    set olist [lsort -uniq [setlabel offset]]
    set llist [lsort -uniq [setlabel layer]]
    set klist [lsort -uniq [setlabel sticky]]
+
+   # Rescale internal units to microns
+   set slist [setlabel size]
+   set sscale [cif scale out]
+   set sslist {}
+   set tmp_pre $::tcl_precision
+   set ::tcl_precision 3
+   foreach s $slist {
+      lappend sslist [expr $sscale * $s]
+   }
+   set slist [lsort -uniq $sslist]
+   set ::tcl_precision $tmp_pre
 
    .texthelper.text.tent delete 0 end
    if {[llength $tlist] == 1} {
@@ -164,6 +184,15 @@ proc magic::analyze_labels {} {
 
 proc magic::change_label {} {
    global typedflt typesticky
+
+   # Check to see if there really was a selection, or if
+   # something got unselected
+
+   if {[setlabel text] == ""} {
+      magic::make_new_label
+      return
+   }
+
    set ltext [.texthelper.text.tent get]
    set lfont [.texthelper.font.btn cget -text]
    set lsize [.texthelper.size.tent get]
@@ -190,7 +219,7 @@ proc magic::change_label {} {
       }
    }
    if {$lsize != ""} {
-      setlabel size ${lsize}i
+      setlabel size ${lsize}um
    }
    if {$loff != ""} {
       set oldsnap [snap list]
@@ -208,7 +237,8 @@ proc magic::change_label {} {
 }
 
 proc magic::make_new_label {} {
-   global typedflt typesticky
+   global typedflt typesticky textdefaults
+
    set ltext [.texthelper.text.tent get]
    set lfont [.texthelper.font.btn cget -text]
    set lsize [.texthelper.size.tent get]
@@ -216,6 +246,14 @@ proc magic::make_new_label {} {
    set loff  [.texthelper.offset.tent get]
    set ljust [.texthelper.just.btn cget -text]
    set ltype [.texthelper.layer.tent get]
+
+   # Apply values back to window defaults
+   dict set textdefaults text $ltext
+   dict set textdefaults font $lfont
+   dict set textdefaults size $lsize
+   dict set textdefaults rotate $lrot
+   dict set textdefaults offset $loff
+   dict set textdefaults just $ljust
 
    if {$ltext == ""} return	;# don't generate null label strings!
 
@@ -230,16 +268,16 @@ proc magic::make_new_label {} {
 
    if {$typedflt == 1 || $ltype == ""} {
       if {$ljust == "default"} {
-         label $ltext $lfont $lsize $lrot [join $loff]
+         label $ltext $lfont ${lsize}um $lrot [join $loff]
       } else {
-         label $ltext $lfont $lsize $lrot [join $loff] $ljust
+         label $ltext $lfont ${lsize}um $lrot [join $loff] $ljust
       }
    } else {
       if {$typesticky == 1} {set ltype "-$ltype"}
       if {$ljust == "default"} {
-         label $ltext $lfont $lsize $lrot [join $loff] center $ltype
+         label $ltext $lfont ${lsize}um $lrot [join $loff] center $ltype
       } else {
-         label $ltext $lfont $lsize $lrot [join $loff] $ljust $ltype
+         label $ltext $lfont ${lsize}um $lrot [join $loff] $ljust $ltype
       }
    }
 
@@ -252,6 +290,7 @@ proc magic::make_new_label {} {
 
 proc magic::update_texthelper {} {
    global CAD_ROOT
+   global textdefaults
 
    if {[catch {wm state .texthelper}]} {
       magic::make_texthelper .texthelper
@@ -265,14 +304,32 @@ proc magic::update_texthelper {} {
    if {$slist == {}} {
       .texthelper.title.tlab configure -text "New label: "
       .texthelper.text.tent delete 0 end
-      .texthelper.font.btn.menu invoke 0
-      .texthelper.just.btn.menu invoke 0
+      .texthelper.text.tent insert 0 [dict get $textdefaults text]
+
+      set deffont [dict get $textdefaults font]
+      set found 0
+      for {set i 0} {$i <= [.texthelper.font.btn.menu index end]} {incr i} {
+	 set btnname [.texthelper.font.btn.menu entrycget $i -label]
+         if {$btnname == $deffont} {.texthelper.font.btn.menu invoke $i}
+         set found 1
+      }
+      if {$found == 0} {.texthelper.font.btn.menu invoke 0}
+
+      set defjust [dict get $textdefaults just]
+      set found 0
+      for {set i 0} {$i <= [.texthelper.just.btn.menu index end]} {incr i} {
+	 set btnname [.texthelper.just.btn.menu entrycget $i -label]
+         if {$btnname == $defjust} {.texthelper.just.btn.menu invoke $i}
+         set found 1
+      }
+      if {$found == 0} {.texthelper.just.btn.menu invoke 0}
+
       .texthelper.size.tent delete 0 end
-      .texthelper.size.tent insert 0 "1"
+      .texthelper.size.tent insert 0 [dict get $textdefaults size]
       .texthelper.rotate.tent delete 0 end
-      .texthelper.rotate.tent insert 0 "0"
+      .texthelper.rotate.tent insert 0 [dict get $textdefaults rotate]
       .texthelper.offset.tent delete 0 end
-      .texthelper.offset.tent insert 0 "0 1"
+      .texthelper.offset.tent insert 0 [dict get $textdefaults offset]
       .texthelper.buttonbar.apply configure -command magic::make_new_label
    } else {
       if {[llength $slist] == 1} {
