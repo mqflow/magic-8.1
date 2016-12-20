@@ -55,6 +55,7 @@ proc magic::make_texthelper { mgrpath } {
    
    button ${mgrpath}.buttonbar.cancel -text "Cancel" -command "wm withdraw ${mgrpath}"
    button ${mgrpath}.buttonbar.apply -text "Apply"
+   button ${mgrpath}.buttonbar.okay -text "Okay"
 
    pack ${mgrpath}.title.tlab
    pack ${mgrpath}.text.tlab -side left
@@ -73,6 +74,7 @@ proc magic::make_texthelper { mgrpath } {
    pack ${mgrpath}.layer.btn1 -side left
    pack ${mgrpath}.layer.btn2 -side left
    pack ${mgrpath}.buttonbar.apply -side left
+   pack ${mgrpath}.buttonbar.okay -side left
    pack ${mgrpath}.buttonbar.cancel -side right
 
    pack ${mgrpath}.title -side top
@@ -331,6 +333,8 @@ proc magic::update_texthelper {} {
       .texthelper.offset.tent delete 0 end
       .texthelper.offset.tent insert 0 [dict get $textdefaults offset]
       .texthelper.buttonbar.apply configure -command magic::make_new_label
+      .texthelper.buttonbar.okay configure -command \
+		"magic::make_new_label ; wm withdraw .texthelper"
    } else {
       if {[llength $slist] == 1} {
          .texthelper.title.tlab configure -text "Selected label: "
@@ -339,6 +343,8 @@ proc magic::update_texthelper {} {
       }
       magic::analyze_labels
       .texthelper.buttonbar.apply configure -command magic::change_label
+      .texthelper.buttonbar.okay configure -command \
+		"magic::change_label ; wm withdraw .texthelper"
    }
 }
 
