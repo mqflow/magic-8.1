@@ -420,8 +420,10 @@ proc magic::add_entry {pname ptext parameters} {
    set numrows [lindex [grid size .params.edits] 1]
    label .params.edits.${pname}_lab -text $ptext
    entry .params.edits.${pname}_ent -background white -textvariable magic::${pname}_val
-   grid .params.edits.${pname}_lab -row $numrows -column 0 -sticky ens
-   grid .params.edits.${pname}_ent -row $numrows -column 1 -sticky ewns
+   grid .params.edits.${pname}_lab -row $numrows -column 0 \
+	-sticky ens -ipadx 5 -ipady 2
+   grid .params.edits.${pname}_ent -row $numrows -column 1 \
+	-sticky ewns -ipadx 5 -ipady 2
    .params.edits.${pname}_ent insert end $value
    set magic::${pname}_val $value
 }
@@ -615,26 +617,40 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
 
    catch {destroy .params}
    toplevel .params
-   label .params.title -text "$ttext \"$gencell_type\" library \"$library\""
+   label .params.title -text "$ttext \"$gencell_type\" library \"$library\"" \
+		-foreground blue
+   ttk::separator .params.sep
    frame .params.edits
    frame .params.buttons
    pack .params.title
-   pack .params.edits
-   pack .params.buttons
+   pack .params.sep -fill x -expand true
+   pack .params.edits -side top -fill both -expand true -ipadx 5
+   pack .params.buttons -fill x
+
+   grid columnconfigure .params.edits 1 -weight 1
 
    if {$instance == {}} {
 	button .params.buttons.apply -text "Create" -command \
 		[subst {set inst \[magic::gencell_create \
 		$gencell_type $library {}\] ; \
 		magic::gencell_dialog \$inst $gencell_type $library {} }]
+	button .params.buttons.okay -text "Create and Close" -command \
+		[subst {set inst \[magic::gencell_create \
+		$gencell_type $library {}\] ; \
+		magic::gencell_dialog \$inst $gencell_type $library {} ; \
+		destroy .params}]
    } else {
 	button .params.buttons.apply -text "Apply" -command \
 		"magic::gencell_change $instance $gencell_type $library {}"
+	button .params.buttons.okay -text "Okay" -command \
+		"magic::gencell_change $instance $gencell_type $library {} ;\
+		 destroy .params"
    }
    button .params.buttons.close -text "Close" -command {destroy .params}
 
-   pack .params.buttons.apply -padx 10 -side left
-   pack .params.buttons.close -padx 10 -side right
+   pack .params.buttons.apply -padx 5 -ipadx 5 -ipady 2 -side left
+   pack .params.buttons.okay  -padx 5 -ipadx 5 -ipady 2 -side left
+   pack .params.buttons.close -padx 5 -ipadx 5 -ipady 2 -side right
 
    # Invoke the callback procedure that creates the parameter entries
 
