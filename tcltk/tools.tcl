@@ -660,7 +660,6 @@ proc magic::tool {{type next}} {
    }
 
    # Update window captions with the new tool info
-   foreach window [magic::windownames layout] {
-      catch {magic::caption $window}
-   }
+   catch {magic::captions}
+   return
 }

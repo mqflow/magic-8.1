@@ -153,6 +153,57 @@ proc magic::promptsave {type} {
    }
 }
 
+# Window to prompt for a new cell
+
+proc magic::prompt_dialog { type } {
+   global Opts
+
+   if {[catch {toplevel .dialog}]} {
+      foreach child [winfo children .dialog] {
+         destroy $child
+      }
+   }
+
+   frame .dialog.titlebar
+   frame .dialog.text
+   frame .dialog.bbar
+
+   switch $type {
+      new {
+         label .dialog.titlebar.title -text "Create new cell" -foreground blue
+         button .dialog.bbar.okay -text "Okay" -command {load $Opts(cell_name); \
+		lower .dialog}
+         set Opts(cell_name) "(UNNAMED)"
+      }
+      save {
+         label .dialog.titlebar.title -text "Save cell as..." -foreground blue
+         button .dialog.bbar.okay -text "Okay" -command {save $Opts(cell_name); \
+		lower .dialog}
+         set $Opts(cell_name) [cellname list window]
+      }
+   }
+   pack .dialog.titlebar.title
+
+   label .dialog.text.tlabel -text "Cell name:" -foreground brown
+   entry .dialog.text.tentry -background white -textvariable Opts(cell_name)
+
+   pack .dialog.text.tlabel -side left
+   pack .dialog.text.tentry -side left
+
+   button .dialog.bbar.cancel -text "Cancel" -command "lower .dialog"
+
+   pack .dialog.bbar.okay -side left
+   pack .dialog.bbar.cancel -side right
+
+   pack .dialog.titlebar -side top -ipadx 2 -ipady 2
+   pack .dialog.text -side top -fill both -expand true
+   pack .dialog.bbar -side top -fill x -ipadx 5
+
+   bind .dialog.text.tentry <Return> {.dialog.bbar.okay invoke}
+
+   raise .dialog
+}
+
 # Callback functions used by the DRC.
 
 proc magic::drcupdate { option } {
@@ -1126,7 +1177,6 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    # $m add command -label "Save selection..." -command {echo "not implemented"}
    $m add separator
    $m add command -label "Flush changes "    -command {magic::flush}
-   $m add command -label "Delete "           -command {magic::cellname delete [magic::cellname list window]}
    $m add separator
    #$m add command -label "Read CIF" -command {magic::promptload cif}
    $m add command -label "Read GDS"          -command {magic::promptload gds}
@@ -1178,6 +1228,8 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # Cell
 # #################################
    set m [menu ${framename}.titlebar.mbuttons.cell.toolmenu -tearoff 0]
+   $m add command -label "New...           " -command {magic::prompt_dialog new}
+   $m add command -label "Save as...       " -command {magic::prompt_dialog save}
    $m add command -label "Select           " -command {magic::select cell}
    $m add command -label "Place Instance   " -command {magic::promptload getcell}
    # $m add command -label "Rename           " -command {echo "not implemented" }
@@ -1186,6 +1238,8 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    $m add command -label "Up   hierarchy   " -command {magic::popstack}
    $m add separator
    $m add command -label "Edit             " -command {magic::edit }
+   $m add separator
+   $m add command -label "Delete "           -command {magic::cellname delete [magic::cellname list window]}
    $m add separator
    $m add command -label "Expand Toggle (/)" -command {magic::expand toggle}
    $m add command -label "Expand        (x)" -command {magic::expand }
@@ -1198,9 +1252,9 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # Window
 # #################################
    set m [menu ${framename}.titlebar.mbuttons.win.toolmenu -tearoff 0]
+   $m add command -label "Clone" -command {magic::openwrapper [magic::cellname list window]}
    $m add command -label "New" -command "magic::openwrapper"
-   # $m add command -label "New" -command "magic::openwrapper \
-		# [${winname} cellname list window]"
+   $m add command -label "Set Editable" -command "pushbox ; select top cell ; edit ; popbox"
    $m add command -label "Close"             -command "magic::closewrapper ${framename}"
    $m add separator
    $m add command -label "Full          (f)" -command {magic::view }

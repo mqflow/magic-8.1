@@ -615,8 +615,13 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
       set ttext "New device"
    }
 
-   catch {destroy .params}
-   toplevel .params
+   # Destroy children, not the top-level window, or else window keeps
+   # bouncing around every time something is changed.
+   if {[catch {toplevel .params}]} {
+       foreach child [winfo children .params] {
+	  destroy $child
+       }
+   }
    label .params.title -text "$ttext \"$gencell_type\" library \"$library\"" \
 		-foreground blue
    ttk::separator .params.sep
