@@ -1449,8 +1449,7 @@ proc magic::addcommandentry { framename } {
    if {![winfo exists ${framename}.eval]} {
       tkshell::YScrolled_Text ${framename}.eval -height 5
       tkshell::MakeEvaluator ${framename}.eval.text \
-		"${framename}> " "${framename}.magic "
-      tkshell::MainInit
+		"${framename}>" "${framename}.magic"
    }
    set rc [grid size ${framename}]  
    set cols [lindex $rc 0]
