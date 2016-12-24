@@ -616,6 +616,100 @@ typedef struct FileState {
 } FileState;
 
 /*--------------------------------------------------------------*/
+/* "Wizard" command for manipulating run-time flags.		*/
+/*--------------------------------------------------------------*/
+
+static int
+_magic_flags(ClientData clientData,
+        Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+{
+    int index, index2;
+    bool value;
+    static char *flagOptions[] = {"debug", "recover", "silent",
+		"window", "console", "printf", (char *)NULL};
+    static char *yesNo[] = {"off", "no", "false", "0", "on", "yes",
+		"true", "1", (char *)NULL};
+
+    if ((objc != 2) && (objc != 3)) {
+	Tcl_WrongNumArgs(interp, 1, objv, "flag ?value?"); 
+	return TCL_ERROR;
+    }
+    if (Tcl_GetIndexFromObj(interp, objv[1], (CONST84 char **)flagOptions,
+		"option", 0, &index) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if (objc == 2) {
+	switch (index) {
+	    case 0:
+	        value = (RuntimeFlags & MAIN_DEBUG) ? TRUE : FALSE;
+		break;
+	    case 1:
+	        value = (RuntimeFlags & MAIN_RECOVER) ? TRUE : FALSE;
+		break;
+	    case 2:
+	        value = (RuntimeFlags & MAIN_SILENT) ? TRUE : FALSE;
+		break;
+	    case 3:
+	        value = (RuntimeFlags & MAIN_MAKE_WINDOW) ? TRUE : FALSE;
+		break;
+	    case 4:
+	        value = (RuntimeFlags & MAIN_TK_CONSOLE) ? TRUE : FALSE;
+		break;
+	    case 5:
+	        value = (RuntimeFlags & MAIN_TK_PRINTF) ? TRUE : FALSE;
+		break;
+	}
+	Tcl_SetObjResult(interp, Tcl_NewBooleanObj(value));
+    }
+    else {
+	if (Tcl_GetIndexFromObj(interp, objv[2], (CONST84 char **)yesNo,
+		"value", 0, &index2) != TCL_OK)
+	    return TCL_ERROR;
+
+	value = (index2 > 3) ? TRUE : FALSE;
+	switch (index) {
+	    case 0:
+		if (value == TRUE)
+		    RuntimeFlags |= MAIN_DEBUG;
+		else
+		    RuntimeFlags &= ~MAIN_DEBUG;
+		break;
+	    case 1:
+		if (value == TRUE)
+		    RuntimeFlags |= MAIN_RECOVER;
+		else
+		    RuntimeFlags &= ~MAIN_RECOVER;
+		break;
+	    case 2:
+		if (value == TRUE)
+		    RuntimeFlags |= MAIN_SILENT;
+		else
+		    RuntimeFlags &= ~MAIN_SILENT;
+		break;
+	    case 3:
+		if (value == TRUE)
+		    RuntimeFlags |= MAIN_MAKE_WINDOW;
+		else
+		    RuntimeFlags &= ~MAIN_MAKE_WINDOW;
+		break;
+	    case 4:
+		if (value == TRUE)
+		    RuntimeFlags |= MAIN_TK_CONSOLE;
+		else
+		    RuntimeFlags &= ~MAIN_TK_CONSOLE;
+		break;
+	    case 5:
+		if (value == TRUE)
+		    RuntimeFlags |= MAIN_TK_PRINTF;
+		else
+		    RuntimeFlags &= ~MAIN_TK_PRINTF;
+		break;
+	}
+    }
+    return TCL_OK;
+}
+
+/*--------------------------------------------------------------*/
 /* Post-initialization:  read in the magic startup files and	*/
 /* load any initial layout.  Note that this is not done via	*/
 /* script, but probably should be.				*/
@@ -904,6 +998,13 @@ TxFlush()
 /*								*/
 /* 6/17/04---Routine extended to escape double-dollar-sign '$$'	*/
 /* which is used by some tools when generating via cells.	*/
+/*								*/
+/* 12/23/16---Noted that using consoleinterp simply prevents	*/
+/* the output from being redirected to another window such as	*/
+/* the command entry window.  Split off another bit TxTkOutput	*/
+/* from TxTkConsole and set it to zero by default.  The		*/
+/* original behavior can be restored using the *flags wizard	*/
+/* command (*flags printf true).				*/
 /*--------------------------------------------------------------*/
 
 int
@@ -913,7 +1014,7 @@ Tcl_printf(FILE *f, char *fmt, va_list args_in)
     static char outstr[128] = "puts -nonewline std";
     char *outptr, *bigstr = NULL, *finalstr = NULL;
     int i, nchars, result, escapes = 0, limit;
-    Tcl_Interp *printinterp = (TxTkConsole) ? consoleinterp : magicinterp;
+    Tcl_Interp *printinterp = (TxTkOutput) ? consoleinterp : magicinterp;
 
     strcpy (outstr + 19, (f == stderr) ? "err \"" : "out \"");
 
@@ -1109,6 +1210,10 @@ Tclmagic_Init(interp)
 
     HashInit(&txTclTagTable, 10, HT_STRINGKEYS);
     Tcl_CreateCommand(interp, "magic::tag", (Tcl_CmdProc *)AddCommandTag,
+			(ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
+
+    /* Add "*flags" command for manipulating run-time flags */
+    Tcl_CreateObjCommand(interp, "magic::*flags", (Tcl_ObjCmdProc *)_magic_flags,
 			(ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 
     /* Add the magic TCL directory to the Tcl library search path */

@@ -32,7 +32,7 @@ proc tkshell::YScrolled_Text { f args } {
 # Create the shell window in Tk
 #---------------------------------------------------------
 
-proc tkshell::MakeEvaluator { {t .eval} {prompt "tcl>"} {prefix ""}} {
+proc tkshell::MakeEvaluator {{t .eval} {prompt "tcl>"} {prefix ""}} {
 
   # Text tags give script output, command errors, command
   # results, and the prompt a different appearance
@@ -100,6 +100,10 @@ proc tkshell::Eval {t prefix prompt command} {
 	$t insert insert "${prompt} " prompt
 	$t see insert
 	$t mark set limit insert
+        if {"$prefix" != ""} {
+	    focus $prefix
+	    magic::macro XK_period "$fullcommand"
+	}
 	return
 }
 
@@ -107,7 +111,9 @@ proc tkshell::Eval {t prefix prompt command} {
 # This "puts" alias puts stdout and stderr into the text widget
 #--------------------------------------------------------------
 
-proc tkshell::PutsTkShell {t args} {
+proc tkshell::PutsTkShell {args} {
+        global Opts
+        set t ${Opts(focus)}.eval
 	if {[llength $args] > 3} {
 		error "invalid arguments"
 	}
@@ -129,7 +135,7 @@ proc tkshell::PutsTkShell {t args} {
 		${t}.text see limit
 		${t}.text mark gravity limit left
 	} else {
-		puts -nonewline $chan $string
+		::tkcon_puts -nonewline $chan $string
 	}
 }
 

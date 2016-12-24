@@ -93,6 +93,9 @@ macro , "select clear"
 ifdef([USE_READLINE],[imacro ! "shell "],[dnl])
 # Space bar
 macro " " "tool"
+# Colon and semicolon (interactive command)
+imacro XK_colon ":"
+imacro XK_semicolon ":"
 ifdef([XLIB],[dnl
 macro Shift_XK_space "tool box"
 macro Control_XK_space "tool wiring"

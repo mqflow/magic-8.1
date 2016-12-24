@@ -989,25 +989,28 @@ keys_and_buttons:
 			    TxFlushOut();
 			}
 		    }
-		    else if ((keywstate == (int)TX_LONG_CMD)
-				|| (keywstate == (int)TX_LONG_CMD2))
-		    {
-			/* Redirect input into the interpreter's terminal window */
-			TxInputRedirect = TX_INPUT_REDIRECTED;
-			if (TxTkConsole)
-			    TxSetPrompt(':');
-			else
-			{
-			    TxPrintf("\b\b: ");
-			    TxFlushOut();
-			}
-		    }
 		    else
 		    {
 			bool iMacro;
 			char *macroDef;
 
 			macroDef = MacroRetrieve(mw->w_client, keywstate, &iMacro);
+
+			/* Special handling:  An imacro beginning with ':'	*/
+			/* sets the prompt to ':' and moves to the next char.	*/
+
+			if (macroDef != NULL && *macroDef == ':' && iMacro)
+			{
+			    if (TxTkConsole)
+				TxSetPrompt(':');
+			    else
+			    {
+				TxPrintf("\b\b: ");
+				TxFlushOut();
+			    }
+			    memmove(macroDef, macroDef + 1, strlen(macroDef + 1) + 1);
+			}
+
 			macroDef = MacroSubstitute(macroDef, "%W", Tk_PathName(wind));
 
 			if (macroDef == NULL)

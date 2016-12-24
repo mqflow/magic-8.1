@@ -58,7 +58,9 @@ extern short	RuntimeFlags;		/* A number of flags, defined below */
 #define MAIN_TK_CONSOLE		0x10	/* True if the Tcl version is running
 					 * via the "tkcon" console window.
 					 */
-
+#define MAIN_TK_PRINTF		0x20	/* Set to 0 to redirect output from the
+					 * console back to the terminal.
+					 */
 /*
  * Macros which convert the RuntimeFlags bits to their original use as
  * bool types.
@@ -67,6 +69,7 @@ extern short	RuntimeFlags;		/* A number of flags, defined below */
 #define mainRecover	(((RuntimeFlags & MAIN_RECOVER) > 0) ? TRUE : FALSE)
 #define MakeMainWindow	(((RuntimeFlags & MAIN_MAKE_WINDOW) > 0) ? TRUE : FALSE)
 #define TxTkConsole	(((RuntimeFlags & MAIN_TK_CONSOLE) > 0) ? TRUE : FALSE)
+#define TxTkOutput	(((RuntimeFlags & MAIN_TK_PRINTF) > 0) ? TRUE : FALSE)
 #define MainSilent	(((RuntimeFlags & MAIN_SILENT) > 0) ? TRUE : FALSE)
 
 /*

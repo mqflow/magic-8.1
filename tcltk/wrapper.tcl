@@ -1449,18 +1449,30 @@ proc magic::addcommandentry { framename } {
    if {![winfo exists ${framename}.eval]} {
       tkshell::YScrolled_Text ${framename}.eval -height 5
       tkshell::MakeEvaluator ${framename}.eval.text \
-		"${framename}>" "${framename}.magic"
+		"${framename}>" ${framename}.magic
    }
+   set entercmd [bind ${framename}.magic <Enter>]
+   set bindstr "$entercmd ; macro XK_colon \"focus ${framename}.eval.text\" ;\
+		alias puts tkshell::PutsTkShell"
+   bind ${framename}.magic <Enter> $bindstr
    set rc [grid size ${framename}]  
    set cols [lindex $rc 0]
    grid ${framename}.eval -row 3 -column 0 -columnspan $cols -sticky ew
-   bind ${framename}.eval.text <Enter> {focus %W}
 }
 
 # Remove the command entry window from the bottom of a frame.
 
 proc magic::deletecommandentry { framename } {
    grid forget ${framename}.eval
+   # Remove the last bindings for <Enter>
+   set bindstr [bind ${framename}.magic <Enter>]
+   set i [string first "; macro" $bindstr]
+   set bindstr [string range $bindstr 0 $i-1]
+   bind ${framename}.magic <Enter> $bindstr
+   # Restore the keybinding for colon
+   imacro XK_colon ":"
+   # Restore the alias for "puts"
+   alias puts ::tkcon_puts
 }
 
 namespace import magic::openwrapper
