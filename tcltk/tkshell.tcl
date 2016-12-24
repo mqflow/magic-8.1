@@ -113,7 +113,7 @@ proc tkshell::Eval {t prefix prompt command} {
 
 proc tkshell::PutsTkShell {args} {
         global Opts
-        set t ${Opts(focus)}.eval
+        set t ${Opts(focus)}.pane.bot.eval
 	if {[llength $args] > 3} {
 		error "invalid arguments"
 	}

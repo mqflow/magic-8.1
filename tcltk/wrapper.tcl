@@ -1049,7 +1049,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
       incr lwindow 
       set framename .layout${lwindow}
    }
-   set winname ${framename}.magic
+   set winname ${framename}.pane.top.magic
    
    toplevel $framename
    tkwait visibility $framename
@@ -1059,67 +1059,85 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
       catch {wm geometry ${framename} $Opts(geometry)}
    }
 
-   frame ${framename}.xscroll -height 13
-   frame ${framename}.yscroll -width 13
+   # Create a paned window top--bottom inside the top level window to accomodate
+   # a resizable command entry window at the bottom.  Sashwidth is zero by default
+   # but is resized by enabling the command entry window.
 
-   magic::makescrollbar ${framename}.xscroll x ${winname}
-   magic::makescrollbar ${framename}.yscroll y ${winname}
-   button ${framename}.zb -image $Glyph(zoom) -borderwidth 1 -command "${winname} zoom 2"
+   panedwindow ${framename}.pane -orient vertical -sashrelief groove -sashwidth 6
+
+   frame ${framename}.pane.top
+   frame ${framename}.pane.bot
+
+   set layoutframe ${framename}.pane.top
+
+   ${framename}.pane add ${framename}.pane.top
+   ${framename}.pane add ${framename}.pane.bot
+   ${framename}.pane paneconfigure ${framename}.pane.top -stretch always
+   ${framename}.pane paneconfigure ${framename}.pane.bot -hide true
+
+   pack ${framename}.pane -side top -fill both -expand true
+
+   frame ${layoutframe}.xscroll -height 13
+   frame ${layoutframe}.yscroll -width 13
+
+   magic::makescrollbar ${layoutframe}.xscroll x ${winname}
+   magic::makescrollbar ${layoutframe}.yscroll y ${winname}
+   button ${layoutframe}.zb -image $Glyph(zoom) -borderwidth 1 -command "${winname} zoom 2"
 
    # Add bindings for mouse buttons 2 and 3 to the zoom button
-   bind ${framename}.zb <Button-3> "${winname} zoom 0.5"
-   bind ${framename}.zb <Button-2> "${winname} view"
+   bind ${layoutframe}.zb <Button-3> "${winname} zoom 0.5"
+   bind ${layoutframe}.zb <Button-2> "${winname} view"
 
-   frame ${framename}.titlebar
-   label ${framename}.titlebar.caption -text "Loaded: none Editing: none Tool: box" \
+   frame ${layoutframe}.titlebar
+   label ${layoutframe}.titlebar.caption -text "Loaded: none Editing: none Tool: box" \
 	-foreground white -background sienna4 -anchor w -padx 15
-   label ${framename}.titlebar.message -text "" -foreground white \
+   label ${layoutframe}.titlebar.message -text "" -foreground white \
 	-background sienna4 -anchor w -padx 5
-   label ${framename}.titlebar.pos -text "" -foreground white \
+   label ${layoutframe}.titlebar.pos -text "" -foreground white \
 	-background sienna4 -anchor w -padx 5
 
    # Menu buttons
-   frame ${framename}.titlebar.mbuttons
+   frame ${layoutframe}.titlebar.mbuttons
 
 # File
-   menubutton ${framename}.titlebar.mbuttons.file -text File -relief raised \
-		-menu ${framename}.titlebar.mbuttons.file.toolmenu -borderwidth 2
+   menubutton ${layoutframe}.titlebar.mbuttons.file -text File -relief raised \
+		-menu ${layoutframe}.titlebar.mbuttons.file.toolmenu -borderwidth 2
 # Edit
-   menubutton ${framename}.titlebar.mbuttons.edit -text Edit -relief raised \
-		-menu ${framename}.titlebar.mbuttons.edit.toolmenu -borderwidth 2
+   menubutton ${layoutframe}.titlebar.mbuttons.edit -text Edit -relief raised \
+		-menu ${layoutframe}.titlebar.mbuttons.edit.toolmenu -borderwidth 2
 # Cell
-   menubutton ${framename}.titlebar.mbuttons.cell -text Cell -relief raised \
-		-menu ${framename}.titlebar.mbuttons.cell.toolmenu -borderwidth 2
+   menubutton ${layoutframe}.titlebar.mbuttons.cell -text Cell -relief raised \
+		-menu ${layoutframe}.titlebar.mbuttons.cell.toolmenu -borderwidth 2
 # Window
-   menubutton ${framename}.titlebar.mbuttons.win -text Window -relief raised \
-		-menu ${framename}.titlebar.mbuttons.win.toolmenu -borderwidth 2
+   menubutton ${layoutframe}.titlebar.mbuttons.win -text Window -relief raised \
+		-menu ${layoutframe}.titlebar.mbuttons.win.toolmenu -borderwidth 2
 # Layers
-   menubutton ${framename}.titlebar.mbuttons.layers -text Layers -relief raised \
-		-menu ${framename}.titlebar.mbuttons.layers.toolmenu -borderwidth 2
+   menubutton ${layoutframe}.titlebar.mbuttons.layers -text Layers -relief raised \
+		-menu ${layoutframe}.titlebar.mbuttons.layers.toolmenu -borderwidth 2
 # DRC
-   menubutton ${framename}.titlebar.mbuttons.drc -text Drc -relief raised \
-		-menu ${framename}.titlebar.mbuttons.drc.toolmenu -borderwidth 2
+   menubutton ${layoutframe}.titlebar.mbuttons.drc -text Drc -relief raised \
+		-menu ${layoutframe}.titlebar.mbuttons.drc.toolmenu -borderwidth 2
 # Netlist
-#   menubutton ${framename}.titlebar.mbuttons.netlist -text Neltist -relief raised \
-#		-menu ${framename}.titlebar.mbuttons.netlist.netlistmenu -borderwidth 2
+#   menubutton ${layoutframe}.titlebar.mbuttons.netlist -text Neltist -relief raised \
+#		-menu ${layoutframe}.titlebar.mbuttons.netlist.netlistmenu -borderwidth 2
 # Help
-#   menubutton ${framename}.titlebar.mbuttons.help -text Help -relief raised \
-#		-menu ${framename}.titlebar.mbuttons.help.helpmenu -borderwidth 2
+#   menubutton ${layoutframe}.titlebar.mbuttons.help -text Help -relief raised \
+#		-menu ${layoutframe}.titlebar.mbuttons.help.helpmenu -borderwidth 2
 # Options
-   menubutton ${framename}.titlebar.mbuttons.opts -text Options -relief raised \
-		-menu ${framename}.titlebar.mbuttons.opts.toolmenu -borderwidth 2
-   pack ${framename}.titlebar.mbuttons.file   -side left
-   pack ${framename}.titlebar.mbuttons.edit   -side left
-   pack ${framename}.titlebar.mbuttons.cell   -side left
-   pack ${framename}.titlebar.mbuttons.win    -side left
-   pack ${framename}.titlebar.mbuttons.layers -side left
-   pack ${framename}.titlebar.mbuttons.drc    -side left
-#   pack ${framename}.titlebar.mbuttons.netlist -side left
-#   pack ${framename}.titlebar.mbuttons.help    -side left
-   pack ${framename}.titlebar.mbuttons.opts    -side left
+   menubutton ${layoutframe}.titlebar.mbuttons.opts -text Options -relief raised \
+		-menu ${layoutframe}.titlebar.mbuttons.opts.toolmenu -borderwidth 2
+   pack ${layoutframe}.titlebar.mbuttons.file   -side left
+   pack ${layoutframe}.titlebar.mbuttons.edit   -side left
+   pack ${layoutframe}.titlebar.mbuttons.cell   -side left
+   pack ${layoutframe}.titlebar.mbuttons.win    -side left
+   pack ${layoutframe}.titlebar.mbuttons.layers -side left
+   pack ${layoutframe}.titlebar.mbuttons.drc    -side left
+#   pack ${layoutframe}.titlebar.mbuttons.netlist -side left
+#   pack ${layoutframe}.titlebar.mbuttons.help    -side left
+   pack ${layoutframe}.titlebar.mbuttons.opts    -side left
 
    # DRC status button
-   checkbutton ${framename}.titlebar.drcbutton -text "DRC" -anchor w \
+   checkbutton ${layoutframe}.titlebar.drcbutton -text "DRC" -anchor w \
 	-borderwidth 2 -variable Opts(drc) \
 	-foreground white -background sienna4 -selectcolor green \
 	-command [subst { if { \$Opts(drc) } { drc on } else { drc off } }]
@@ -1129,28 +1147,28 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    # Create toolbar frame.  Make sure it has the same visual and depth as
    # the layout window, so there will be no problem using the GCs from the
    # layout window to paint into the toolbar.
-   frame ${framename}.toolbar \
+   frame ${layoutframe}.toolbar \
 	-visual "[winfo visual ${winname}] [winfo depth ${winname}]"
 
    # Repaint to magic colors
-   magic::repaintwrapper ${framename}
+   magic::repaintwrapper ${layoutframe}
 
-   grid ${framename}.titlebar -row 0 -column 0 -columnspan 3 -sticky news
-   grid ${framename}.yscroll -row 1 -column 0 -sticky ns
+   grid ${layoutframe}.titlebar -row 0 -column 0 -columnspan 3 -sticky news
+   grid ${layoutframe}.yscroll -row 1 -column 0 -sticky ns
    grid $winname -row 1 -column 1 -sticky news
-   grid ${framename}.zb -row 2 -column 0
-   grid ${framename}.xscroll -row 2 -column 1 -sticky ew
+   grid ${layoutframe}.zb -row 2 -column 0
+   grid ${layoutframe}.xscroll -row 2 -column 1 -sticky ew
    # The toolbar is not attached by default
 
-   grid rowconfigure ${framename} 1 -weight 1
-   grid columnconfigure ${framename} 1 -weight 1
+   grid rowconfigure ${layoutframe} 1 -weight 1
+   grid columnconfigure ${layoutframe} 1 -weight 1
 
-   grid ${framename}.titlebar.mbuttons -row 0 -column 0 -sticky news
-   grid ${framename}.titlebar.drcbutton -row 0 -column 1 -sticky news
-   grid ${framename}.titlebar.caption -row 0 -column 2 -sticky news
-   grid ${framename}.titlebar.message -row 0 -column 3 -sticky news
-   grid ${framename}.titlebar.pos -row 0 -column 4 -sticky news
-   grid columnconfigure ${framename}.titlebar 2 -weight 1
+   grid ${layoutframe}.titlebar.mbuttons -row 0 -column 0 -sticky news
+   grid ${layoutframe}.titlebar.drcbutton -row 0 -column 1 -sticky news
+   grid ${layoutframe}.titlebar.caption -row 0 -column 2 -sticky news
+   grid ${layoutframe}.titlebar.message -row 0 -column 3 -sticky news
+   grid ${layoutframe}.titlebar.pos -row 0 -column 4 -sticky news
+   grid columnconfigure ${layoutframe}.titlebar 2 -weight 1
 
    bind $winname <Enter> "focus %W ; set Opts(focus) $framename"
 
@@ -1169,7 +1187,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # #################################
 # File
 # #################################
-   set m [menu ${framename}.titlebar.mbuttons.file.toolmenu -tearoff 0]
+   set m [menu ${layoutframe}.titlebar.mbuttons.file.toolmenu -tearoff 0]
    $m add command -label "Open...   "        -command {magic::promptload magic}
    # $m add command -label "Save      "        -command {magic::save }
    $m add command -label "Save      "        -command {magic::promptsave magic}
@@ -1193,7 +1211,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # Edit
 # #################################
 
-   set m [menu ${framename}.titlebar.mbuttons.edit.toolmenu -tearoff 0]
+   set m [menu ${layoutframe}.titlebar.mbuttons.edit.toolmenu -tearoff 0]
    # $m add command -label "Cut              " -command { echo "not implemented" }
    # $m add command -label "Copy             " -command { echo "not implemented" }
    # $m add command -label "Paste            " -command { echo "not implemented" }
@@ -1227,7 +1245,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # #################################
 # Cell
 # #################################
-   set m [menu ${framename}.titlebar.mbuttons.cell.toolmenu -tearoff 0]
+   set m [menu ${layoutframe}.titlebar.mbuttons.cell.toolmenu -tearoff 0]
    $m add command -label "New...           " -command {magic::prompt_dialog new}
    $m add command -label "Save as...       " -command {magic::prompt_dialog save}
    $m add command -label "Select           " -command {magic::select cell}
@@ -1251,7 +1269,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # #################################
 # Window
 # #################################
-   set m [menu ${framename}.titlebar.mbuttons.win.toolmenu -tearoff 0]
+   set m [menu ${layoutframe}.titlebar.mbuttons.win.toolmenu -tearoff 0]
    $m add command -label "Clone" -command {magic::openwrapper [magic::cellname list window]}
    $m add command -label "New" -command "magic::openwrapper"
    $m add command -label "Set Editable" -command "pushbox ; select top cell ; edit ; popbox"
@@ -1285,7 +1303,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # #################################
 # Layers
 # #################################
-   set m [menu ${framename}.titlebar.mbuttons.layers.toolmenu -tearoff 0]
+   set m [menu ${layoutframe}.titlebar.mbuttons.layers.toolmenu -tearoff 0]
    $m add command -label "Protect Base Layers" -command {magic::tech revert  }
    $m add command -label "Unlock  Base Layers" -command {magic::tech unlock *}
    $m add separator
@@ -1295,7 +1313,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # #################################
 # DRC
 # #################################
-   set m [menu ${framename}.titlebar.mbuttons.drc.toolmenu -tearoff 0]
+   set m [menu ${layoutframe}.titlebar.mbuttons.drc.toolmenu -tearoff 0]
    $m add command -label "DRC On" -command {}
    $m add command -label "DRC Off" -command {}
    $m add separator
@@ -1306,19 +1324,19 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    $m add command -label "DRC Fast"     -command {drc style drc(fast) }
    $m add command -label "DRC Complete" -command {drc style drc(full) }
 
-   set m [menu ${framename}.titlebar.mbuttons.opts.toolmenu -tearoff 0]
+   set m [menu ${layoutframe}.titlebar.mbuttons.opts.toolmenu -tearoff 0]
    $m add check -label "Toolbar" -variable Winopts(${framename},toolbar) \
 	-command [subst {if { \$Winopts(${framename},toolbar) } { \
-		magic::maketoolbar ${framename} ; \
-		grid ${framename}.toolbar -row 1 -column 2 -rowspan 2 -sticky new ; \
+		magic::maketoolbar ${layoutframe} ; \
+		grid ${layoutframe}.toolbar -row 1 -column 2 -rowspan 2 -sticky new ; \
 		} else { \
-		grid forget ${framename}.toolbar } }]
+		grid forget ${layoutframe}.toolbar } }]
 
    $m add check -label "Toolbar Hide Locked" \
 	-variable Opts(hidelocked) \
-	-command "magic::maketoolbar ${framename}"
+	-command "magic::maketoolbar ${layoutframe}"
 
-   .winmenu add radio -label ${framename} -variable Opts(target) -value ${winname}
+   .winmenu add radio -label ${layoutframe} -variable Opts(target) -value ${winname}
    if {$tk_version >= 8.5} {
      $m add check -label "Cell Manager" -variable Opts(cellmgr) \
 	-command [subst { magic::cellmanager create; \
@@ -1382,8 +1400,8 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 
    # If the toolbar is turned on, invoke the toolbar button
    if { $Winopts(${framename},toolbar) == 1} {
-      magic::maketoolbar ${framename}
-      grid ${framename}.toolbar -row 1 -column 2 -rowspan 2 -sticky new
+      magic::maketoolbar ${layoutframe}
+      grid ${layoutframe}.toolbar -row 1 -column 2 -rowspan 2 -sticky new
    }
 
    # Remove "open" and "close" macros so they don't generate non-GUI
@@ -1426,7 +1444,8 @@ proc magic::closewrapper { framename } {
    # Remove this window from the target list in .winmenu
    # (used by, e.g., cellmanager)
 
-   if { $Opts(target) == "${framename}.magic" } {
+   set layoutframe ${framename}.pane.top
+   if { $Opts(target) == "${layoutframe}.magic" } {
       set Opts(target) "default"
       if {$tk_version >= 8.5} {
 	 if {![catch {wm state .cellmgr}]} {
@@ -1446,33 +1465,39 @@ proc magic::closewrapper { framename } {
 # a wrapper window (rudimentary functionality---incomplete)
 
 proc magic::addcommandentry { framename } {
-   if {![winfo exists ${framename}.eval]} {
-      tkshell::YScrolled_Text ${framename}.eval -height 5
-      tkshell::MakeEvaluator ${framename}.eval.text \
-		"${framename}>" ${framename}.magic
+   set commandframe ${framename}.pane.bot
+   if {![winfo exists ${commandframe}.eval]} {
+      tkshell::YScrolled_Text ${commandframe}.eval -height 5
+      tkshell::MakeEvaluator ${commandframe}.eval.text \
+		"${framename}>" ${framename}.pane.top.magic
+      pack ${commandframe}.eval -side top -fill both -expand true
+      ${framename}.pane paneconfigure ${framename}.pane.bot -stretch never
+      ${framename}.pane paneconfigure ${framename}.pane.bot -minsize 50
    }
-   set entercmd [bind ${framename}.magic <Enter>]
-   set bindstr "$entercmd ; macro XK_colon \"focus ${framename}.eval.text\" ;\
+   set entercmd [bind ${framename}.pane.top.magic <Enter>]
+   set bindstr "$entercmd ; macro XK_colon \"focus ${commandframe}.eval.text\" ;\
 		alias puts tkshell::PutsTkShell"
-   bind ${framename}.magic <Enter> $bindstr
-   set rc [grid size ${framename}]  
-   set cols [lindex $rc 0]
-   grid ${framename}.eval -row 3 -column 0 -columnspan $cols -sticky ew
+   bind ${framename}.pane.top.magic <Enter> $bindstr
+   # Make command entry window visible
+   ${framename}.pane paneconfigure ${framename}.pane.bot -hide false
 }
 
 # Remove the command entry window from the bottom of a frame.
 
 proc magic::deletecommandentry { framename } {
-   grid forget ${framename}.eval
+   set commandframe ${framename}.pane.bot
+   ::grid forget ${commandframe}.eval
    # Remove the last bindings for <Enter>
-   set bindstr [bind ${framename}.magic <Enter>]
+   set bindstr [bind ${framename}.pane.top.magic <Enter>]
    set i [string first "; macro" $bindstr]
    set bindstr [string range $bindstr 0 $i-1]
-   bind ${framename}.magic <Enter> $bindstr
+   bind ${framename}.pane.top.magic <Enter> $bindstr
    # Restore the keybinding for colon
    imacro XK_colon ":"
    # Restore the alias for "puts"
    alias puts ::tkcon_puts
+   # Make command entry window invisible
+   ${framename}.pane paneconfigure ${framename}.pane.bot -hide true
 }
 
 namespace import magic::openwrapper
