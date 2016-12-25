@@ -179,7 +179,7 @@ proc magic::prompt_dialog { type } {
          label .dialog.titlebar.title -text "Save cell as..." -foreground blue
          button .dialog.bbar.okay -text "Okay" -command {save $Opts(cell_name); \
 		lower .dialog}
-         set $Opts(cell_name) [cellname list window]
+         set Opts(cell_name) [cellname list window]
       }
    }
    pack .dialog.titlebar.title
