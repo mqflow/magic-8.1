@@ -461,6 +461,9 @@ MacroKey(str, verbose)
 	    else
 		kc = (int)tc;
 	}
+	else if (!strncmp(vis, "<del>", 5))
+	    /* Because, weirdly, there is no keysymdef for the "Delete" key */
+	    kc = (int)0x7f;
 	else
 	{
 	    /* X11 keysym name handling */
