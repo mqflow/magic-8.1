@@ -1486,6 +1486,11 @@ cmdIdFunc(selUse, use, transform, newId)
 	TxError("    Cell identifier not changed.\n");
 	return 1;
     }
+    if (use->cu_parent == NULL)
+    {
+	TxError("Cell instance is a window top-level and cannot be changed.\n");
+	return 1;
+    }
 
     if (!DBReLinkCell(use, newId))
     {
