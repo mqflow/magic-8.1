@@ -205,10 +205,11 @@ proc magic::gencell {gencell_name {instance {}} args} {
 	    set parameters [magic::gencell_defaults $gencell_type $library $argpar]
 	    magic::gencell_dialog {} $gencell_type $library $parameters
 	} else {
-	    # Check if instance exists or not
-	    if {[instance list exists $instance] != ""} {
+	    # Check if instance exists or not in the cell
+	    if {![catch {select cell $instance}]} {
+            
 		# Case:  Change existing instance, parameters in args (if any)
-		set cellname [instance list celldef $instance]
+		set cellname [cellname list self]
 		set devparms [cellname list property $gencell_type parameters]
 	        set parameters [magic::gencell_defaults $gencell_type $library $devparms]
 		if {[dict exists $parameters nocell]} {
