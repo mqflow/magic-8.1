@@ -1850,10 +1850,9 @@ CmdSetLabel(w, cmd)
 	case SETLABEL_TEXT:
 	    if (EditCellUse)
 	    {
-		SelEnumLabels(&DBAllTypeBits, FALSE, (bool *)NULL,
+		SelEnumLabels(&DBAllTypeBits, TRUE, (bool *)NULL,
 			cmdLabelTextFunc, (cmd->tx_argc == 3) ?
 			(ClientData)cmd->tx_argv[2] : (ClientData)NULL);
-		SelectTransform(&GeoIdentityTransform);
 	    }
 	    break;
 
@@ -1894,10 +1893,9 @@ CmdSetLabel(w, cmd)
 	    
 		if (EditCellUse)
 		{
-		    SelEnumLabels(&DBAllTypeBits, FALSE, (bool *)NULL,
+		    SelEnumLabels(&DBAllTypeBits, TRUE, (bool *)NULL,
 				cmdLabelFontFunc, (cmd->tx_argc == 3) ?
 				(ClientData)&font : (ClientData)NULL);
-		    SelectTransform(&GeoIdentityTransform);
 		}
 	    }
 	    break;
@@ -1910,10 +1908,9 @@ CmdSetLabel(w, cmd)
 	    }
 	    if (EditCellUse)
 	    {
-		SelEnumLabels(&DBAllTypeBits, FALSE, (bool *)NULL,
+		SelEnumLabels(&DBAllTypeBits, TRUE, (bool *)NULL,
 			cmdLabelJustFunc, (cmd->tx_argc == 3) ?
 			(ClientData)&pos : (ClientData)NULL);
-		SelectTransform(&GeoIdentityTransform);
 	    }
 	    break;
 
@@ -1926,10 +1923,9 @@ CmdSetLabel(w, cmd)
 	    }
 	    if (EditCellUse)
 	    {
-		SelEnumLabels(&DBAllTypeBits, FALSE, (bool *)NULL,
+		SelEnumLabels(&DBAllTypeBits, TRUE, (bool *)NULL,
 			cmdLabelSizeFunc, (cmd->tx_argc == 3) ?
 			(ClientData)&size : (ClientData)NULL);
-		SelectTransform(&GeoIdentityTransform);
 	    }
 	    break;
 
@@ -1955,10 +1951,9 @@ CmdSetLabel(w, cmd)
 	    }	
 	    if (EditCellUse)
 	    {
-		SelEnumLabels(&DBAllTypeBits, FALSE, (bool *)NULL,
+		SelEnumLabels(&DBAllTypeBits, TRUE, (bool *)NULL,
 			cmdLabelOffsetFunc, (cmd->tx_argc != 2) ?
 			(ClientData)&offset : (ClientData)NULL);
-		SelectTransform(&GeoIdentityTransform);
 	    }
 	    break;
 
@@ -1970,10 +1965,9 @@ CmdSetLabel(w, cmd)
 	    }
 	    if (EditCellUse)
 	    {
-		SelEnumLabels(&DBAllTypeBits, FALSE, (bool *)NULL,
+		SelEnumLabels(&DBAllTypeBits, TRUE, (bool *)NULL,
 			cmdLabelRotateFunc, (cmd->tx_argc == 3) ?
 			(ClientData)&rotate : (ClientData)NULL);
-		SelectTransform(&GeoIdentityTransform);
 	    }
 	    break;
 
@@ -1990,10 +1984,9 @@ CmdSetLabel(w, cmd)
 	    }
 	    if (EditCellUse)
 	    {
-		SelEnumLabels(&DBAllTypeBits, FALSE, (bool *)NULL,
+		SelEnumLabels(&DBAllTypeBits, TRUE, (bool *)NULL,
 			cmdLabelStickyFunc, (cmd->tx_argc == 3) ?
 			(ClientData)&flags : (ClientData)NULL);
-		SelectTransform(&GeoIdentityTransform);
 	    }
 	    break;
 
@@ -2010,10 +2003,9 @@ CmdSetLabel(w, cmd)
 	    }
 	    if (EditCellUse)
 	    {
-		SelEnumLabels(&DBAllTypeBits, FALSE, (bool *)NULL,
+		SelEnumLabels(&DBAllTypeBits, TRUE, (bool *)NULL,
 			cmdLabelLayerFunc, (cmd->tx_argc == 3) ?
 			(ClientData)&ttype : (ClientData)NULL);
-		SelectTransform(&GeoIdentityTransform);
 	    }
 	    break;
 

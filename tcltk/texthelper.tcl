@@ -126,62 +126,44 @@ proc magic::make_texthelper { mgrpath } {
    magic::tag select "[magic::tag select]; magic::update_texthelper"
 }
 
+# For all editable selected labels, fill in entries in the
+# texthelper window
+
 proc magic::analyze_labels {} {
    global typedflt typesticky
-   set tlist [lsort -uniq [setlabel text]]
-   set jlist [lsort -uniq [setlabel justify]]
-   set flist [lsort -uniq [setlabel font]]
-   set rlist [lsort -uniq [setlabel rotate]]
-   set olist [lsort -uniq [setlabel offset]]
-   set llist [lsort -uniq [setlabel layer]]
-   set klist [lsort -uniq [setlabel sticky]]
+
+   # Pick up values from the first entry returned
+
+   set tval [lindex [setlabel text] 0]
+   set jval [lindex [setlabel justify] 0]
+   set fval [lindex [setlabel font] 0]
+   set rval [lindex [setlabel rotate] 0]
+   set oval [lindex [setlabel offset] 0]
+   set lval [lindex [setlabel layer] 0]
+   set kval [lindex [setlabel sticky] 0]
 
    # Rescale internal units to microns
-   set slist [setlabel size]
+   set sval [lindex [setlabel size] 0]
    set sscale [cif scale out]
-   set sslist {}
    set tmp_pre $::tcl_precision
    set ::tcl_precision 3
-   foreach s $slist {
-      lappend sslist [expr $sscale * $s]
-   }
-   set slist [lsort -uniq $sslist]
+   set sval [expr $sscale * $sval]
    set ::tcl_precision $tmp_pre
 
    .texthelper.text.tent delete 0 end
-   if {[llength $tlist] == 1} {
-      .texthelper.text.tent insert 0 $tlist
-   }
-   if {[llength $jlist] == 1} {
-      set jbtn [string map {NORTH N WEST W SOUTH S EAST E CENTER center} $jlist]
-      .texthelper.just.btn.menu invoke $jbtn
-   } else {
-      .texthelper.just.btn config -text ""
-   }
-   if {[llength $flist] == 1} {
-      .texthelper.font.btn.menu invoke $flist
-   } else {
-      .texthelper.font.btn config -text ""
-   }
+   .texthelper.text.tent insert 0 $tval
+   set jbtn [string map {NORTH N WEST W SOUTH S EAST E CENTER center} $jval]
+   .texthelper.just.btn.menu invoke $jbtn
+   .texthelper.font.btn.menu invoke $fval
    .texthelper.size.tent delete 0 end
-   if {[llength $slist] == 1} {
-      .texthelper.size.tent insert 0 $slist
-   }
+   .texthelper.size.tent insert 0 $sval
    .texthelper.offset.tent delete 0 end
-   if {[llength $olist] == 1} {
-      .texthelper.offset.tent insert 0 [join $olist]
-   }
+   .texthelper.offset.tent insert 0 [join $oval]
    .texthelper.rotate.tent delete 0 end
-   if {[llength $rlist] == 1} {
-      .texthelper.rotate.tent insert 0 $rlist
-   }
+   .texthelper.rotate.tent insert 0 $rval
    .texthelper.layer.tent delete 0 end
-   if {[llength $llist] == 1} {
-      .texthelper.layer.tent insert 0 $llist
-   }
-   if {[llength $klist] == 1} {
-      set typesticky $klist
-   }
+   .texthelper.layer.tent insert 0 $lval
+   set typesticky $kval
 }
 
 proc magic::change_label {} {
@@ -294,6 +276,9 @@ proc magic::update_texthelper {} {
    global CAD_ROOT
    global textdefaults
 
+   if {[info level] > 1} {
+      return
+   }
    if {[catch {wm state .texthelper}]} {
       magic::make_texthelper .texthelper
    }
@@ -302,7 +287,17 @@ proc magic::update_texthelper {} {
    # analyze the label list to determine which properties are common
    # to all the selected labels
 
-   set slist [lindex [what -list] 1]
+   set splist [lindex [what -list] 1]
+
+   # Reduce list to what's editable
+   set slist []
+   foreach sitem $splist {
+      set scell [lindex $sitem 2] 
+      if {$scell == {}} {
+         lappend slist $sitem
+      }
+   }
+
    if {$slist == {}} {
       .texthelper.title.tlab configure -text "New label: "
       .texthelper.text.tent delete 0 end
