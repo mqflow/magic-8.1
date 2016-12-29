@@ -279,8 +279,10 @@ proc magic::update_texthelper {} {
    if {[info level] > 1} {
       return
    }
-   if {[catch {wm state .texthelper}]} {
+   if {[catch {set tstate [wm state .texthelper]}]} {
       magic::make_texthelper .texthelper
+   } else {
+      if {$tstate == "withdrawn"} {return}
    }
 
    # Update:  Determine if a label has been selected or not.  If so,
