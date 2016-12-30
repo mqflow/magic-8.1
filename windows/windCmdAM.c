@@ -1069,9 +1069,14 @@ windDoMacro(w, cmd, interactive)
 	    if (do_list)
 	    {
 #ifdef MAGIC_WRAPPER
+		// NOTE:  Putting cp before cn makes it easier to
+		// generate a reverse lookup hash table for matching
+		// against menu items, to automatically generate
+		// the "accelerator" text.
 		Tcl_AppendElement(magicinterp, cp);
+		Tcl_AppendElement(magicinterp, cn);
 #else
-		TxPrintf("%s\n", cp);
+		TxPrintf("%s = \"%s\"\n", cn, cp);
 #endif
 	    }
 	    else
