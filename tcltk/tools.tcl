@@ -219,7 +219,7 @@ proc magic::peekbox {{type values}} {
 
 proc magic::button_auto_bind_text {framename} {
     set macrolist [string trimleft [string trimright \
-		[string map {magic:: {}} [macro list]]]]
+		[string map {magic:: {}} [macro list -reverse]]]]
     set macrodict [dict create {*}${macrolist}]
     set menutop [winfo children ${framename}.titlebar.mbuttons]
     foreach menub $menutop {

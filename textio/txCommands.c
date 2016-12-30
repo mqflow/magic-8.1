@@ -967,7 +967,7 @@ txGetInteractiveCommand(block, queue)
 	{
 	    (void) TxGetLinePrompt(inputLine, TX_MAX_CMDLEN, TX_CMD_PROMPT);
 	    if (inputLine[0] != '\0') MacroDefine(DBWclientID, (int)'.',
-			inputLine, FALSE);
+			inputLine, NULL, FALSE);
 	    TxParseString(inputLine, queue, (TxInputEvent* ) NULL);
 	}
 	else
@@ -1000,7 +1000,7 @@ txGetInteractiveCommand(block, queue)
 		    (void) TxGetLineWPrompt(inputLine,
 					TX_MAX_CMDLEN, TX_CMD_PROMPT, macroDef);
 		    if (inputLine[0] != '\0') MacroDefine(DBWclientID, (int)'.',
-				inputLine, FALSE);
+				inputLine, NULL, FALSE);
 		    TxParseString(inputLine, queue, (TxInputEvent *) NULL);
 		}
 		else

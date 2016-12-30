@@ -613,7 +613,7 @@ keys_and_buttons:
 				Tcl_SaveResult(magicinterp, &state);
 				Tcl_EvalEx(magicinterp, "history event 0", 15, 0);
 			        MacroDefine(mw->w_client, (int)'.',
-					Tcl_GetStringResult(magicinterp),
+					Tcl_GetStringResult(magicinterp), NULL,
 					FALSE);
 				Tcl_RestoreResult(magicinterp, &state);
 				break;
@@ -681,7 +681,7 @@ keys_and_buttons:
 			    *(TxBuffer + tl) = '\n';
 			    *(TxBuffer + tl + 1) = '\0';
 			    if (tl != 0) MacroDefine(mw->w_client,
-					XK_period, TxBuffer, FALSE);
+					XK_period, TxBuffer, NULL, FALSE);
 			    TxInputRedirect = TX_INPUT_NORMAL;
 			    TxSetPoint(KeyPressedEvent->x,
 					grXtransY(mw, KeyPressedEvent->y),

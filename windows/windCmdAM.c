@@ -989,6 +989,8 @@ windDoMacro(w, cmd, interactive)
     int ct, argstart;
     bool any, iReturn;
     bool do_list = FALSE;
+    bool do_help = FALSE;
+    bool do_reverse = FALSE;
     macrodef *cMacro;
     HashTable *clienttable;
     HashEntry *h;
@@ -1005,39 +1007,51 @@ windDoMacro(w, cmd, interactive)
     /* associated window.					*/
 
     argstart = 1;
-    if (cmd->tx_argc == 1) wc = DBWclientID;  /* Added by NP 11/15/04 */
-
-    if (cmd->tx_argc > 1)
-    {
+    if (cmd->tx_argc == 1)
+	wc = DBWclientID;  /* Added by NP 11/15/04 */
+    else if (cmd->tx_argc > 1)
 	wc = WindGetClient(cmd->tx_argv[1], TRUE);
-	if (wc == (WindClient)NULL)
-	    if (cmd->tx_argc == 4)
-	    {
-		/* This may look odd, but it has a reason.  If	*/
-		/* we don't register a client, such as wind3d 	*/
-		/* when running a non-OpenGL magic, then we	*/
-		/* shuffle off macros for that window type to	*/
-		/* a "fake" NULL client, where it won't be seen	*/
-		/* again, but won't cause an error.		*/
-		wc = 0;
-		argstart = 2;
-	    }
-	    else if (w != NULL)
-		wc = w->w_client;
-	    else
-		wc = DBWclientID;
-	else
-	    argstart = 2;
-    }
 
-    if (cmd->tx_argc > argstart)
+    while (cmd->tx_argc > argstart)
     {
 	if (!strcmp(cmd->tx_argv[argstart], "list"))
 	{
 	    do_list = TRUE;
 	    argstart++;
 	}
+	else if (!strcmp(cmd->tx_argv[argstart], "help"))
+	{
+	    do_help = TRUE;
+	    argstart++;
+	}
+	else if (!strcmp(cmd->tx_argv[argstart], "-reverse"))
+	{
+	    do_reverse = TRUE;
+	    argstart++;
+	}
+	else break;
     }
+
+    if (wc == (WindClient)NULL)
+    {
+	if ((cmd->tx_argc - argstart) == 3)
+	{
+	    /* This may look odd, but it has a reason.  If	*/
+	    /* we don't register a client, such as wind3d 	*/
+	    /* when running a non-OpenGL magic, then we	*/
+	    /* shuffle off macros for that window type to	*/
+	    /* a "fake" NULL client, where it won't be seen	*/
+	    /* again, but won't cause an error.		*/
+	    wc = 0;
+	    argstart++;
+	}
+	else if (w != NULL)
+	    wc = w->w_client;
+	else
+	    wc = DBWclientID;
+    }
+    else
+	argstart++;
 
     if (cmd->tx_argc == argstart)
     {
@@ -1064,7 +1078,10 @@ windDoMacro(w, cmd, interactive)
 	    cMacro = (macrodef *) HashGetValue(h);
 	    if (cMacro == (macrodef *)NULL) break;
 	    cn = MacroName((spointertype)h->h_key.h_ptr);
-	    cp = cMacro->macrotext;
+	    if (do_help)
+		cp = cMacro->helptext;
+	    else
+		cp = cMacro->macrotext;
 
 	    if (do_list)
 	    {
@@ -1073,8 +1090,11 @@ windDoMacro(w, cmd, interactive)
 		// generate a reverse lookup hash table for matching
 		// against menu items, to automatically generate
 		// the "accelerator" text.
-		Tcl_AppendElement(magicinterp, cp);
+		if (do_reverse)
+		    Tcl_AppendElement(magicinterp, cp);
 		Tcl_AppendElement(magicinterp, cn);
+		if (!do_reverse)
+		    Tcl_AppendElement(magicinterp, cp);
 #else
 		TxPrintf("%s = \"%s\"\n", cn, cp);
 #endif
@@ -1106,7 +1126,10 @@ windDoMacro(w, cmd, interactive)
 		TxError("Unrecognized macro name %s\n", cmd->tx_argv[argstart]);
 	    return;
 	}
-	cp = MacroRetrieve(wc, ct, &iReturn);
+	if (do_help)
+	    cp = MacroRetrieveHelp(wc, ct);
+	else
+	    cp = MacroRetrieve(wc, ct, &iReturn);
 	if (cp != NULL)
 	{
 	    cn = MacroName(ct);
@@ -1148,10 +1171,32 @@ windDoMacro(w, cmd, interactive)
 	}
 	argstart++;
 	if (cmd->tx_argv[argstart][0] == '\0') MacroDelete(wc, ct);
-	else if (interactive) MacroDefine(wc, ct, cmd->tx_argv[argstart], TRUE);
-	else MacroDefine(wc, ct, cmd->tx_argv[argstart], FALSE);
+	else if (do_help)
+	    MacroDefineHelp(wc, ct, cmd->tx_argv[argstart]);
+	else if (interactive)
+	    MacroDefine(wc, ct, cmd->tx_argv[argstart], NULL, TRUE);
+	else 
+	    MacroDefine(wc, ct, cmd->tx_argv[argstart], NULL, FALSE);
+	return;
+    }
+    else if (cmd->tx_argc == (argstart + 3))
+    {
+	int verbose;
+	ct = MacroKey(cmd->tx_argv[argstart], &verbose);
+	if (ct == 0)
+	{
+	    if (verbose)
+		TxError("Unrecognized macro name %s\n", cmd->tx_argv[argstart]);
+	    return;
+	}
+	argstart++;
+	if (cmd->tx_argv[argstart][0] == '\0') MacroDelete(wc, ct);
+	else if (interactive) MacroDefine(wc, ct, cmd->tx_argv[argstart],
+		cmd->tx_argv[argstart + 1], TRUE);
+	else MacroDefine(wc, ct, cmd->tx_argv[argstart],
+		cmd->tx_argv[argstart + 1], FALSE);
 	return;
     }
 
-    TxError("Usage: %s [macro_name [string]]\n", cmd->tx_argv[0]);
+    TxError("Usage: %s [macro_name [string] [help_text]]\n", cmd->tx_argv[0]);
 }
