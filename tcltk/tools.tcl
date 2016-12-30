@@ -9,6 +9,7 @@
 # Modified 8/17/04 so that calls to suspendall and resumeall
 # may nest.
 # Modified 11/23/16
+# Modified 12/30/16 to add automatic button accelerator text
 
 proc magic::suspendall {} {
    global Winopts
@@ -210,6 +211,36 @@ proc magic::peekbox {{type values}} {
       error "No stack"
    }
    return $b
+}
+
+#---------------------------------------------------------------------
+# Automatic handling of menu button accelerator text
+#---------------------------------------------------------------------
+
+proc magic::button_auto_bind_text {framename} {
+    set macrolist [string trimleft [string trimright \
+		[string map {magic:: {}} [macro list]]]]
+    set macrodict [dict create {*}${macrolist}]
+    set menutop [winfo children ${framename}.titlebar.mbuttons]
+    foreach menub $menutop {
+	set menuw [lindex [winfo children $menub] 0]
+	set items [$menuw index end]
+        for {set i 0} {$i <= $items} {incr i} {
+	    set itype [$menuw type $i]
+	    if {$itype == "command"} {
+		set icmd [string trimleft [string trimright \
+			[string map {magic:: {}} [$menuw entrycget $i -command]]]]
+		if {![catch {set keyname [dict get $macrodict $icmd]}]} {
+ 		    set canonname [string map \
+				{Control_ ^ XK_ {} less < more > comma , question ?}\
+				$keyname]
+		    $menuw entryconfigure $i -accelerator "(${canonname})"
+		} else {
+		    $menuw entryconfigure $i -accelerator ""
+		}
+	    }
+	}
+    }
 }
 
 #---------------------------------------------------------------------

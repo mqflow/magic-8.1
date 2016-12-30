@@ -1188,23 +1188,25 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # File
 # #################################
    set m [menu ${layoutframe}.titlebar.mbuttons.file.toolmenu -tearoff 0]
-   $m add command -label "Open..."       -command {magic::promptload magic}
-   # $m add command -label "Save"        -command {magic::save }
-   $m add command -label "Save..."        -command {magic::promptsave magic}
-   # $m add command -label "Save as..."        -command {echo "not implemented"}
+   $m add command -label "Open..."      -command {magic::promptload magic}
+   # $m add command -label "Save"       -command {magic::save }
+   $m add command -label "Save..."      -command {magic::promptsave magic}
+   # $m add command -label "Save as..." -command {echo "not implemented"}
    # $m add command -label "Save selection..." -command {echo "not implemented"}
    $m add separator
-   $m add command -label "Flush changes"    -command {magic::flush}
+   $m add command -label "Flush changes" -command {magic::flush}
    $m add separator
    # $m add command -label "Read CIF" -command {magic::promptload cif}
-   $m add command -label "Read GDS"          -command {magic::promptload gds}
+   $m add command -label "Read GDS"    -command {magic::promptload gds}
    # $m add separator
    # $m add command -label "Write CIF" -command {magic::promptsave cif}
-   $m add command -label "Write GDS"         -command {magic::promptsave gds}
+   $m add command -label "Write GDS"   -command {magic::promptsave gds}
    # $m add separator
-   # $m add command -label "Print..."          -command { echo "not implemented" }
+   # $m add command -label "Print..."  -command {echo "not implemented"}
    $m add separator
-   $m add command -label "Save All and Quit" -command {magic::writeall force ; if {[magic::cellname list modified] == {}} {magic::quit -noprompt} else {magic::quit} }
+   $m add command -label "Save All and Quit" -command \
+		{magic::writeall force ; if {[magic::cellname list modified] == {}}\
+		{magic::quit -noprompt} else {magic::quit}}
    $m add command -label "Quit"              -command {magic::quit}
 
 # #################################
@@ -1212,35 +1214,35 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # #################################
 
    set m [menu ${layoutframe}.titlebar.mbuttons.edit.toolmenu -tearoff 0]
-   # $m add command -label "Cut" -command { echo "not implemented" }
-   # $m add command -label "Copy" -command { echo "not implemented" }
-   # $m add command -label "Paste" -command { echo "not implemented" }
-   $m add command -label "Delete" -command { delete }
+   # $m add command -label "Cut" -command {echo "not implemented"}
+   # $m add command -label "Copy" -command {echo "not implemented"}
+   # $m add command -label "Paste" -command {echo "not implemented"}
+   $m add command -label "Delete" -command {delete}
    $m add separator
-   $m add command -label "Select Area" -command { select area }
-   $m add command -label "Select Clear" -command { select clear }
+   $m add command -label "Select Area" -command {select area}
+   $m add command -label "Select Clear" -command {select clear}
    $m add separator
-   $m add command -label "Undo" -command {magic::undo} -accelerator "(u)"
-   $m add command -label "Redo" -command {magic::redo} -accelerator "(U)"
-   # $m add command -label "Repeat Last" -command { echo "not implemented" }
+   $m add command -label "Undo" -command {magic::undo}
+   $m add command -label "Redo" -command {magic::redo}
+   # $m add command -label "Repeat Last" -command {echo "not implemented"}
    $m add separator
    $m add command -label "Rotate 90 degree" -command {magic::clock}
    $m add command -label "Mirror   Up/Down"  -command {magic::upsidedown}
    $m add command -label "Mirror Left/Right" -command {magic::sideways}
    $m add separator
    $m add command -label "Move Right" -command {move right 1}
-   $m add command -label "Move Left" -command {move left  1}
-   $m add command -label "Move Up" -command {move up    1}
-   $m add command -label "Move Down" -command {move down  1}
+   $m add command -label "Move Left" -command {move left 1}
+   $m add command -label "Move Up" -command {move up 1}
+   $m add command -label "Move Down" -command {move down 1}
    $m add separator
-   $m add command -label "Stretch Right" -command { stretch right 1}
-   $m add command -label "Stretch Left" -command { stretch left  1}
-   $m add command -label "Stretch Up" -command { stretch up    1}
-   $m add command -label "Stretch Down" -command { stretch down  1}
+   $m add command -label "Stretch Right" -command {stretch right 1}
+   $m add command -label "Stretch Left" -command {stretch left 1}
+   $m add command -label "Stretch Up" -command {stretch up 1}
+   $m add command -label "Stretch Down" -command {stretch down 1}
    $m add separator
    $m add command -label "Text ..." \
-		-command [subst { magic::update_texthelper; \
-		wm deiconify .texthelper ; raise .texthelper } ]
+		-command [subst {magic::update_texthelper; \
+		wm deiconify .texthelper ; raise .texthelper}]
 
 # #################################
 # Cell
@@ -1250,23 +1252,19 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    $m add command -label "Save as..." -command {magic::prompt_dialog save}
    $m add command -label "Select" -command {magic::select cell}
    $m add command -label "Place Instance" -command {magic::promptload getcell}
-   # $m add command -label "Rename" -command {echo "not implemented" }
+   # $m add command -label "Rename" -command {echo "not implemented"}
    $m add separator
-   $m add command -label "Down hierarchy" -command {magic::pushstack} \
-		-accelerator "(>)"
-   $m add command -label "Up   hierarchy" -command {magic::popstack} \
-		-accelerator "(<)"
+   $m add command -label "Down hierarchy" -command {magic::pushstack}
+   $m add command -label "Up   hierarchy" -command {magic::popstack}
    $m add separator
-   $m add command -label "Edit" -command {magic::edit }
+   $m add command -label "Edit" -command {magic::edit}
    $m add separator
-   $m add command -label "Delete" -command {magic::cellname delete [magic::cellname list window]}
+   $m add command -label "Delete" -command \
+		{magic::cellname delete [magic::cellname list window]}
    $m add separator
-   $m add command -label "Expand Toggle" -command {magic::expand toggle} \
-		-accelerator "(^X)"
-   $m add command -label "Expand" -command {magic::expand} \
-		-accelerator "(x)"
-   $m add command -label "Unexpand" -command {magic::unexpand} \
-		-accelerator "(X)"
+   $m add command -label "Expand Toggle" -command {magic::expand toggle}
+   $m add command -label "Expand" -command {magic::expand}
+   $m add command -label "Unexpand" -command {magic::unexpand}
    $m add separator
    $m add command -label "Lock   Cell" -command {magic::instance lock}
    $m add command -label "Unlock Cell" -command {magic::instance unlock}
@@ -1275,24 +1273,23 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # Window
 # #################################
    set m [menu ${layoutframe}.titlebar.mbuttons.win.toolmenu -tearoff 0]
-   $m add command -label "Clone" -command {magic::openwrapper [magic::cellname list window]}
+   $m add command -label "Clone" -command \
+		{magic::openwrapper [magic::cellname list window]}
    $m add command -label "New" -command "magic::openwrapper"
-   $m add command -label "Set Editable" -command "pushbox ; select top cell ; edit ; popbox"
-   $m add command -label "Close"             -command "magic::closewrapper ${framename}"
+   $m add command -label "Set Editable" -command \
+		"pushbox ; select top cell ; edit ; popbox"
+   $m add command -label "Close" -command "magic::closewrapper ${framename}"
    $m add separator
-   $m add command -label "Full View" -command {magic::view} -accelerator "(v)"
+   $m add command -label "Full View" -command {magic::view}
    $m add command -label "Redraw" -command {magic::redraw}
-   $m add command -label "Zoom Out" -command {magic::zoom 2} \
-			-accelerator "(Z)"
-   $m add command -label "Zoom In" -command {magic::zoom 0.5} \
-			-accelerator "(z)"
-   $m add command -label "Zoom Box" -command {magic::findbox zoom} \
-			-accelerator "(^Z)"
+   $m add command -label "Zoom Out" -command {magic::zoom 2}
+   $m add command -label "Zoom In" -command {magic::zoom 0.5}
+   $m add command -label "Zoom Box" -command {magic::findbox zoom}
    $m add separator
-   $m add command -label "Grid on" -command {magic::grid on  }
-   $m add command -label "Grid off" -command {magic::grid off }
-   $m add command -label "Snap to grid on" -command {magic::snap on  }
-   $m add command -label "Snap to grid off" -command {magic::snap off }
+   $m add command -label "Grid on" -command {magic::grid on}
+   $m add command -label "Grid off" -command {magic::grid off}
+   $m add command -label "Snap-to-grid on" -command {magic::snap on}
+   $m add command -label "Snap-to-grid off" -command {magic::snap off}
    $m add command -label "Measure box" -command {magic::box }
    $m add separator
    $m add command -label "Set grid 0.05um" -command {magic::grid 0.05um}
@@ -1307,10 +1304,10 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 # Layers
 # #################################
    set m [menu ${layoutframe}.titlebar.mbuttons.layers.toolmenu -tearoff 0]
-   $m add command -label "Protect Base Layers" -command {magic::tech revert  }
+   $m add command -label "Protect Base Layers" -command {magic::tech revert}
    $m add command -label "Unlock  Base Layers" -command {magic::tech unlock *}
    $m add separator
-   $m add command -label "Clear Feedback"      -command {magic::feedback clear}
+   $m add command -label "Clear Feedback" -command {magic::feedback clear}
    $m add separator
 
 # #################################
@@ -1319,13 +1316,13 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    set m [menu ${layoutframe}.titlebar.mbuttons.drc.toolmenu -tearoff 0]
    # $m add command -label "DRC On" -command {drc on}
    # $m add command -label "DRC Off" -command {drc off}
+   # $m add separator
+   $m add command -label "DRC update" -command {drc check; drc why}
+   $m add command -label "DRC report" -command {drc why}
+   $m add command -label "DRC Find next error" -command {drc find; findbox zoom}
    $m add separator
-   $m add command -label "DRC update" -command { drc check ; drc why}
-   $m add command -label "DRC report" -command { drc why }
-   $m add command -label "DRC Find next error" -command { drc find ; findbox zoom }
-   $m add separator
-   $m add command -label "DRC Fast"     -command {drc style drc(fast) }
-   $m add command -label "DRC Complete" -command {drc style drc(full) }
+   $m add command -label "DRC Fast"     -command {drc style drc(fast)}
+   $m add command -label "DRC Complete" -command {drc style drc(full)}
 
    set m [menu ${layoutframe}.titlebar.mbuttons.opts.toolmenu -tearoff 0]
    $m add check -label "Toolbar" -variable Winopts(${framename},toolbar) \
@@ -1434,6 +1431,10 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 
    # If the variable $Winopts(callback) is defined, then attempt to execute it.
    catch {eval $Winopts(${framename}, callback)}
+
+   # Since one purpose of the window callback is to customize the menus,
+   # run the automatic generation of accelerator key text at the end.
+   catch {magic::button_auto_bind_text $layoutframe}
 
    return ${winname}
 }
