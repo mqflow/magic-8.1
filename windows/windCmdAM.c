@@ -986,7 +986,7 @@ windDoMacro(w, cmd, interactive)
 {
     char *cp, *cn;
     char ch;
-    int ct, argstart;
+    int ct, argstart, verbose;
     bool any, iReturn;
     bool do_list = FALSE;
     bool do_help = FALSE;
@@ -997,7 +997,7 @@ windDoMacro(w, cmd, interactive)
     HashSearch hs;
     WindClient wc;
 
-    /* If the second argument is a window name, we attempt to	*/
+    /* If the first argument is a window name, we attempt to	*/
     /* retrieve a client ID from it.  This overrides the actual	*/
     /* window the command was called from, so technically we	*/
     /* can define macros for clients from inside other clients.	*/
@@ -1032,23 +1032,33 @@ windDoMacro(w, cmd, interactive)
 	else break;
     }
 
+    /* If client wasn't specified, use window default, else use	*/
+    /* DBW client.						*/
+
     if (wc == (WindClient)NULL)
     {
-	if ((cmd->tx_argc - argstart) == 3)
-	{
-	    /* This may look odd, but it has a reason.  If	*/
-	    /* we don't register a client, such as wind3d 	*/
-	    /* when running a non-OpenGL magic, then we	*/
-	    /* shuffle off macros for that window type to	*/
-	    /* a "fake" NULL client, where it won't be seen	*/
-	    /* again, but won't cause an error.		*/
-	    wc = 0;
-	    argstart++;
-	}
-	else if (w != NULL)
+	if (w != NULL)
 	    wc = w->w_client;
 	else
 	    wc = DBWclientID;
+
+	if (cmd->tx_argc > (argstart + 1))
+	{
+	    /* The first argument, if there is one after resolving	*/
+	    /* all of the optional arugments, should be a key.		*/
+	    /* If it doesn't look like one, then check if the		*/
+	    /* next argument looks like a key, which would indicate	*/
+	    /* an unregistered client as the first argument.  A		*/
+	    /* macro retrieved from an unregistered client returns	*/
+	    /* nothing but does not generate an error.			*/
+
+	    if (MacroKey(cmd->tx_argv[argstart], &verbose) == 0)
+		if (MacroKey(cmd->tx_argv[argstart + 1], &verbose) != 0)
+		{
+		    wc = 0;
+		    argstart++;
+		}
+	}
     }
     else
 	argstart++;
@@ -1118,7 +1128,6 @@ windDoMacro(w, cmd, interactive)
     }
     else if (cmd->tx_argc == (argstart + 1))
     {
-	int verbose;
 	ct = MacroKey(cmd->tx_argv[argstart], &verbose);
 	if (ct == 0)
 	{
