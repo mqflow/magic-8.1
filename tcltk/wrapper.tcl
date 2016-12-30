@@ -524,6 +524,7 @@ set Opts(hidelocked) 0
 set Opts(hidespecial) 0
 set Opts(toolbar) 0
 set Opts(drc) 1
+set Opts(autobuttontext) 1
 
 # Update cell and tech managers in response to a cif or gds read command
 
@@ -1434,8 +1435,12 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 
    # Since one purpose of the window callback is to customize the menus,
    # run the automatic generation of accelerator key text at the end.
-   catch {magic::button_auto_bind_text $layoutframe}
-
+   # This can be subverted by setting Opts(autobuttontext) to 0, e.g.,
+   # to put it at the top of the Winopts callback and then generate
+   # override values for specific buttons.
+   if {$Opts(autobuttontext)} {
+      catch {magic::button_auto_bind_text $layoutframe}
+   }
    return ${winname}
 }
 
