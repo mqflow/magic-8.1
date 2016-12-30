@@ -985,12 +985,14 @@ windDoMacro(w, cmd, interactive)
     bool interactive;
 {
     char *cp, *cn;
+    char nulltext[] = "";
     char ch;
     int ct, argstart, verbose;
     bool any, iReturn;
     bool do_list = FALSE;
     bool do_help = FALSE;
     bool do_reverse = FALSE;
+    char *searchterm = NULL;
     macrodef *cMacro;
     HashTable *clienttable;
     HashEntry *h;
@@ -1023,6 +1025,15 @@ windDoMacro(w, cmd, interactive)
 	{
 	    do_help = TRUE;
 	    argstart++;
+	}
+	else if (!strcmp(cmd->tx_argv[argstart], "search"))
+	{
+	    if (cmd->tx_argc > (argstart + 1))
+	    {
+		argstart++;
+		searchterm = cmd->tx_argv[argstart];
+		argstart++;
+	    }
 	}
 	else if (!strcmp(cmd->tx_argv[argstart], "-reverse"))
 	{
@@ -1092,6 +1103,14 @@ windDoMacro(w, cmd, interactive)
 		cp = cMacro->helptext;
 	    else
 		cp = cMacro->macrotext;
+
+	    if (cp == (char *)NULL) cp = (char *)(&nulltext[0]);
+
+	    if (searchterm != NULL)
+	    {
+		/* Refine results by keyword search */
+		if (!strstr(cp, searchterm)) continue;
+	    }
 
 	    if (do_list)
 	    {
