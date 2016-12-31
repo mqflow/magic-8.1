@@ -1337,7 +1337,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 	-variable Opts(hidelocked) \
 	-command "magic::maketoolbar ${layoutframe}"
 
-   .winmenu add radio -label ${layoutframe} -variable Opts(target) -value ${winname}
+   .winmenu add radio -label ${framename} -variable Opts(target) -value ${winname}
    if {$tk_version >= 8.5} {
      $m add check -label "Cell Manager" -variable Opts(cellmgr) \
 	-command [subst { magic::cellmanager create; \
@@ -1466,7 +1466,7 @@ proc magic::closewrapper { framename } {
    set idx [.winmenu index $framename]
    .winmenu delete $idx
 
-   ${framename}.magic magic::closewindow
+   ${layoutframe}.magic magic::closewindow
    destroy $framename
 }
 
