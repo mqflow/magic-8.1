@@ -522,7 +522,7 @@ _magic_initialize(ClientData clientData,
     // Force tkcon to send output to terminal during initialization
     else
     {
-	RuntimeFlags |= MAIN_TK_CONSOLE;
+  	RuntimeFlags |= (MAIN_TK_CONSOLE | MAIN_TK_PRINTF);
     	Tcl_Eval(consoleinterp, "rename ::puts ::unused_puts\n");
     	Tcl_Eval(consoleinterp, "rename ::tkcon_tcl_puts ::puts\n");
     }
@@ -541,6 +541,7 @@ _magic_initialize(ClientData clientData,
     // Redirect output back to the console
     if (TxTkConsole)
     {
+  	RuntimeFlags &= ~MAIN_TK_PRINTF;
     	Tcl_Eval(consoleinterp, "rename ::puts ::tkcon_tcl_puts\n");
     	Tcl_Eval(consoleinterp, "rename ::unused_puts ::puts\n");
     }
