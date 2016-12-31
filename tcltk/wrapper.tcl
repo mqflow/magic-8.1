@@ -626,8 +626,11 @@ proc magic::cursorview {win} {
       *bypass crosshair ${olstx}i ${olsty}i
    }
 
-   set olstx [expr $olstx * $cr]
-   set olsty [expr $olsty * $cr]
+   # Use catch, because occasionally this fails on startup
+   if {[catch {
+      set olstx [expr $olstx * $cr]
+      set olsty [expr $olsty * $cr]
+   }]} {return}
 
    if {[${win} box exists]} {
       set dlst [${win} box position]
