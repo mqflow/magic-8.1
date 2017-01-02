@@ -1488,7 +1488,10 @@ proc magic::addcommandentry { framename } {
    }
    set entercmd [bind ${framename}.pane.top.magic <Enter>]
    set bindstr "$entercmd ; macro XK_colon \"focus ${commandframe}.eval.text\" ;\
-		alias puts tkshell::PutsTkShell"
+		alias puts tkshell::PutsTkShell ; set Opts(redirect) 1"
+   bind ${commandframe}.eval <Enter> \
+	"focus ${commandframe}.eval.text ; set Opts(focus) $framename ;\
+	catch {unset Opts(redirect)}"
    bind ${framename}.pane.top.magic <Enter> $bindstr
    # Make command entry window visible
    ${framename}.pane paneconfigure ${framename}.pane.bot -hide false
