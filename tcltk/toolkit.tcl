@@ -206,10 +206,10 @@ proc magic::gencell {gencell_name {instance {}} args} {
 	    magic::gencell_dialog {} $gencell_type $library $parameters
 	} else {
 	    # Check if instance exists or not in the cell
-	    if {![catch {select cell $instance}]} {
-            
+	    set cellname [instance list celldef $instance]
+	    if {$cellname != ""} {
 		# Case:  Change existing instance, parameters in args (if any)
-		set cellname [cellname list self]
+		select cell $instance
 		set devparms [cellname list property $gencell_type parameters]
 	        set parameters [magic::gencell_defaults $gencell_type $library $devparms]
 		if {[dict exists $parameters nocell]} {
@@ -661,6 +661,9 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
    # Invoke the callback procedure that creates the parameter entries
 
    ${library}::${gencell_type}_dialog $parameters
+
+   # Make sure the window is raised
+   raise .params
 }
 
 #-------------------------------------------------------------
