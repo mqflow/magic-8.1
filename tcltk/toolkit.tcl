@@ -430,6 +430,24 @@ proc magic::add_entry {pname ptext parameters} {
 }
 
 #----------------------------------------------------------
+# Default entry callback, without any dependencies.  Each 
+# parameter changed 
+#----------------------------------------------------------
+
+proc magic::add_check_callbacks {gencell_type library} {
+    set wlist [winfo children .params.edits]
+    foreach w $wlist {
+        if {[regexp {\.params\.edits\.(.+)_ent} $w valid pname]} {
+	    # Add callback on enter or focus out
+	    bind $w <Return> \
+			"magic::update_dialog {} $pname $gencell_type $library"
+	    bind $w <FocusOut> \
+			"magic::update_dialog {} $pname $gencell_type $library"
+	}
+    }
+}
+
+#----------------------------------------------------------
 # Add a dependency between entries.  When one updates, the
 # others will be recomputed according to the callback
 # function.
@@ -453,13 +471,16 @@ proc magic::add_dependency {callback gencell_type library args} {
 }
 
 #----------------------------------------------------------
-# Execute callback procedure
+# Execute callback procedure, then run bounds checks
 #----------------------------------------------------------
 
 proc magic::update_dialog {callback pname gencell_type library} {
     set pdefaults [${library}::${gencell_type}_defaults]
     set parameters [dict merge $pdefaults [magic::gencell_getparams]]
-    set parameters [$callback $pname $parameters]
+    if {$callback != {}} {
+       set parameters [$callback $pname $parameters]
+    }
+    set parameters [${library}::${gencell_type}_check $parameters]
     magic::gencell_setparams $parameters
 }
 
@@ -661,6 +682,9 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
    # Invoke the callback procedure that creates the parameter entries
 
    ${library}::${gencell_type}_dialog $parameters
+
+   # Add standard callback to all entry fields to run parameter bounds checks
+   magic::add_check_callbacks $gencell_type $library
 
    # Make sure the window is raised
    raise .params
