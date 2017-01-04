@@ -13,6 +13,7 @@ package provide tkshell 1.0
 namespace eval tkshell {
    variable tkhist
    variable tkpos
+   variable tkprompt
 }
 
 #-----------------------------------------------
@@ -60,10 +61,12 @@ proc tkshell::history {win dir} {
 proc tkshell::MakeEvaluator {{t .eval} {prompt "tcl>"} {prefix ""}} {
   variable tkhist
   variable tkpos
+  variable tkprompt
 
   # Create array for command history
   set tkhist($t) {}
   set tkpos($t) -1
+  set tkprompt($t) $prompt
 
   # Text tags give script output, command errors, command
   # results, and the prompt a different appearance
@@ -159,6 +162,7 @@ proc tkshell::Eval {t prefix prompt command} {
 
 proc tkshell::PutsTkShell {args} {
         global Opts
+	variable tkprompt
         set t ${Opts(focus)}.pane.bot.eval
 	if {[llength $args] > 3} {
 		error "invalid arguments"
@@ -176,10 +180,14 @@ proc tkshell::PutsTkShell {args} {
 		set string [lindex $args 1]$newline
 	}
 	if [regexp (stdout|stderr) $chan] {
+		# ${t}.text delete "current linestart+1c" limit-1c	;# testing!
 		${t}.text mark gravity limit right
 		${t}.text insert limit $string $chan
 		${t}.text see limit
 		${t}.text mark gravity limit left
+		# if {![catch {set prompt $tkprompt(${t}.text)}]} {
+		#     ${t}.text insert insert "${prompt} " prompt	;# testing!
+		# }
 	} else {
 		::tkcon_puts -nonewline $chan $string
 	}

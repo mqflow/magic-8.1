@@ -1032,8 +1032,8 @@ windDoMacro(w, cmd, interactive)
 	    {
 		argstart++;
 		searchterm = cmd->tx_argv[argstart];
-		argstart++;
 	    }
+	    argstart++;
 	}
 	else if (!strcmp(cmd->tx_argv[argstart], "-reverse"))
 	{
@@ -1099,6 +1099,10 @@ windDoMacro(w, cmd, interactive)
 	    cMacro = (macrodef *) HashGetValue(h);
 	    if (cMacro == (macrodef *)NULL) break;
 	    cn = MacroName((spointertype)h->h_key.h_ptr);
+
+	    /* "imacro list" returns only interactive macros. */
+	    if (interactive && !cMacro->interactive) continue;
+
 	    if (do_help)
 		cp = cMacro->helptext;
 	    else
