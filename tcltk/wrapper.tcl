@@ -133,11 +133,13 @@ proc magic::promptsave {type} {
 		magic::gds write $Layoutfilename
 	    }
 	  }
+      force -
       magic {
 	    set CellList [ magic::cellname list window ]
 	    if {[lsearch $CellList "(UNNAMED)"] >= 0} {
 	       set Layoutfilename [ tk_getSaveFile -filetypes \
-		   {{Magic {.mag {.mag}}} {"All files" {*}}}]
+		   {{Magic {.mag {.mag}}} {"All files" {*}}} \
+		   -title "Save cell (UNNAMED) as:" ]
 	       if {$Layoutfilename != ""} {
 		   set cellpath [file dirname $Layoutfilename]
 		   if {$cellpath == [pwd]} {
@@ -148,7 +150,11 @@ proc magic::promptsave {type} {
 		   magic::save $Layoutfilename
 	       }
 	    }
-	    magic::writeall
+	    if {$type == "force"} {
+	       magic::writeall force
+	    } else {
+	       magic::writeall
+	    }
 	  }
    }
 }
@@ -1031,6 +1037,23 @@ proc magic::makescrollbar { fname orient win } {
    ${fname}.bar bind centre <B1-Motion> "magic::dragscroll %W %$orient $orient"
 }
 
+# Save all and quit.  If something bad happens like an attempt to
+# write cells into an unwriteable directory, then "cellname list modified"
+# will contain a list of cells, so prompt to quit with the option to cancel.
+# If there are no remaining modified and unsaved cells, then just exit.
+# Because cell "(UNNAMED)" is not written by "writeall force", if that is
+# the only modified cell, then prompt to change its name and save; then quit.
+
+proc magic::saveallandquit {} {
+   magic::promptsave force
+   set modlist [magic::cellname list modified]
+   if {$modlist == {}} {
+      magic::quit -noprompt
+   } else {
+      magic::quit
+   }
+}
+
 # Create the wrapper and open up a layout window in it.
 
 proc magic::openwrapper {{cell ""} {framename ""}} {
@@ -1208,9 +1231,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    # $m add separator
    # $m add command -label "Print..."  -command {echo "not implemented"}
    $m add separator
-   $m add command -label "Save All and Quit" -command \
-		{magic::writeall force ; if {[magic::cellname list modified] == {}}\
-		{magic::quit -noprompt} else {magic::quit}}
+   $m add command -label "Save All and Quit" -command {magic::saveallandquit}
    $m add command -label "Quit"              -command {magic::quit}
 
 # #################################
