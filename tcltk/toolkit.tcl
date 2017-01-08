@@ -310,7 +310,10 @@ proc magic::gencell_change {instance gencell_type library parameters} {
         # Pull user-entered values from dialog
         set parameters [dict merge $pdefaults [magic::gencell_getparams]]
     }
-    set parameters [${library}::${gencell_type}_check $parameters]
+    if {[catch {set parameters [${library}::${gencell_type}_check $parameters]} \
+		checkerr]} {
+	puts stderr $checkerr
+    }
     magic::gencell_setparams $parameters
 
     set snaptype [snap list]
@@ -321,7 +324,10 @@ proc magic::gencell_change {instance gencell_type library parameters} {
     if [dict exists $parameters nocell] {
         select cell $instance
 	delete
-	set newinst [${library}::${gencell_type}_draw $parameters]
+	if {[catch {set newinst [${library}::${gencell_type}_draw $parameters]} \
+		drawerr]} {
+	    puts stderr $drawerr
+	}
 	pushstack $gname
 	property parameters $parameters
 	popstack
@@ -332,7 +338,9 @@ proc magic::gencell_change {instance gencell_type library parameters} {
 	select cell
 	tech unlock *
 	erase *
-	${library}::${gencell_type}_draw $parameters
+	if {[catch {${library}::${gencell_type}_draw $parameters} drawerr]} {
+	    puts stderr $drawerr
+	}
 	property parameters $parameters
 	tech revert
 	popstack
@@ -366,7 +374,10 @@ proc magic::gencell_create {gencell_type library parameters} {
         set parameters [dict merge $pdefaults $parameters]
     }
 
-    set parameters [${library}::${gencell_type}_check $parameters]
+    if {[catch {set parameters [${library}::${gencell_type}_check $parameters]} \
+		checkerr]} {
+	puts stderr $checkerr
+    }
     magic::gencell_setparams $parameters
 
     set snaptype [snap list]
@@ -374,7 +385,9 @@ proc magic::gencell_create {gencell_type library parameters} {
     set savebox [box values]
 
     if [dict exists $parameters nocell] {
-	set instname [${library}::${gencell_type}_draw $parameters]
+	if {[catch {set instname [${library}::${gencell_type}_draw $parameters]} \				drawerr]} {
+	    puts stderr $drawerr
+	}
 	set gname [instance list celldef $instname]
 	pushstack $gname
 	property library $library 
@@ -391,7 +404,9 @@ proc magic::gencell_create {gencell_type library parameters} {
         set gname ${gencell_type}_$pidx
 	cellname create $gname
 	pushstack $gname
-	${library}::${gencell_type}_draw $parameters
+	if {[catch {${library}::${gencell_type}_draw $parameters} drawerr]} {
+	    puts stderr $drawerr
+	}
 	property library $library 
 	property gencell $gencell_type
 	property parameters $parameters
@@ -480,7 +495,10 @@ proc magic::update_dialog {callback pname gencell_type library} {
     if {$callback != {}} {
        set parameters [$callback $pname $parameters]
     }
-    set parameters [${library}::${gencell_type}_check $parameters]
+    if {[catch {set parameters [${library}::${gencell_type}_check $parameters]} \
+		checkerr]} {
+	puts stderr $checkerr
+    }
     magic::gencell_setparams $parameters
 }
 
