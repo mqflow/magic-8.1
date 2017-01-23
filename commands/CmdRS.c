@@ -1149,12 +1149,19 @@ Okay:
 
 	    /* See if we're pointing at the same place as we were the last time
 	     * this command was invoked, and if this command immediately follows
-	     * another selection comand.
+	     * another selection comand.  If not, it is important to set lastUse
+	     * to NULL, otherwise trouble occurs if lastUse is an instance that
+	     * was deleted (note that this is not foolproof:  deleting an
+	     * instance followed by selecting an instance that was occupying the
+	     * same space WILL cause a crash).
 	     */
 	
 	    if (!GEO_ENCLOSE(&cmd->tx_p, &lastArea)
 		    || ((lastCommand + 1) != TxCommandNumber))
+	    {
 		samePlace = FALSE;
+		lastUse = NULL;
+	    }
 
 	    lastArea.r_xbot = cmd->tx_p.p_x - MARGIN;
 	    lastArea.r_ybot = cmd->tx_p.p_y - MARGIN;
@@ -1792,6 +1799,7 @@ cmdLabelFontFunc(label, cellUse, transform, font)
 #define SETLABEL_ROTATE		6
 #define SETLABEL_STICKY		7
 #define SETLABEL_LAYER		8
+#define SETLABEL_HELP		9
 
 void
 CmdSetLabel(w, cmd)
@@ -1799,6 +1807,7 @@ CmdSetLabel(w, cmd)
     TxCommand *cmd;
 {
     int pos = -1, font = -1, size = 0, rotate = 0, flags = 0;
+    char **msg;
     Point offset;
     TileType ttype;
     int option;
@@ -1820,16 +1829,14 @@ CmdSetLabel(w, cmd)
 	"rotate <degrees>	change/get label rotation",
 	"sticky [true|false]	change/get sticky property",
 	"layer <type>		change/get layer type",
+	"help			print this help info",
 	NULL
     };
 
     if (cmd->tx_argc < 2 || cmd->tx_argc > 4)
-    {
-	TxError("%s <option> [<value>]\n", cmd->tx_argv[0]);
-	return;
-    }
-
-    option = Lookup(cmd->tx_argv[1], cmdLabelSetOption);
+	option = SETLABEL_HELP;
+    else
+	option = Lookup(cmd->tx_argv[1], cmdLabelSetOption);
 
     switch (option)
     {
@@ -2009,6 +2016,13 @@ CmdSetLabel(w, cmd)
 	    }
 	    break;
 
+	case SETLABEL_HELP:
+	    TxError("Usage:  setlabel [option], where [option] is one of:\n");
+	    for (msg = &(cmdLabelSetOption[0]); *msg != NULL; msg++)
+	    {
+	        TxError("    %s\n", *msg);
+	    }
+	    break;
 
 	default:
 	    TxError("Unknown setlabel option \"%s\"\n", cmd->tx_argv[1]);

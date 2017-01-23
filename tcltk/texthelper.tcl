@@ -7,10 +7,11 @@ set textdefaults [dict create \
 	just "center" \
 	rotate "0" \
 	offset "0 0" \
+	port "0" \
 ]
 	
 proc magic::make_texthelper { mgrpath } {
-   global typedflt typesticky
+   global typedflt typesticky typeport
    toplevel ${mgrpath}
    wm withdraw ${mgrpath}
 
@@ -22,6 +23,7 @@ proc magic::make_texthelper { mgrpath } {
    frame ${mgrpath}.rotate
    frame ${mgrpath}.offset
    frame ${mgrpath}.layer
+   frame ${mgrpath}.port
 
    frame ${mgrpath}.buttonbar
 
@@ -34,21 +36,31 @@ proc magic::make_texthelper { mgrpath } {
    label ${mgrpath}.rotate.tlab -text "Rotation: "
    label ${mgrpath}.offset.tlab -text "Offset from reference: "
    label ${mgrpath}.layer.tlab -text "Attach to layer: "
+   label ${mgrpath}.port.tlab -text "Port: "
 
    entry ${mgrpath}.text.tent -background white
    entry ${mgrpath}.size.tent -background white
    entry ${mgrpath}.rotate.tent -background white
    entry ${mgrpath}.offset.tent -background white
    entry ${mgrpath}.layer.tent -background white
+   entry ${mgrpath}.port.tent -background white
 
    set typedflt 1
    set typesticky 0
+   set typeport 0
    checkbutton ${mgrpath}.layer.btn1 -text "default" -variable typedflt \
 	-command [subst {if {\$typedflt} {pack forget ${mgrpath}.layer.tent \
 		} else {pack forget ${mgrpath}.layer.btn2; \
 		pack ${mgrpath}.layer.tent -side left -fill x -expand true; \
 		pack ${mgrpath}.layer.btn2 -side left}}]
    checkbutton ${mgrpath}.layer.btn2 -text "sticky" -variable typesticky
+   checkbutton ${mgrpath}.port.btn -text "enable" -variable typeport \
+	-command [subst {if {\$typeport} {
+		${mgrpath}.port.tent delete 0 end; \
+		${mgrpath}.port.tent insert 0 \[expr {\[port last\] + 1}\]; \
+		pack ${mgrpath}.port.tent \
+		-side left -fill x -expand true } else { pack forget \
+		${mgrpath}.port.tent }}]
 
    menubutton ${mgrpath}.just.btn -text "default" -menu ${mgrpath}.just.btn.menu
    menubutton ${mgrpath}.font.btn -text "default" -menu ${mgrpath}.font.btn.menu
@@ -73,6 +85,9 @@ proc magic::make_texthelper { mgrpath } {
    pack ${mgrpath}.layer.tlab -side left
    pack ${mgrpath}.layer.btn1 -side left
    pack ${mgrpath}.layer.btn2 -side left
+   pack ${mgrpath}.port.tlab -side left
+   pack ${mgrpath}.port.btn -side left
+
    pack ${mgrpath}.buttonbar.apply -side left
    pack ${mgrpath}.buttonbar.okay -side left
    pack ${mgrpath}.buttonbar.cancel -side right
@@ -85,6 +100,7 @@ proc magic::make_texthelper { mgrpath } {
    pack ${mgrpath}.rotate -side top -anchor w -expand true
    pack ${mgrpath}.offset -side top -anchor w -expand true
    pack ${mgrpath}.layer -side top -anchor w -expand true
+   pack ${mgrpath}.port -side top -anchor w -expand true
    pack ${mgrpath}.buttonbar -side bottom -fill x -expand true
 
    # Create menus for Font and Justification records
@@ -130,7 +146,7 @@ proc magic::make_texthelper { mgrpath } {
 # texthelper window
 
 proc magic::analyze_labels {} {
-   global typedflt typesticky
+   global typedflt typesticky typeport
 
    # Pick up values from the first entry returned
 
@@ -141,6 +157,7 @@ proc magic::analyze_labels {} {
    set oval [lindex [setlabel offset] 0]
    set lval [lindex [setlabel layer] 0]
    set kval [lindex [setlabel sticky] 0]
+   set pval [lindex [port index] 0]
 
    # Rescale internal units to microns
    set sval [lindex [setlabel size] 0]
@@ -163,11 +180,32 @@ proc magic::analyze_labels {} {
    .texthelper.rotate.tent insert 0 $rval
    .texthelper.layer.tent delete 0 end
    .texthelper.layer.tent insert 0 $lval
+   if {${pval} >= 0} {
+      set typeport 1
+      .texthelper.port.tent delete 0 end
+      .texthelper.port.tent insert 0 $pval
+      pack .texthelper.port.tent -side left -fill x -expand true
+   } else {
+      set typeport 0
+      .texthelper.port.tent delete 0 end
+      pack forget .texthelper.port.tent
+   }
+
    set typesticky $kval
+   if {$lval == ""} {
+       set typedflt 1
+       pack forget .texthelper.layer.tent
+   } else {
+       set typedflt 0
+       pack forget .texthelper.layer.btn2
+       pack .texthelper.layer.tent -side left -fill x -expand true
+       pack .texthelper.layer.btn2 -side left
+   }
 }
 
+
 proc magic::change_label {} {
-   global typedflt typesticky
+   global typedflt typesticky typeport
 
    # Check to see if there really was a selection, or if
    # something got unselected
@@ -184,6 +222,7 @@ proc magic::change_label {} {
    set loff  [.texthelper.offset.tent get]
    set ljust [.texthelper.just.btn cget -text]
    set ltype [.texthelper.layer.tent get]
+   set lport [.texthelper.port.tent get]
 
    if {$ltext != ""} {
       setlabel text $ltext
@@ -221,7 +260,7 @@ proc magic::change_label {} {
 }
 
 proc magic::make_new_label {} {
-   global typedflt typesticky textdefaults
+   global typedflt typesticky textdefaults typeport
 
    set ltext [.texthelper.text.tent get]
    set lfont [.texthelper.font.btn cget -text]
@@ -230,6 +269,7 @@ proc magic::make_new_label {} {
    set loff  [.texthelper.offset.tent get]
    set ljust [.texthelper.just.btn cget -text]
    set ltype [.texthelper.layer.tent get]
+   set lport [.texthelper.port.tent get]
 
    # Apply values back to window defaults
    dict set textdefaults text $ltext
@@ -263,6 +303,11 @@ proc magic::make_new_label {} {
       } else {
          label $ltext $lfont ${lsize}um $lrot [join $loff] $ljust $ltype
       }
+   }
+   if {$typeport == 1 && $lport != ""} {
+      port make $lport
+   } else {
+      port remove
    }
 
    # puts stdout "label $ltext $lfont $lsize $lrot $loff $ljust"
@@ -329,6 +374,10 @@ proc magic::update_texthelper {} {
       .texthelper.rotate.tent insert 0 [dict get $textdefaults rotate]
       .texthelper.offset.tent delete 0 end
       .texthelper.offset.tent insert 0 [dict get $textdefaults offset]
+      set pval [port last]
+      incr pval
+      .texthelper.port.tent delete 0 end
+      .texthelper.port.tent insert 0 $pval
       .texthelper.buttonbar.apply configure -command magic::make_new_label
       .texthelper.buttonbar.okay configure -command \
 		"magic::make_new_label ; wm withdraw .texthelper"

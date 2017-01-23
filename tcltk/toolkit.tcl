@@ -110,7 +110,7 @@ magic::tag select "[magic::tag select]; magic::gencell_update %1"
 #   from a script or command line.  The name of the device
 #   is required, followed by the name of the instance, followed
 #   by an optional list of parameters.  Handling depends on
-#   instance and args:
+#   instname and args:
 #
 #   gencell_name is either the name of an instance or the name
 #   of the gencell in the form <library>::<device>.
@@ -119,15 +119,15 @@ magic::tag select "[magic::tag select]; magic::gencell_update %1"
 #-----------------------------------------------------------------
 #   none        empty     interactive, new device w/defaults
 #   none        specified interactive, new device w/parameters
-#   instance    empty     interactive, edit device
-#   instance    specified non-interactive, change device
+#   instname    empty     interactive, edit device
+#   instname    specified non-interactive, change device
 #   device      empty     non-interactive, new device w/defaults
 #   device	specified non-interactive, new device w/parameters
 #
 #-------------------------------------------------------------
-# Also, if instance is empty and gencell_name is not specified,
+# Also, if instname is empty and gencell_name is not specified,
 # and if a device is selected in the layout, then gencell
-# behaves like line 3 above (instance exists, args is empty).
+# behaves like line 3 above (instname exists, args is empty).
 # Note that macro Ctrl-P calls gencell this way.  If gencell_name
 # is not specified and nothing is selected, then gencell{}
 # does nothing.
@@ -139,7 +139,7 @@ magic::tag select "[magic::tag select]; magic::gencell_update %1"
 # parameter names and values will be treated accordingly.
 #-------------------------------------------------------------
 
-proc magic::gencell {gencell_name {instance {}} args} {
+proc magic::gencell {gencell_name {instname {}} args} {
 
     # Pull "-spice" out of args, if it is the first argument
     if {[lindex $args 0] == "-spice"} {
@@ -194,7 +194,7 @@ proc magic::gencell {gencell_name {instance {}} args} {
 	    set gencell_type $gencell_name
 	}
 
-	if {$instance == {}} {
+	if {$instname == {}} {
 	    # Case:  Interactive, new device with parameters in args (if any)
 	    if {$spicemode == 1} {
 		# Legal not to have a *_convert routine
@@ -206,10 +206,10 @@ proc magic::gencell {gencell_name {instance {}} args} {
 	    magic::gencell_dialog {} $gencell_type $library $parameters
 	} else {
 	    # Check if instance exists or not in the cell
-	    set cellname [instance list celldef $instance]
+	    set cellname [instance list celldef $instname]
 	    if {$cellname != ""} {
 		# Case:  Change existing instance, parameters in args (if any)
-		select cell $instance
+		select cell $instname
 		set devparms [cellname list property $gencell_type parameters]
 	        set parameters [magic::gencell_defaults $gencell_type $library $devparms]
 		if {[dict exists $parameters nocell]} {
@@ -223,14 +223,14 @@ proc magic::gencell {gencell_name {instance {}} args} {
 		}
 		if {[dict size $argpar] == 0} {
 		    # No changes entered on the command line, so start dialog
-		    magic::gencell_dialog $instance $gencell_type $library $parameters
+		    magic::gencell_dialog $instname $gencell_type $library $parameters
 		} else {
 		    # Apply specified changes without invoking the dialog
 		    if {$spicemode == 1} {
 			set argpar [${library}::${gencell_type}_convert $argpar]
 		    }
 		    set parameters [dict merge $parameters $argpar]
-		    magic::gencell_change $instance $gencell_type $library $parameters
+		    magic::gencell_change $instname $gencell_type $library $parameters
 		}
 	    } else {
 		# Case:  Non-interactive, create new device with parameters
@@ -242,7 +242,7 @@ proc magic::gencell {gencell_name {instance {}} args} {
 		set inst_defaultname [magic::gencell_create \
 				$gencell_type $library $parameters]
 		select cell $inst_defaultname
-		identify $instance
+		identify $instname
 	    }
 	}
     }
@@ -301,7 +301,7 @@ proc magic::gencell_setparams {parameters} {
 #   Redraw a gencell with new parameters.
 #-------------------------------------------------------------
 
-proc magic::gencell_change {instance gencell_type library parameters} {
+proc magic::gencell_change {instname gencell_type library parameters} {
     suspendall
 
     if {$parameters == {}} {
@@ -320,9 +320,9 @@ proc magic::gencell_change {instance gencell_type library parameters} {
     snap internal
     set savebox [box values]
 
-    set gname [instance list celldef $instance]
+    set gname [instance list celldef $instname]
     if [dict exists $parameters nocell] {
-        select cell $instance
+        select cell $instname
 	delete
 	if {[catch {set newinst [${library}::${gencell_type}_draw $parameters]} \
 		drawerr]} {
@@ -332,7 +332,7 @@ proc magic::gencell_change {instance gencell_type library parameters} {
 	property parameters $parameters
 	popstack
         select cell $newinst
-	identify $instance
+	identify $instname
     } else {
 	pushstack $gname
 	select cell
@@ -578,8 +578,8 @@ proc magic::gencell_update {{command {}}} {
 		if {$command == "cell"} {
 		    # If multiple devices are selected, choose the first in
 		    # the list returned by "what -list".
-		    set instance [lindex [lindex [lindex [what -list] 2] 0] 0]
-		    magic::gencell_dialog $instance {} {} {}
+		    set instname [lindex [lindex [lindex [what -list] 2] 0] 0]
+		    magic::gencell_dialog $instname {} {} {}
 		}
 	    }
 	}
@@ -610,12 +610,12 @@ proc magic::gencell_update {{command {}}} {
 #
 #-------------------------------------------------------------
 
-proc magic::gencell_dialog {instance gencell_type library parameters} {
+proc magic::gencell_dialog {instname gencell_type library parameters} {
    if {$gencell_type == {}} {
        # Revert to default state for the device that was previously
        # shown in the parameter window.
        if {![catch {set state [wm state .params]}]} {
-          if {$instance == {}} {
+          if {$instname == {}} {
 	     set devstr [.params.title cget -text]
 	     if {![regexp {^Edit device \"(.*)\" library \"(.*)\".*$} \
 			$devstr valid gencell_type library]} {
@@ -625,12 +625,12 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
        }
    }
 
-   if {$instance != {}} {
+   if {$instname != {}} {
       # Remove any array component of the instance name
-      if {[regexp {^(.*)\[[0-9,]+\]$} $instance valid instroot]} {
-	 set instance $instroot
+      if {[regexp {^(.*)\[[0-9,]+\]$} $instname valid instroot]} {
+	 set instname $instroot
       }
-      set gname [instance list celldef [subst $instance]]
+      set gname [instance list celldef [subst $instname]]
       if {$gencell_type == {}} {
 	 set gencell_type [cellname list property $gname gencell]
       }
@@ -674,7 +674,7 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
 
    grid columnconfigure .params.edits 1 -weight 1
 
-   if {$instance == {}} {
+   if {$instname == {}} {
 	button .params.buttons.apply -text "Create" -command \
 		[subst {set inst \[magic::gencell_create \
 		$gencell_type $library {}\] ; \
@@ -686,9 +686,9 @@ proc magic::gencell_dialog {instance gencell_type library parameters} {
 		destroy .params}]
    } else {
 	button .params.buttons.apply -text "Apply" -command \
-		"magic::gencell_change $instance $gencell_type $library {}"
+		"magic::gencell_change $instname $gencell_type $library {}"
 	button .params.buttons.okay -text "Okay" -command \
-		"magic::gencell_change $instance $gencell_type $library {} ;\
+		"magic::gencell_change $instname $gencell_type $library {} ;\
 		 destroy .params"
    }
    button .params.buttons.close -text "Close" -command {destroy .params}

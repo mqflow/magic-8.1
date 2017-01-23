@@ -171,6 +171,8 @@ CmdArray(w, cmd)
 	    locargc--;
 	    argstart++;
 	}
+        if (locargc <= 1)
+	    goto badusage;	/* Prohibits "array -list" alone */
 	
 	option = Lookup(cmd->tx_argv[argstart], cmdArrayOption);
 	if (option < 0) {
