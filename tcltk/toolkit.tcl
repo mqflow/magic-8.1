@@ -302,6 +302,7 @@ proc magic::gencell_setparams {parameters} {
 #-------------------------------------------------------------
 
 proc magic::gencell_change {instname gencell_type library parameters} {
+    global Opts
     suspendall
 
     if {$parameters == {}} {
@@ -321,6 +322,7 @@ proc magic::gencell_change {instname gencell_type library parameters} {
     set savebox [box values]
 
     set gname [instance list celldef $instname]
+    setpoint 0 0 $Opts(focus)
     if [dict exists $parameters nocell] {
         select cell $instname
 	delete
@@ -363,6 +365,7 @@ proc magic::gencell_change {instname gencell_type library parameters} {
 #-------------------------------------------------------------
 
 proc magic::gencell_create {gencell_type library parameters} {
+    global Opts
     suspendall
 
     # Get device defaults
@@ -384,6 +387,7 @@ proc magic::gencell_create {gencell_type library parameters} {
     snap internal
     set savebox [box values]
 
+    setpoint 0 0 $Opts(focus)
     if [dict exists $parameters nocell] {
 	if {[catch {set instname [${library}::${gencell_type}_draw $parameters]} \				drawerr]} {
 	    puts stderr $drawerr
