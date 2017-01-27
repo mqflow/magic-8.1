@@ -726,8 +726,14 @@ proc magic::maketoolimages {} {
 # Generate the toolbar for the wrapper
 
 proc magic::maketoolbar { framename } {
-
    global Opts
+   global Winopts
+
+   # Don't do anything if in suspend mode
+   if {[info exists Winopts(${framename},suspend)]} {
+      if { $Winopts(${framename},suspend) > 0} { return }
+   }
+
    if {$Opts(toolbar) == 0} {
       magic::maketoolimages
       set Opts(toolbar) 1
