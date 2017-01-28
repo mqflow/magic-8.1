@@ -655,7 +655,6 @@ proc magic::cursorview {win} {
 proc magic::toolupdate {win {yesno "yes"} {layerlist "none"}} {
    global Winopts
 
-   # For NULL window, get current window
    if {$win == {}} {
       set win [magic::windownames]
    }
@@ -665,10 +664,11 @@ proc magic::toolupdate {win {yesno "yes"} {layerlist "none"}} {
       return
    }
 
+   set topname [winfo toplevel $win]
    set framename [winfo parent $win]
 
    # Don't do anything if toolbar is not present
-   if { $Winopts(${framename},toolbar) == 0 } { return }
+   if { $Winopts(${topname},toolbar) == 0 } { return }
 
    if {$layerlist == "none"} {
 	set layerlist $yesno
@@ -730,9 +730,9 @@ proc magic::maketoolbar { framename } {
    global Winopts
 
    # Don't do anything if in suspend mode
-   if {[info exists Winopts(${framename},suspend)]} {
-      if { $Winopts(${framename},suspend) > 0} { return }
-   }
+   set topname [winfo toplevel $framename]
+   if {[info exists Winopts(${topname},suspend)]} {
+      if { $Winopts(${topname},suspend) > 0} { return }
 
    if {$Opts(toolbar) == 0} {
       magic::maketoolimages
