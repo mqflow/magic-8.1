@@ -733,6 +733,7 @@ proc magic::maketoolbar { framename } {
    set topname [winfo toplevel $framename]
    if {[info exists Winopts(${topname},suspend)]} {
       if { $Winopts(${topname},suspend) > 0} { return }
+   }
 
    if {$Opts(toolbar) == 0} {
       magic::maketoolimages
