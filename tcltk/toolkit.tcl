@@ -317,11 +317,18 @@ proc magic::gencell_change {instname gencell_type library parameters} {
     }
     magic::gencell_setparams $parameters
 
+    set gname [instance list celldef $instname]
+
+    # Guard against instance having been deleted
+    if {$gname == ""} {
+	resumeall
+        return
+    }
+
     set snaptype [snap list]
     snap internal
     set savebox [box values]
 
-    set gname [instance list celldef $instname]
     catch {setpoint 0 0 $Opts(focus)}
     if [dict exists $parameters nocell] {
         select cell $instname
