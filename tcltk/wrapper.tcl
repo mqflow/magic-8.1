@@ -1310,7 +1310,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
    $m add command -label "New" -command "magic::openwrapper"
    $m add command -label "Set Editable" -command \
 		"pushbox ; select top cell ; edit ; popbox"
-   $m add command -label "Close" -command "magic::closewrapper ${framename}"
+   $m add command -label "Close" -command "closewrapper ${framename}"
    $m add separator
    $m add command -label "Full View" -command {magic::view}
    $m add command -label "Redraw" -command {magic::redraw}
