@@ -56,6 +56,9 @@ DBPropPut(cellDef, name, value)
     HashTable *htab;
     HashEntry *entry;
 
+    /* Honor the NOEDIT flag */
+    if (cellDef->cd_flags & CDNOEDIT) return;
+
     if (cellDef->cd_props == (ClientData) NULL) 
     {
 	cellDef->cd_props = (ClientData) mallocMagic(sizeof(HashTable));

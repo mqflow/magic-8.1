@@ -337,9 +337,9 @@ proc magic::gencell_change {instname gencell_type library parameters} {
 		drawerr]} {
 	    puts stderr $drawerr
 	}
-	pushstack $gname
-	property parameters $parameters
-	popstack
+	# pushstack $gname
+	# property parameters $parameters
+	# popstack
         select cell $newinst
 	identify $instname
     } else {
@@ -400,11 +400,11 @@ proc magic::gencell_create {gencell_type library parameters} {
 	    puts stderr $drawerr
 	}
 	set gname [instance list celldef $instname]
-	pushstack $gname
-	property library $library 
-	property gencell $gencell_type
-	property parameters $parameters
-	popstack
+	# pushstack $gname
+	# property library $library 
+	# property gencell $gencell_type
+	# property parameters $parameters
+	# popstack
 	eval "box values $savebox"
     } else {
 	# Give cell a unique name
