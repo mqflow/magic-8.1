@@ -1399,6 +1399,11 @@ dbReadProperties(cellDef, line, len, f, scalen, scaled)
 {
     char propertyname[128], propertyvalue[128], *storedvalue;
     int ntok;
+    unsigned int noeditflag;
+
+    /* Save CDNOEDIT flag if set, and clear it */
+    noeditflag = cellDef->cd_flags & CDNOEDIT;
+    cellDef->cd_flags &= ~CDNOEDIT;
 
     /* Get first element line */
     if (dbFgets(line, len, f) == NULL) return (FALSE);
@@ -1408,7 +1413,10 @@ dbReadProperties(cellDef, line, len, f, scalen, scaled)
 	/* Skip blank lines */
 	while (line[0] == '\0')
 	    if (dbFgets(line, len, f) == NULL)
+	    {
+		cellDef->cd_flags |= noeditflag;
 		return (TRUE);
+	    }
 
 	/* Stop when at end of properties section (currently, only "string"
 	 * is defined)
@@ -1480,6 +1488,7 @@ nextproperty:
 	    break;
     }
 
+    cellDef->cd_flags |= noeditflag;
     return (TRUE);
 }
 
