@@ -1397,7 +1397,7 @@ dbReadProperties(cellDef, line, len, f, scalen, scaled)
     int scalen;		/* Scale up by this factor */
     int scaled;		/* Scale down by this factor */
 {
-    char propertyname[128], propertyvalue[128], *storedvalue;
+    char propertyname[128], propertyvalue[2048], *storedvalue;
     int ntok;
     unsigned int noeditflag;
 
@@ -1429,7 +1429,7 @@ dbReadProperties(cellDef, line, len, f, scalen, scaled)
 	 */
 	if (line[0] == 's')
 	{
-	    if ((ntok = sscanf(line, "string %127s %127[^\n]",
+	    if ((ntok = sscanf(line, "string %127s %2047[^\n]",
 		    propertyname, propertyvalue)) != 2)
 	    {
 		TxError("Skipping bad property line: %s", line);

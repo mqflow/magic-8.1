@@ -358,6 +358,31 @@ proc magic::gencell_change {instname gencell_type library parameters} {
 }
 
 #-------------------------------------------------------------
+# Assign a unique name for a gencell
+#
+# Note:  This depends on the unlikelihood of the name
+# existing in a cell on disk.  Only cells in memory are
+# checked for name collisions.  Since the names will go
+# into SPICE netlists, names must be unique when compared
+# in a case-insensitive manner.  Using base-36 (alphabet and
+# numbers), each gencell name with 6 randomized characters
+# has a 1 in 4.6E-10 chance of reappearing.
+#-------------------------------------------------------------
+
+proc magic::get_gencell_name {gencell_type} {
+    while {true} {
+        set postfix ""
+        for {set i 0} {$i < 6} {incr i} {
+	    set pint [expr 48 + int(rand() * 36)]
+	    if {$pint > 57} {set pint [expr $pint + 39]}
+	    set postfix [string cat $postfix [format %c $pint]]
+	}   
+	if {[cellname list exists ${gencell_type}_$postfix] == 0} {break}
+    }
+    return ${gencell_type}_$postfix
+}
+
+#-------------------------------------------------------------
 # gencell_create
 #
 #   Instantiate a new gencell called $gname.  If $gname
@@ -399,12 +424,7 @@ proc magic::gencell_create {gencell_type library parameters} {
 	set gname [instance list celldef $instname]
 	eval "box values $savebox"
     } else {
-	# Give cell a unique name
-	set pidx 1
-	while {[cellname list exists ${gencell_type}_$pidx] != 0} {
-	    incr pidx
-	}
-        set gname ${gencell_type}_$pidx
+        set gname [magic::get_gencell_name ${gencell_type}]
 	cellname create $gname
 	pushstack $gname
 	if {[catch {${library}::${gencell_type}_draw $parameters} drawerr]} {
