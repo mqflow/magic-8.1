@@ -1515,8 +1515,9 @@ proc magic::addcommandentry { framename } {
       ${framename}.pane paneconfigure ${framename}.pane.bot -minsize 50
    }
    set entercmd [bind ${framename}.pane.top.magic <Enter>]
-   set bindstr "$entercmd ; macro XK_colon \"focus ${commandframe}.eval.text\" ;\
-		alias puts tkshell::PutsTkShell ; set Opts(redirect) 1"
+   set bindstr "$entercmd ; macro XK_colon \"set Opts(redirect) 1;\
+		focus ${commandframe}.eval.text\";\
+		alias puts tkshell::PutsTkShell"
    bind ${commandframe}.eval <Enter> \
 	"focus ${commandframe}.eval.text ; set Opts(focus) $framename ;\
 	catch {unset Opts(redirect)}"
