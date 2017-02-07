@@ -681,21 +681,28 @@ proc magic::gencell_dialog {instname gencell_type library parameters} {
    # Destroy children, not the top-level window, or else window keeps
    # bouncing around every time something is changed.
    if {[catch {toplevel .params}]} {
-       foreach child [winfo children .params] {
+       .params.title configure -text "$ttext \"$gencell_type\" library \"$library\"" \
+		-foreground blue
+       foreach child [winfo children .params.edits] {
 	  destroy $child
        }
-   }
-   label .params.title -text "$ttext \"$gencell_type\" library \"$library\"" \
+       foreach child [winfo children .params.buttons] {
+	  destroy $child
+       }
+   } else {
+       label .params.title -text "$ttext \"$gencell_type\" library \"$library\"" \
 		-foreground blue
-   ttk::separator .params.sep
-   frame .params.edits
-   frame .params.buttons
-   pack .params.title
-   pack .params.sep -fill x -expand true
-   pack .params.edits -side top -fill both -expand true -ipadx 5
-   pack .params.buttons -fill x
+       ttk::separator .params.sep
+       frame .params.edits
+       frame .params.buttons
 
-   grid columnconfigure .params.edits 1 -weight 1
+       pack .params.title
+       pack .params.sep -fill x -expand true
+       pack .params.edits -side top -fill both -expand true -ipadx 5
+       pack .params.buttons -fill x
+
+       grid columnconfigure .params.edits 1 -weight 1
+   }
 
    if {$instname == {}} {
 	button .params.buttons.apply -text "Create" -command \
