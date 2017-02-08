@@ -375,7 +375,7 @@ proc magic::get_gencell_name {gencell_type} {
         for {set i 0} {$i < 6} {incr i} {
 	    set pint [expr 48 + int(rand() * 36)]
 	    if {$pint > 57} {set pint [expr $pint + 39]}
-	    set postfix [string cat $postfix [format %c $pint]]
+	    append postfix [format %c $pint]
 	}   
 	if {[cellname list exists ${gencell_type}_$postfix] == 0} {break}
     }
