@@ -2321,6 +2321,14 @@ CmdSimCmd(w, cmd)
  * ----------------------------------------------------------------------------
  */
 
+#define SNAP_OFF		0
+#define SNAP_INTERNAL		1
+#define SNAP_LAMBDA		2
+#define SNAP_GRID		3
+#define SNAP_USER		4
+#define SNAP_ON			5
+#define SNAP_LIST		6
+
 void
 CmdSnap(w, cmd)
     MagWindow *w;
@@ -2328,8 +2336,7 @@ CmdSnap(w, cmd)
 {
     static char *names[] = { "off", "internal", "lambda", "grid", "user", "on",
 		"list", 0 };
-    int n = -1;
-    int mingrid;
+    int n = SNAP_LIST;
     DBWclientRec *crec;
 
     if (cmd->tx_argc < 2) goto printit;
@@ -2342,19 +2349,19 @@ CmdSnap(w, cmd)
     }
     switch (n)
     {
-	case 0: case 1:
+	case SNAP_OFF: case SNAP_INTERNAL:
 	    DBWSnapToGrid = DBW_SNAP_INTERNAL;
-	    break;
-	case 2:
+	    return;
+	case SNAP_LAMBDA:
 	    DBWSnapToGrid = DBW_SNAP_LAMBDA;
-	    break;
-	case 3: case 4: case 5:
+	    return;
+	case SNAP_GRID: case SNAP_USER: case SNAP_ON:
 	    DBWSnapToGrid = DBW_SNAP_USER;
-	    break;
+	    return;
     }
 
 printit:
-    if (n == 6)  /* list */
+    if (n == SNAP_LIST)  /* list */
 #ifdef MAGIC_WRAPPER
 	Tcl_SetResult(magicinterp, 
 		(DBWSnapToGrid == DBW_SNAP_INTERNAL) ? "internal" :
