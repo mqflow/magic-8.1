@@ -1012,7 +1012,7 @@ extComputeEffectiveLW(rlengthptr, rwidthptr, numregions, chop)
 
         for (i = 0; i < numregions; i++)
 	{
-	    if ((i == p) && (i > 1)) continue;
+	    if ((i == p) && (numregions > 1)) continue;
 	    for (lb2 = extSpecialBounds[i]; lb2 != NULL; lb2 = lb2->b_next)
 	    {
 		if (lb2->dir == oppdir)
@@ -1132,7 +1132,7 @@ extComputeEffectiveLW(rlengthptr, rwidthptr, numregions, chop)
 	cornerw = 0;
         for (i = 0; i < numregions; i++)
 	{
-	    if ((i == p) && (i > 1)) continue;
+	    if ((i == p) && (numregions > 1)) continue;
 	    for (lb2 = extSpecialBounds[i]; lb2 != NULL; lb2 = lb2->b_next)
 	    {
 		if (lb2->dir == oppdir)
