@@ -291,6 +291,11 @@ proc magic::gencell_setparams {parameters} {
       } elseif {[regexp {^.params.edits.(.*)_sel$} $s valid pname] != 0} {
 	 set value [dict get $parameters $pname]
          set magic::${pname}_val $value
+      } elseif {[regexp {^.params.edits.(.*)_txt$} $s valid pname] != 0} {
+	 if {[dict exists $parameters $pname]} {
+	    set value [dict get $parameters $pname]
+	    .params.edits.${pname}_txt configure -text $value
+	 }
       }
    }
 }
@@ -305,11 +310,16 @@ proc magic::gencell_change {instname gencell_type library parameters} {
     global Opts
     suspendall
 
+    set newinstname $instname
     if {$parameters == {}} {
         # Get device defaults
 	set pdefaults [${library}::${gencell_type}_defaults]
         # Pull user-entered values from dialog
         set parameters [dict merge $pdefaults [magic::gencell_getparams]]
+	set newinstname [.params.title.ient get]
+	if {$newinstname == "(default)"} {set newinstname $instname}
+	if {$newinstname == $instname} {set newinstname $instname}
+	if {[instance list exists $newinstname] != ""} {set newinstname $instname}
     }
     if {[catch {set parameters [${library}::${gencell_type}_check $parameters]} \
 		checkerr]} {
@@ -338,7 +348,6 @@ proc magic::gencell_change {instname gencell_type library parameters} {
 	    puts stderr $drawerr
 	}
         select cell $newinst
-	identify $instname
     } else {
 	pushstack $gname
 	select cell
@@ -350,7 +359,9 @@ proc magic::gencell_change {instname gencell_type library parameters} {
 	property parameters $parameters
 	tech revert
 	popstack
+        select cell $instname
     }
+    identify $newinstname
     eval "box values $savebox"
     snap $snaptype
     resumeall
@@ -397,11 +408,16 @@ proc magic::gencell_create {gencell_type library parameters} {
     global Opts
     suspendall
 
+    set newinstname ""
+
     # Get device defaults
     set pdefaults [${library}::${gencell_type}_defaults]
     if {$parameters == {}} {
         # Pull user-entered values from dialog
         set parameters [dict merge $pdefaults [magic::gencell_getparams]]
+	set newinstname [.params.title.ient get]
+	if {$newinstname == "(default)"} {set newinstname ""}
+	if {[instance list exists $newinstname] != ""} {set newinstname ""}
     } else {
         set parameters [dict merge $pdefaults $parameters]
     }
@@ -437,6 +453,10 @@ proc magic::gencell_create {gencell_type library parameters} {
 	eval "box values $savebox"
 	set instname [getcell $gname]
 	expand
+    }
+    if {$newinstname != ""} {
+	identify $newinstname
+	set instname $newinstname
     }
     snap $snaptype
     resumeall
@@ -496,15 +516,39 @@ proc magic::add_check_callbacks {gencell_type library} {
 # values and writes them back to the parameter dictionary.
 # The callback function must return the modified parameters
 # dictionary.
+#
+# Also handle dependencies on checkboxes and selection lists
 #----------------------------------------------------------
 
 proc magic::add_dependency {callback gencell_type library args} {
+    if {[llength $args] == 0} {
+	# If no arguments are given, do for all parameters
+	set parameters ${library}::${gencell_type}_defaults
+	magic::add_dependency $callback $gencell_type $library \
+			{*}[dict keys $parameters]
+	return
+    }
+    set clist [winfo children .params.edits]
     foreach pname $args {
-	# Add callback on enter or focus out
-	bind .params.edits.${pname}_ent <Return> \
-		"magic::update_dialog $callback $pname $gencell_type $library"
-	bind .params.edits.${pname}_ent <FocusOut> \
-		"magic::update_dialog $callback $pname $gencell_type $library"
+        if {[lsearch $clist .params.edits.${pname}_ent] >= 0} {
+	    # Add callback on enter or focus out
+	    bind .params.edits.${pname}_ent <Return> \
+			"magic::update_dialog $callback $pname $gencell_type $library"
+	    bind .params.edits.${pname}_ent <FocusOut> \
+			"magic::update_dialog $callback $pname $gencell_type $library"
+	} elseif {[lsearch $clist .params.edits.${pname}_chk] >= 0} {
+	    # Add callback on checkbox change state
+	    .params.edits.${pname}_chk configure -command \
+			"magic::update_dialog $callback $pname $gencell_type $library"
+	} elseif {[lsearch $clist .params.edits.${pname}_sel] >= 0} {
+	    set smenu .params.edits.${pname}_sel.menu
+	    set sitems [${smenu} index end]
+	    for {set idx 0} {$idx <= $sitems} {incr idx} {
+		set curcommand [${smenu} entrycget $idx -command]
+		${smenu} entryconfigure $idx -command "$curcommand ; \
+		magic::update_dialog $callback $pname $gencell_type $library"
+	    }
+	}
     }
 }
 
@@ -543,6 +587,29 @@ proc magic::add_checkbox {pname ptext parameters} {
    grid .params.edits.${pname}_lab -row $numrows -column 0 -sticky ens
    grid .params.edits.${pname}_chk -row $numrows -column 1 -sticky wns
    set magic::${pname}_val $value
+}
+
+#----------------------------------------------------------
+# Add a message box (informational, not editable) to the
+# gencell window.  Note that the text does not have to be
+# in the parameter list, as it can be upated through the
+# textvariable name.
+#----------------------------------------------------------
+
+proc magic::add_message {pname ptext parameters {color blue}} {
+
+   if [dict exists $parameters $pname] {
+      set value [dict get $parameters $pname]
+   } else {
+      set value ""
+   }
+   
+   set numrows [lindex [grid size .params.edits] 1]
+   label .params.edits.${pname}_lab -text $ptext
+   label .params.edits.${pname}_txt -text $value \
+		-foreground $color -textvariable magic::${pname}_val
+   grid .params.edits.${pname}_lab -row $numrows -column 0 -sticky ens
+   grid .params.edits.${pname}_txt -row $numrows -column 1 -sticky wns
 }
 
 #----------------------------------------------------------
@@ -669,20 +736,23 @@ proc magic::gencell_dialog {instname gencell_type library parameters} {
 	 set parameters [${library}::${gencell_type}_defaults]
       }
       set ttext "Edit device"
+      set itext $instname
    } else {
-      set pidx 1
-      while {[cellname list exists ${gencell_type}_$pidx] != 0} {
-	  incr pidx
-      }
       set parameters [magic::gencell_defaults $gencell_type $library $parameters]
+      set gname "(default)"
+      set itext "(default)"
       set ttext "New device"
    }
 
    # Destroy children, not the top-level window, or else window keeps
    # bouncing around every time something is changed.
    if {[catch {toplevel .params}]} {
-       .params.title configure -text "$ttext \"$gencell_type\" library \"$library\"" \
-		-foreground blue
+       .params.title.lab1 configure -text "${ttext}:"
+       .params.title.lab2 configure -text "$gencell_type"
+       .params.title.lab4 configure -text "$library"
+       .params.title.glab configure -foreground blue -text "$gname"
+       .params.title.ient delete 0 end
+       .params.title.ient insert 0 "$itext"
        foreach child [winfo children .params.edits] {
 	  destroy $child
        }
@@ -690,13 +760,32 @@ proc magic::gencell_dialog {instname gencell_type library parameters} {
 	  destroy $child
        }
    } else {
-       label .params.title -text "$ttext \"$gencell_type\" library \"$library\"" \
-		-foreground blue
+       frame .params.title
+       label .params.title.lab1 -text "${ttext}:"
+       label .params.title.lab2 -foreground blue -text "$gencell_type"
+       label .params.title.lab3 -text "Library:"
+       label .params.title.lab4 -foreground blue -text "$library"
+       label .params.title.clab -text "Cellname:"
+       label .params.title.glab -foreground blue -text "$gname"
+       label .params.title.ilab -text "Instance:"
+       entry .params.title.ient -foreground brown -background white
+       .params.title.ient insert 0 "$itext"
        ttk::separator .params.sep
        frame .params.edits
        frame .params.buttons
 
-       pack .params.title
+       grid .params.title.lab1 -padx 5 -row 0 -column 0
+       grid .params.title.lab2 -padx 5 -row 0 -column 1 -sticky w
+       grid .params.title.lab3 -padx 5 -row 0 -column 2
+       grid .params.title.lab4 -padx 5 -row 0 -column 3 -sticky w
+
+       grid .params.title.clab -padx 5 -row 1 -column 0
+       grid .params.title.glab -padx 5 -row 1 -column 1 -sticky w
+       grid .params.title.ilab -padx 5 -row 1 -column 2
+       grid .params.title.ient -padx 5 -row 1 -column 3 -sticky ew
+       grid columnconfigure .params.title 3 -weight 1
+
+       pack .params.title -fill x -expand true
        pack .params.sep -fill x -expand true
        pack .params.edits -side top -fill both -expand true -ipadx 5
        pack .params.buttons -fill x
@@ -721,11 +810,14 @@ proc magic::gencell_dialog {instname gencell_type library parameters} {
 		"magic::gencell_change $instname $gencell_type $library {} ;\
 		 destroy .params"
    }
+   button .params.buttons.reset -text "Reset" -command \
+		"magic::gencell_dialog {} ${gencell_type} ${library} {}"
    button .params.buttons.close -text "Close" -command {destroy .params}
 
    pack .params.buttons.apply -padx 5 -ipadx 5 -ipady 2 -side left
    pack .params.buttons.okay  -padx 5 -ipadx 5 -ipady 2 -side left
    pack .params.buttons.close -padx 5 -ipadx 5 -ipady 2 -side right
+   pack .params.buttons.reset -padx 5 -ipadx 5 -ipady 2 -side right
 
    # Invoke the callback procedure that creates the parameter entries
 

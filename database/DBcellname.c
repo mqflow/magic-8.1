@@ -1832,6 +1832,10 @@ DBFindUse(id, parentDef)
     HashEntry *he;
     char *delimit;
    
+    /* Sanity checks */
+    if (id == NULL) return NULL;
+    if (parentDef == NULL) return NULL;
+
     /* Array delimiters should be ignored */
     if ((delimit = strrchr(id, '[')) != NULL) *delimit = '\0';
 
