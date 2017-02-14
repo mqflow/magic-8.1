@@ -171,19 +171,7 @@ proc magic::gencell {gencell_name {instname {}} args} {
 	}
         # need to incorporate argpar?
         set parameters [cellname list property $gname parameters]
-	
-	# if "nocell" is set in parameters, then overwrite additional
-        # parameters from the instance.  Reserved parameters names are
-	# nx, ny, pitchx, and pitchy
-	if {[dict exists $parameters nocell]} {
-	    set arcount [array -list count]
-	    set arpitch [array -list pitch]
-
-	    dict set parameters nx [expr [lindex $arcount 1] - [lindex $arcount 0] + 1]
-	    dict set parameters ny [expr [lindex $arcount 3] - [lindex $arcount 2] + 1]
-	    dict set parameters pitchx [lindex $arpitch 0]
-	    dict set parameters pitchy [lindex $arpitch 1]
-	}
+	set parameters [magic::gencell_defaults $gencell_type $library $parameters]
 	magic::gencell_dialog $ginst $gencell_type $library $parameters
     } else {
 	# Parse out library name from gencell_name, otherwise default
@@ -207,6 +195,7 @@ proc magic::gencell {gencell_name {instname {}} args} {
 	} else {
 	    # Check if instance exists or not in the cell
 	    set cellname [instance list celldef $instname]
+
 	    if {$cellname != ""} {
 		# Case:  Change existing instance, parameters in args (if any)
 		select cell $instname
@@ -706,9 +695,11 @@ proc magic::gencell_dialog {instname gencell_type library parameters} {
        # shown in the parameter window.
        if {![catch {set state [wm state .params]}]} {
           if {$instname == {}} {
-	     set devstr [.params.title cget -text]
-	     if {![regexp {^Edit device \"(.*)\" library \"(.*)\".*$} \
-			$devstr valid gencell_type library]} {
+	     set devstr [.params.title.lab1 cget -text]
+	     if {$devstr == "Edit device:"} {
+		 set gencell_type [.params.title.lab2 cget -text]
+		 set library [.params.title.lab4 cget -text]
+	     } else {
 	         return
 	     }
 	  }
@@ -717,6 +708,7 @@ proc magic::gencell_dialog {instname gencell_type library parameters} {
 
    if {$instname != {}} {
       # Remove any array component of the instance name
+      set instname [string map {\\ ""} $instname]
       if {[regexp {^(.*)\[[0-9,]+\]$} $instname valid instroot]} {
 	 set instname $instroot
       }
@@ -734,6 +726,19 @@ proc magic::gencell_dialog {instname gencell_type library parameters} {
 
       if {$parameters == {}} {
 	 set parameters [${library}::${gencell_type}_defaults]
+      }
+
+      # If the default parameters contain "nocell", then set the
+      # standard parameters for fixed devices from the instance
+      if {[dict exists $parameters nocell]} {
+	 select cell $instname
+	 set arcount [array -list count]
+	 set arpitch [array -list pitch]
+
+	 dict set parameters nx [expr [lindex $arcount 1] - [lindex $arcount 0] + 1]
+	 dict set parameters ny [expr [lindex $arcount 3] - [lindex $arcount 2] + 1]
+	 dict set parameters pitchx [lindex $arpitch 0]
+	 dict set parameters pitchy [lindex $arpitch 1]
       }
       set ttext "Edit device"
       set itext $instname
