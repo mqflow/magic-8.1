@@ -693,13 +693,17 @@ proc magic::toolupdate {win {yesno "yes"} {layerlist "none"}} {
 	 labels {set canon $layer}
 	 default {set canon [magic::tech layer $layer]}
       }
+
+      # Layers may not be in the toolbar if "hidelocked" or
+      # "hidespecial" is used, so catch each configure command.
+
       if {$canon != ""} {
          if {$yesno == "yes"} {
-	    ${framename}.toolbar.b$canon configure -image img_$canon 
-	    ${framename}.toolbar.p$canon configure -image pale_$canon 
+	    catch {${framename}.toolbar.b$canon configure -image img_$canon}
+	    catch {${framename}.toolbar.p$canon configure -image pale_$canon}
          } else {
-	    ${framename}.toolbar.b$canon configure -image img_space
-	    ${framename}.toolbar.p$canon configure -image img_space
+	    catch {${framename}.toolbar.b$canon configure -image img_space}
+	    catch {${framename}.toolbar.p$canon configure -image img_space}
 	 }
       }
    }
