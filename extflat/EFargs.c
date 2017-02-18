@@ -213,7 +213,7 @@ EFArgs(argc, argv, err_result, argsProc, cdata)
 		if (strchr(cp, '=')) EFTrimFlags |= EF_CONVERTEQUAL;
 		break;
 	    case 'C':
-		EFCapThreshold = INFINITE_THRESHOLD;
+		EFCapThreshold = (EFCapValue)INFINITE_THRESHOLD_F;
 		break;
 	    case 'R':
 		EFResistThreshold = INFINITE_THRESHOLD;

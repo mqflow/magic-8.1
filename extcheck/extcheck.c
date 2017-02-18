@@ -82,9 +82,9 @@ main(argc, argv)
     EFFlatBuild(inName, EF_FLATNODES|EF_FLATCAPS|EF_FLATRESISTS);
 
     EFVisitDevs(devVisit, (ClientData) NULL);
-    if (EFCapThreshold < INFINITE_THRESHOLD)
+    if (IS_FINITE_F(EFCapThreshold))
 	EFVisitCaps(capVisit, (ClientData) NULL);
-    if (EFResistThreshold < INFINITE_THRESHOLD)
+    if (EFResistThreshold != INFINITE_THRESHOLD)
 	EFVisitResists(resistVisit, (ClientData) NULL);
     EFVisitNodes(nodeVisit, (ClientData) NULL);
 

@@ -359,7 +359,7 @@ CmdExtToSim(w, cmd)
 	case EXTTOSIM_CTHRESH:
 	    if (cmd->tx_argc == 2)
 	    {
-		if (LocCapThreshold == INFINITE_THRESHOLD)
+		if (!IS_FINITE_F(LocCapThreshold))
 		    Tcl_SetResult(magicinterp, "infinite", NULL);
 		else
 		    Tcl_SetObjResult(magicinterp,
@@ -368,7 +368,7 @@ CmdExtToSim(w, cmd)
 	    }
 	    else if (cmd->tx_argc < 3) goto usage;
 	    if (!strncmp(cmd->tx_argv[2], "inf", 3))
-		LocCapThreshold = INFINITE_THRESHOLD;
+		LocCapThreshold = INFINITE_THRESHOLD_F;
 	    else if (StrIsNumeric(cmd->tx_argv[2]))
 		LocCapThreshold = atoCap(cmd->tx_argv[2]);
 	    else 
@@ -606,8 +606,8 @@ runexttosim:
 
     /* Convert the hierarchical description to a flat one */
     flatFlags = EF_FLATNODES;
-    if (LocCapThreshold < INFINITE_THRESHOLD) flatFlags |= EF_FLATCAPS;
-    if (LocResistThreshold < INFINITE_THRESHOLD) flatFlags |= EF_FLATRESISTS;
+    if (IS_FINITE_F(LocCapThreshold)) flatFlags |= EF_FLATCAPS;
+    if (LocResistThreshold != INFINITE_THRESHOLD) flatFlags |= EF_FLATRESISTS;
     EFFlatBuild(inName, flatFlags);
 
     if (esMergeDevsA || esMergeDevsC)
@@ -735,8 +735,8 @@ main(argc, argv)
 
     /* Convert the hierarchical description to a flat one */
     flatFlags = EF_FLATNODES;
-    if (EFCapThreshold < INFINITE_THRESHOLD) flatFlags |= EF_FLATCAPS;
-    if (EFResistThreshold < INFINITE_THRESHOLD) flatFlags |= EF_FLATRESISTS;
+    if (IS_FINITE_F(EFCapThreshold)) flatFlags |= EF_FLATCAPS;
+    if (EFResistThreshold != INFINITE_THRESHOLD) flatFlags |= EF_FLATRESISTS;
     EFFlatBuild(inName, flatFlags);
 
     if (esMergeDevsA || esMergeDevsC) {

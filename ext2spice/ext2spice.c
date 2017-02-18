@@ -481,7 +481,7 @@ CmdExtToSpice(w, cmd)
 	case EXTTOSPC_CTHRESH:
 	    if (cmd->tx_argc == 2)
 	    {
-		if (LocCapThreshold == (EFCapValue)INFINITE_THRESHOLD)
+		if (!IS_FINITE_F(LocCapThreshold))
 		    Tcl_SetResult(magicinterp, "infinite", NULL);
 		else
 		    Tcl_SetObjResult(magicinterp,
@@ -496,7 +496,7 @@ CmdExtToSpice(w, cmd)
 	    /* we need to check this case first. . . 			*/
 
 	    if (!strncmp(cmd->tx_argv[2], "inf", 3))
-		LocCapThreshold = (EFCapValue)INFINITE_THRESHOLD;
+		LocCapThreshold = (EFCapValue)INFINITE_THRESHOLD_F;
 	    else if (StrIsNumeric(cmd->tx_argv[2]))
 		LocCapThreshold = atoCap(cmd->tx_argv[2]);
 	    else 
@@ -599,6 +599,7 @@ runexttospice:
     esNodeNum = 10; /* just in case we're extracting spice2 */
     esFMIndex = 0;
     esSpiceDevsMerged = 0;
+    esDevNodesOnly = FALSE;	/* so using -F doesn't become permanent */
 
     EFInit();
 
@@ -776,7 +777,7 @@ runexttospice:
     // This forces options TRIMGLOB and CONVERTEQUAL, not sure that's such a
     // good idea. . .
     EFTrimFlags |= EF_TRIMGLOB | EF_CONVERTEQUAL;
-    if (EFCapThreshold < INFINITE_THRESHOLD) flatFlags |= EF_FLATCAPS;
+    if (IS_FINITE_F(EFCapThreshold)) flatFlags |= EF_FLATCAPS;
     if (esFormat == HSPICE )
 	EFTrimFlags |= EF_TRIMLOCAL ;
 
@@ -993,7 +994,7 @@ main(argc, argv)
     /* Convert the hierarchical description to a flat one */
     flatFlags = EF_FLATNODES;
     EFTrimFlags |= EF_TRIMGLOB ;
-    if (EFCapThreshold < INFINITE_THRESHOLD) flatFlags |= EF_FLATCAPS;
+    if (IS_FINITE_F(EFCapThreshold)) flatFlags |= EF_FLATCAPS;
     if (esFormat == HSPICE ) {
 	EFTrimFlags |= EF_TRIMLOCAL ;
 	HashInit(&subcktNameTable, 32, HT_STRINGKEYS);
@@ -2639,6 +2640,7 @@ int spcnAP(node, resClass, scale, asterm, psterm, m, outf, w)
 			((float)node->efnode_pa[resClass].pa_perim * scale)
 			* esScale * dsc);
     }
+
     return 0;
 
 oldFmt:

@@ -1228,7 +1228,7 @@ spcnodeHierVisit(hc, node, res, cap)
     if (fabs(cap) > EFCapThreshold)
     {
 	fprintf(esSpiceF, esSpiceCapFormat, esCapNum++, nsn, cap,
-			  (isConnected) ?  "\n" : " **FLOATING\n");
+			  (isConnected) ?  "" : " **FLOATING");
     }
     if (node->efnode_attrs && !esNoAttrs)
     {

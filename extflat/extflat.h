@@ -283,9 +283,12 @@ typedef struct dev
 
 /*
  * A big number, used for thresholds for capacitance and resistance
- * when no processing is desired.
+ * when no processing is desired (NOTE:  Probably should be using
+ * C99 "INFINITY" here instead).
  */
 #define	INFINITE_THRESHOLD	(((unsigned int) (~0)) >> 1)
+#define	INFINITE_THRESHOLD_F	((EFCapValue)(1.0E38))
+#define IS_FINITE_F(a)		(((EFCapValue)(a)) != INFINITE_THRESHOLD_F)
 
 /* Max filename length */
 #define	FNSIZE		1024

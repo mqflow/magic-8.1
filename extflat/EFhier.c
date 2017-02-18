@@ -236,6 +236,7 @@ EFHierSrDefs(hc, func, cdata)
 {
     HierContext newhc;
     Use *u;
+    int retval;
 
     if (func == NULL)
     {
@@ -261,7 +262,14 @@ EFHierSrDefs(hc, func, cdata)
     if (func == NULL)
 	return 0;
     else
-	return ((*func)(hc, cdata));
+    {
+	/* Clear DEF_PROCESSED for the duration of running the function */
+
+	hc->hc_use->use_def->def_flags &= ~DEF_PROCESSED;
+	retval = (*func)(hc, cdata);
+	hc->hc_use->use_def->def_flags |= DEF_PROCESSED;
+	return retval;
+    }
 }
 
 /*----------------------------------------------------------------------*/
