@@ -2572,6 +2572,8 @@ FILE *outf;
     	nn = (EFNodeName *) HashGetValue(he);
 	if (outf) 
 	   fprintf(outf, "%s", nodeSpiceName(nn->efnn_node->efnode_name->efnn_hier));
+	/* Mark node as visited */
+	((nodeClient *)nn->efnn_node->efnode_client)->m_w.visitMask |= DEV_CONNECT_MASK;
         return nn->efnn_node;
    }
 }

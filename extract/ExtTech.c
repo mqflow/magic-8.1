@@ -1024,7 +1024,7 @@ ExtTechSimplePerimCap(argc, argv)
 	/* Side overlap computed from residues */
     	if (DBIsContact(s)) continue;
 
-	if (!TTMaskHasType(&types, s))
+	if (TTMaskHasType(&types, s))	// Corrected, 2/21/2017
 	{
 	    ExtCurStyle->exts_sidePlanes |= PlaneNumToMaskBit(plane1);
 	    TTMaskSetType(&ExtCurStyle->exts_sideTypes[plane1], s);
@@ -1245,7 +1245,7 @@ ExtTechSimpleOverlapCap(argv)
  *
  * ExtTechSimpleSideOverlapCap --
  *
- *	Parse the techfile line for the "defaultareacap" keyword.
+ *	Parse the techfile line for the "defaultsideoverlap" keyword.
  *
  * Results:
  *	None.
