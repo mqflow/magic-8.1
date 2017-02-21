@@ -1218,7 +1218,7 @@ spcnodeHierVisit(hc, node, res, cap)
     hierName = (HierName *) node->efnode_name->efnn_hier;
     nsn = nodeSpiceHierName(hc, hierName);
 
-    if (esFormat == SPICE2 || esFormat == HSPICE && strncmp(nsn, "z@", 2)==0 ) {
+    if (esFormat == SPICE2 || esFormat == HSPICE && !strncmp(nsn, "z@", 2)) {
 	static char ntmp[MAX_STR_SIZE];
 
 	EFHNSprintf(ntmp, hierName);
@@ -1228,7 +1228,9 @@ spcnodeHierVisit(hc, node, res, cap)
     if (fabs(cap) > EFCapThreshold)
     {
 	fprintf(esSpiceF, esSpiceCapFormat, esCapNum++, nsn, cap,
-			  (isConnected) ?  "" : " **FLOATING");
+			(isConnected) ?  "" :
+			(esFormat == NGSPICE) ? "; **FLOATING" :
+			" **FLOATING");
     }
     if (node->efnode_attrs && !esNoAttrs)
     {
@@ -1250,7 +1252,7 @@ spcnodeHierVisit(hc, node, res, cap)
  * nodeSpiceHierName --
  * Find the real spice name for the node with hierarchical name hname.
  *   SPICE2 ==> numeric
- *   SPICE3 ==> full magic path
+ *   SPICE3, NGSPICE ==> full magic path
  *   HSPICE ==> less than 15 characters long
  *
  * Results:
@@ -1296,7 +1298,7 @@ makeName:
     else {
        EFHNSprintf(esTempName, node->efnode_name->efnn_hier);
        if (esFormat == HSPICE) /* more processing */
-	nodeHspiceName(esTempName);
+	  nodeHspiceName(esTempName);
     }
     ((nodeClient *) (node->efnode_client))->spiceNodeName = 
 	    StrDup(NULL, esTempName);

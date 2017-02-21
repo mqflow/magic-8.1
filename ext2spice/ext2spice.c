@@ -239,6 +239,10 @@ CmdExtToSpice(w, cmd)
     static EFCapValue LocCapThreshold = 2;
     static int LocResistThreshold = INFINITE_THRESHOLD; 
 
+    static char *spiceFormats[] = {
+	"SPICE2", "SPICE3", "HSPICE", "NGSPICE", NULL
+    };
+
     static char *cmdExtToSpcOption[] = {
 	"[run] [options]	run exttospice on current cell\n"
 	"			use \"run -help\" to get standard options",
@@ -270,6 +274,7 @@ CmdExtToSpice(w, cmd)
 	"spice2",
 	"spice3",
 	"hspice",
+	"ngspice",
 	NULL
     };
 
@@ -761,11 +766,9 @@ runexttospice:
     /* Write the output file */
 
     fprintf(esSpiceF, "* %s file created from %s.ext - technology: %s\n\n",
-	    (esFormat == SPICE2) ? "SPICE2" :  
-	      ( (esFormat == SPICE3) ? "SPICE3" : "HSPICE" ),  
-	    inName, EFTech);
+	    spiceFormats[esFormat], inName, EFTech);
     if (esScale < 0) 
-    	fprintf(esSpiceF,".option scale=%gu\n\n", EFScale / 100.0);
+    	fprintf(esSpiceF, ".option scale=%gu\n\n", EFScale / 100.0);
     else
 	esScale = EFScale / 100.0;
 
@@ -778,8 +781,8 @@ runexttospice:
     // good idea. . .
     EFTrimFlags |= EF_TRIMGLOB | EF_CONVERTEQUAL;
     if (IS_FINITE_F(EFCapThreshold)) flatFlags |= EF_FLATCAPS;
-    if (esFormat == HSPICE )
-	EFTrimFlags |= EF_TRIMLOCAL ;
+    if (esFormat == HSPICE)
+	EFTrimFlags |= EF_TRIMLOCAL;
 
     /* Write globals under a ".global" card */
 
@@ -816,7 +819,7 @@ runexttospice:
 
     /* Convert the hierarchical description to a flat one */
 
-    if (esFormat == HSPICE ) {
+    if (esFormat == HSPICE) {
 	HashInit(&subcktNameTable, 32, HT_STRINGKEYS);
 #ifndef UNSORTED_SUBCKT
 	DQInit(&subcktNameQueue, 64);
@@ -930,6 +933,10 @@ main(argc, argv)
 
     esSpiceDevsMerged = 0;
 
+    static char *spiceFormats[] = {
+	"SPICE2", "SPICE3", "HSPICE", "NGSPICE", NULL
+    };
+
     EFInit();
     EFResistThreshold = INFINITE_THRESHOLD ;
     /* create default devinfo entries (MOSIS) which can be overriden by
@@ -983,9 +990,7 @@ main(argc, argv)
     }
 
     fprintf(esSpiceF, "* %s file created from %s.ext - technology: %s\n\n",
-	    (esFormat == SPICE2) ? "SPICE2" :  
-	      ( (esFormat == SPICE3) ? "SPICE3" : "HSPICE" ),  
-	    inName, EFTech);
+	    spiceFormats[esFormat], inName, EFTech);
     if (esScale < 0) 
     	fprintf(esSpiceF,".option scale=%gu\n\n", EFScale / 100.0);
     else
@@ -995,7 +1000,7 @@ main(argc, argv)
     flatFlags = EF_FLATNODES;
     EFTrimFlags |= EF_TRIMGLOB ;
     if (IS_FINITE_F(EFCapThreshold)) flatFlags |= EF_FLATCAPS;
-    if (esFormat == HSPICE ) {
+    if (esFormat == HSPICE) {
 	EFTrimFlags |= EF_TRIMLOCAL ;
 	HashInit(&subcktNameTable, 32, HT_STRINGKEYS);
 #ifndef UNSORTED_SUBCKT
@@ -1046,7 +1051,7 @@ main(argc, argv)
     if ((esDoSubckt == TRUE) || (locDoSubckt == TRUE))
 	fprintf(esSpiceF, ".ends\n");
 
-    if ( esFormat == HSPICE ) 
+    if (esFormat == HSPICE) 
 	printSubcktDict();
 
     EFFlatDone(); 
@@ -1119,15 +1124,17 @@ spcmainArgs(pargc, pargv)
 
 	     if ((ftmp = ArgStr(&argc, &argv, "format")) == NULL)
 		goto usage;
-	     if ( strcasecmp(ftmp,"SPICE2") == 0 )
-	        esFormat = SPICE2 ;
-	     else if ( strcasecmp(ftmp,"SPICE3") == 0 )
-		esFormat = SPICE3 ;
-	     else if ( strcasecmp(ftmp,"HSPICE") == 0 ) 
+	     if (strcasecmp(ftmp, "SPICE2") == 0)
+	        esFormat = SPICE2;
+	     else if (strcasecmp(ftmp, "SPICE3") == 0)
+		esFormat = SPICE3;
+	     else if (strcasecmp(ftmp, "HSPICE") == 0) 
 	     {
-		esFormat = HSPICE ;
+		esFormat = HSPICE;
 		esScale = -1.0;
 	     }
+	     else if (strcasecmp(ftmp, "NGSPICE") == 0) 
+		esFormat = NGSPICE;
 	     else goto usage;
 	     break;
 	     }
@@ -2710,7 +2717,7 @@ int spcnAPHier(dterm, hierName, resClass, scale, asterm, psterm, m, outf)
     else
 	markVisited((nodeClientHier *)node->efnode_client, resClass);
 
-    if (esScale < HSPICE)
+    if (esScale < 0)
     {
 	fprintf(outf, afmt,
 		node->efnode_pa[resClass].pa_area * scale * scale / m);
@@ -2767,6 +2774,8 @@ spcdevOutNode(prefix, suffix, name, outf)
     }
     nn = (EFNodeName *) HashGetValue(he);
     fprintf(outf, " %s", nodeSpiceName(nn->efnn_node->efnode_name->efnn_hier));
+    /* Mark node as visited */
+    ((nodeClient *)nn->efnn_node->efnode_client)->m_w.visitMask |= DEV_CONNECT_MASK;
     return 0;
 }
 
