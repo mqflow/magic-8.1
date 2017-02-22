@@ -210,6 +210,8 @@ macro ? "help"
 macro o "openwindow"
 macro O "closewindow"
 macro " " "tool"
+imacro XK_colon ":"
+imacro XK_semicolon ":"
 macro ^R "iroute route -dBox"
 macro ^N "iroute route -dSelection"
 ])dnl	(ifdef USE_NEW_MACROS)
