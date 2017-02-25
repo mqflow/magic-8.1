@@ -84,4 +84,6 @@ extern bool ExtCompareStyle();
 extern void ExtGetZAxis();
 #endif
 
+extern void ExtDumpCaps();
+
 #endif /* _EXTRACT_H */

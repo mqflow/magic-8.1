@@ -478,6 +478,11 @@ extAddOverlap(tbelow, ecpls)
 	int ob = ExtCurStyle->exts_planeOrder[ecpls->plane_checked];
 	if (oa > ob)
 	{
+	    Tile *tp;
+	    TileType t, tres;
+	    TileTypeBitMask *mask;
+	    int len;
+	    CapValue cp;
 	    /*
 	     * Subtract the substrate capacitance from tabove's region due to
 	     * the area of the overlap, minus any shielded area.  The shielded
@@ -491,6 +496,7 @@ extAddOverlap(tbelow, ecpls)
 		extNregAdjustCap(rabove, 
 		    -(ExtCurStyle->exts_areaCap[ta] * ov.o_area),
 		    "obsolete_overlap");
+
 	} else if (CAP_DEBUG)
 	    extNregAdjustCap(rabove, 0.0, 
 		"obsolete_overlap (skipped, wrong direction)");

@@ -94,13 +94,13 @@ static keydesc keyTable[] = {
     "cscale",		CSCALE,		2,	2,
 "capacitance-scalefactor",
 
-    "defaultareacap",	DEFAULTAREACAP,	4,	5,
+    "defaultareacap",	DEFAULTAREACAP,	4,	6,
 "types plane capacitance",
 
     "defaultoverlap",	DEFAULTOVERLAP,	6,	6,
 "types plane otertypes otherplane capacitance",
 
-    "defaultperimeter",	DEFAULTPERIMETER, 4,	5,
+    "defaultperimeter",	DEFAULTPERIMETER, 4,	6,
 "types plane capacitance",
 
     "defaultsideoverlap", DEFAULTSIDEOVERLAP, 6, 6,
@@ -825,6 +825,18 @@ ExtTechInit()
  *	to "overlap" of types on the second plane (if specified) and
  *	all planes below it, with appropriate intervening types. 
  *
+ * Usage:
+ *	defaultareacap types plane [[subtypes] subplane] value
+ *
+ *	where "types" are the types for which to compute area cap,
+ *	"plane" is the plane of "types", "subplane" is a plane
+ *	containing wells or any types that have the same coupling
+ *	as the substrate.  If absent, it is assumed that nothing
+ *	shields "types" from the subtrate.  Additional optional
+ *	"subtypes" is a list of types in "subplane" that shield.
+ *	If absent, then all types in "subplane" are shields to the
+ *	substrate.  "value" is the area capacitance in aF/um^2.
+ *
  * Results:
  *	None.
  *
@@ -860,7 +872,12 @@ ExtTechSimpleAreaCap(argc, argv)
     if (argc == 4)
 	plane2 = -1;
     else
-	plane2 = DBTechNoisyNamePlane(argv[3]);
+	plane2 = DBTechNoisyNamePlane(argv[argc - 2]);
+
+    if (argc > 5)
+	DBTechNoisyNameMask(argv[argc - 3], &subtypes);
+    else
+	subtypes = DBAllButSpaceAndDRCBits;
 
     /* Part 1: Area cap */
     for (t = TT_TECHDEPBASE; t < DBNumTypes; t++)
@@ -877,7 +894,6 @@ ExtTechSimpleAreaCap(argc, argv)
     /* Find all types in or below plane2 (i.e., ~(space)/plane2)	   */
     /* Shield types are everything in the planes between plane1 and plane2 */
 
-    TTMaskZero(&subtypes);
     TTMaskZero(&shields);
 
     pshield = 0;
@@ -891,7 +907,7 @@ ExtTechSimpleAreaCap(argc, argv)
 	}
 	else if (pnum3 <= pnum2)
 	{
-	    TTMaskSetMask(&subtypes, &DBPlaneTypes[plane3]);
+	    TTMaskAndMask(&subtypes, &DBPlaneTypes[plane3]);
 	    TTMaskClearType(&subtypes, TT_SPACE);
 	}
 	TTMaskClearType(&shields, TT_SPACE);
@@ -937,6 +953,18 @@ ExtTechSimpleAreaCap(argc, argv)
  *	statement for overlaps to types that are effectively substrate
  *	(e.g., well, implant, marker layers, etc.)
  *
+ * Usage:
+ *	defaultperimeter types plane [[subtypes] subplane] value
+ *
+ *	where "types" are the types for which to compute fringing cap,
+ *	"plane" is the plane of the types, "subplane" is an optional
+ *	plane that shields "types" from substrate, and "value" is the
+ *	fringing cap in aF/micron.  If "subplane" is omitted, then
+ *	nothing shields "types" from the substrate.  Optional "subtypes"
+ *	lists the types in "subplane" that shield.  Otherwise, it is
+ *	assumed that all types in "subplane" shield "types" from the
+ *	substrate.
+ *
  * Results:
  *	None.
  *
@@ -965,17 +993,27 @@ ExtTechSimplePerimCap(argc, argv)
     }
 
     DBTechNoisyNameMask(argv[1], &types);
-    TTMaskCom2(&nottypes, &types);
+    // TTMaskCom2(&nottypes, &types);
+    // For general use, only consider space and space-like types.
+    // For device fringing fields, like poly to diffusion on a FET,
+    // use perimc commands to augment the defaults.
+    TTMaskZero(&nottypes);
+    TTMaskSetType(&nottypes, TT_SPACE);
     plane1 = DBTechNoisyNamePlane(argv[2]);
     TTMaskAndMask(&types, &DBPlaneTypes[plane1]);
     TTMaskAndMask(&nottypes, &DBPlaneTypes[plane1]);
 
     capVal = aToCap(argv[argc - 1]);
 
-    if (argc == 4)
-	plane2 = -1;
+    if (argc >= 4)
+	plane2 = DBTechNoisyNamePlane(argv[argc - 2]);
     else
-	plane2 = DBTechNoisyNamePlane(argv[3]);
+	plane2 = -1;
+
+    if (argc > 5)
+	DBTechNoisyNameMask(argv[argc - 3], &subtypes);
+    else
+	subtypes = DBAllButSpaceAndDRCBits;
 
     /* Part 1: Perimeter cap */
 
@@ -997,7 +1035,6 @@ ExtTechSimplePerimCap(argc, argv)
     /* Find all types in or below plane2 (i.e., ~(space)/plane2)	   */
     /* Shield types are everything in the planes between plane1 and plane2 */
 
-    TTMaskZero(&subtypes);
     TTMaskZero(&shields);
 
     pshield = 0;
@@ -1011,7 +1048,7 @@ ExtTechSimplePerimCap(argc, argv)
 	}
 	else if (pnum3 <= pnum2)
 	{
-	    TTMaskSetMask(&subtypes, &DBPlaneTypes[plane3]);
+	    TTMaskAndMask(&subtypes, &DBPlaneTypes[plane3]);
 	}
     }
     TTMaskClearType(&shields, TT_SPACE);
@@ -1029,7 +1066,7 @@ ExtTechSimplePerimCap(argc, argv)
 	    ExtCurStyle->exts_sidePlanes |= PlaneNumToMaskBit(plane1);
 	    TTMaskSetType(&ExtCurStyle->exts_sideTypes[plane1], s);
 	    TTMaskSetMask(&ExtCurStyle->exts_sideEdges[s], &nottypes);
-	    for (t = TT_TECHDEPBASE; t < DBNumTypes; t++)
+	    for (t = 0; t < DBNumTypes; t++)
 	    {
 		if (!TTMaskHasType(&nottypes, t)) continue;
   		if (DBIsContact(t)) continue;
@@ -1112,7 +1149,10 @@ ExtTechSimpleSidewallCap(argv)
     plane = DBTechNoisyNamePlane(argv[2]);
     capVal = aToCap(argv[3]);
 
-    TTMaskCom2(&types2, &types1);
+    // Like perimeter cap, treat only space and space-like types
+    // TTMaskCom2(&types2, &types1);
+    TTMaskZero(&types2);
+    TTMaskSetType(&types2, TT_SPACE);
 
     TTMaskAndMask(&types1, &DBPlaneTypes[plane]);
     TTMaskAndMask(&types2, &DBPlaneTypes[plane]);
@@ -1275,16 +1315,22 @@ ExtTechSimpleSideOverlapCap(argv)
 
     DBTechNoisyNameMask(argv[1], &types);
     plane1 = DBTechNoisyNamePlane(argv[2]);
-    TTMaskCom2(&nottypes, &types);
 
-    TTMaskAndMask(&types, &DBPlaneTypes[plane1]);
-    TTMaskAndMask(&nottypes,    &DBPlaneTypes[plane1]);
+    // TTMaskCom2(&nottypes, &types);
+    TTMaskZero(&nottypes);
+    TTMaskSetType(&nottypes, TT_SPACE);
+
+    TTMaskAndMask(&types,    &DBPlaneTypes[plane1]);
+    TTMaskAndMask(&nottypes, &DBPlaneTypes[plane1]);
 
     DBTechNoisyNameMask(argv[3], &ov);
     plane2 = DBTechNoisyNamePlane(argv[4]);
-    TTMaskCom2(&notov, &ov);
 
-    TTMaskAndMask(&ov, &DBPlaneTypes[plane2]);
+    // TTMaskCom2(&notov, &ov);
+    TTMaskZero(&notov);
+    TTMaskSetType(&notov, TT_SPACE);
+
+    TTMaskAndMask(&ov,    &DBPlaneTypes[plane2]);
     TTMaskAndMask(&notov, &DBPlaneTypes[plane2]);
 
     capVal = aToCap(argv[5]);
@@ -1352,6 +1398,7 @@ ExtTechSimpleSideOverlapCap(argv)
 
 	/* Reverse case (swap "types" and "ov") */
 
+#if 0
 	if (TTMaskHasType(&ov, s))
 	{
 	    ExtCurStyle->exts_sidePlanes |= PlaneNumToMaskBit(plane2);
@@ -1378,6 +1425,7 @@ ExtTechSimpleSideOverlapCap(argv)
 			ExtCurStyle->exts_sideOverlapShieldPlanes[s][r] |= pshield;
 	    }
 	}
+#endif /* 0 */
     }
 }
 
@@ -2917,3 +2965,4 @@ ExtTechScale(scalen, scaled)
 
     return;
 }
+
