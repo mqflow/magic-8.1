@@ -210,6 +210,21 @@ typedef struct {	/* Maintain plane information when pushing	*/
     int  plane;		/* function extNbrPushFunc().			*/
 } PlaneAndArea; 
 
+/* Structure to be kept in a hash table of node regions for the current	*/
+/* extract cell.  It tracks the original substrate cap calculated for	*/
+/* each region used in the "node" line output, the final substrate cap	*/
+/* calculated after taking all subcircuits into account, and a running	*/
+/* total of all corrections to the node's substrate cap generated in	*/
+/* "merge" lines by extSubtree() and extArray().  After both routines	*/
+/* have run, any unaccounted capacitance is output to the .ext file as	*/
+/* a "subcap" line.							*/
+
+typedef struct {
+    NodeRegion *subcap_reg;
+    CapValue	subcap_orig;
+    CapValue	subcap_final;
+    CapValue	subcap_adjust;
+} SubCapAdjust;
 
 /*
  * The following constructs a node name from the plane number 'n'
@@ -345,11 +360,12 @@ typedef struct extTree
      */
 typedef struct
 {
-    FILE	*ha_outf;	/* The .ext file being written */
-    CellUse	*ha_parentUse;	/* Use pointing to the def being extracted */
-    char      *(*ha_nodename)();/* Map (tp, et, ha) into nodename; see above */
-    ExtTree	 ha_cumFlat;	/* Cumulative yank buffer */
-    HashTable	 ha_connHash;	/* Connections made during hier processing */
+    FILE	*ha_outf;	 /* The .ext file being written */
+    CellUse	*ha_parentUse;	 /* Use pointing to the def being extracted */
+    char      *(*ha_nodename)(); /* Map (tp, et, ha) into nodename; see above */
+    ExtTree	 ha_cumFlat;	 /* Cumulative yank buffer */
+    NodeRegion  *ha_parentReg;	 /* Node region list from parent def */
+    HashTable	 ha_connHash;	 /* Connections made during hier processing */
 
 /* All areas are in parent coordinates */
 

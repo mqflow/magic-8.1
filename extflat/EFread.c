@@ -54,8 +54,8 @@ char *extDevTable[] = {"fet", "mosfet", "asymmetric", "bjt", "devres",
 typedef enum
 {
     ADJUST, ATTR, CAP, DEVICE, DIST, EQUIV, FET, KILLNODE, MERGE, NODE,
-    PARAMETERS, PORT, RESISTOR, RESISTCLASS, RNODE, SCALE, SUBSTRATE,
-    TECH, TIMESTAMP, USE, VERSION, EXT_STYLE
+    PARAMETERS, PORT, RESISTOR, RESISTCLASS, RNODE, SCALE, SUBCAP,
+    SUBSTRATE, TECH, TIMESTAMP, USE, VERSION, EXT_STYLE
 } Key;
 
 static struct
@@ -82,6 +82,7 @@ keyTable[] =
     "resistclasses",	RESISTCLASS,	1,
     "rnode",		RNODE,		5,
     "scale",		SCALE,		4,
+    "subcap",		SUBCAP,		3,
     "substrate",	SUBSTRATE,	3,
     "tech",		TECH,		2,
     "timestamp",	TIMESTAMP,	2,
@@ -271,6 +272,12 @@ readfile:
 		efBuildCap(def, argv[1], argv[2], (double) cap);
 		break;
 
+	    /* subcap node capacitance */
+	    case SUBCAP:
+		cap = cscale*atoCap(argv[3]);
+		efAdjustSubCap(def, argv[1], cap);
+		break;
+
 	    /* equiv node1 node2 */
 	    case EQUIV:
 		efBuildEquiv(def, argv[1], argv[2]);
@@ -360,8 +367,9 @@ readfile:
 		}
 		*/
 
-		cap = (argc > 3) ? atoCap(argv[3]) * cscale : 0;
-		efBuildConnect(def, argv[1], argv[2], (double) cap, &argv[4], argc - 4);
+		/* cap = (argc > 3) ? atoCap(argv[3]) * cscale : 0; */
+		/* 3/1/2017:  Cap adjustments now handled under SUBCAP. */
+		efBuildConnect(def, argv[1], argv[2], (double)0.0, &argv[4], argc - 4);
 		break;
 
 	    /* node name R C x y layer a1 p1 a2 p2 ... [ attrs ] */

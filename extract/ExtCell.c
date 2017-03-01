@@ -244,6 +244,7 @@ extCellFile(def, f, doLength)
 			 */
 {
     NodeRegion *reg;
+
     UndoDisable();
 
     /* Output the header: timestamp, technology, calls on cell uses */
@@ -255,7 +256,7 @@ extCellFile(def, f, doLength)
 
     /* Do hierarchical extraction */
     extParentUse->cu_def = def;
-    if (!SigInterruptPending) extSubtree(extParentUse, f);
+    if (!SigInterruptPending) extSubtree(extParentUse, reg, f);
     if (!SigInterruptPending) extArray(extParentUse, f);
 
     /* Clean up from basic extraction */

@@ -689,6 +689,7 @@ extOutputConns(table, outf)
 	     * Only the first merge line will contain the C, perimeter,
 	     * and area updates.
 	     */
+	    /* Note 3/1/2017:  Cap value no longer used */
 	    c = (node->node_cap) / ExtCurStyle->exts_capScale;
 	    nn = node->node_names;
 	    if (nnext = nn->nn_next)
@@ -701,6 +702,7 @@ extOutputConns(table, outf)
 				node->node_pa[n].pa_area,
 				node->node_pa[n].pa_perim);
 		fprintf(outf, "\n");
+
 		nn->nn_node = (Node *) NULL;		/* Processed */
 
 		/* Subsequent merges */

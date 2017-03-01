@@ -787,7 +787,7 @@ char *
 extNodeName(node)
     LabRegion *node;
 {
-    static char namebuf[100];	/* Big enough to hold a generated nodename */
+    static char namebuf[256];	/* Big enough to hold a generated nodename */
     LabelList *ll;
 
     if (node == (LabRegion *) NULL || SigInterruptPending)

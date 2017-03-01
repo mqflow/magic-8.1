@@ -207,7 +207,36 @@ efBuildNode(def, isSubsnode, nodeName, nodeCap, x, y, layerName, av, ac)
     /* If isSubsnode was TRUE, then turn off backwards compatibility mode */
     if (isSubsnode == TRUE) EFCompat = FALSE;
 }
-
+
+/*
+ * Process a "subcap" line by adding the specified adjustment
+ * value to the indicated node's substrate capacitance.
+ */
+
+void
+efAdjustSubCap(def, nodeName, nodeCapAdjust)
+    Def *def;			/* Def to which this connection is to be added */
+    char *nodeName;		/* One of the names for this node */
+    double nodeCapAdjust;	/* Substrate capacitance adjustment */
+{
+    EFNodeName *nodename;
+    EFNode *node;
+    HashEntry *he;
+
+    he = HashFind(&def->def_nodes, nodeName);
+    if (nodename = (EFNodeName *) HashGetValue(he))
+    {
+	node = nodename->efnn_node;
+	node->efnode_cap += (EFCapValue) nodeCapAdjust;
+	return;
+    }
+    else
+    {
+	if (efWarn)
+	    efReadError("Error: subcap has unknown node %s\n", nodeName);
+    }
+}
+
 /*
  * ----------------------------------------------------------------------------
  *

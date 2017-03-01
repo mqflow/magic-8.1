@@ -129,8 +129,9 @@ void extSubtreeHardSearch();
 #define	RECTAREA(r)	(((r)->r_xtop-(r)->r_xbot) * ((r)->r_ytop-(r)->r_ybot))
 
 void
-extSubtree(parentUse, f)
+extSubtree(parentUse, reg, f)
     CellUse *parentUse;
+    NodeRegion *reg;		/* Node regions of the parent cell */
     FILE *f;
 {
     int extSubtreeInterFunc();
@@ -157,6 +158,7 @@ extSubtree(parentUse, f)
     extSubtreeTotalArea += RECTAREA(&def->cd_bbox);
     ha.ha_outf = f;
     ha.ha_parentUse = parentUse;
+    ha.ha_parentReg = reg;
     ha.ha_nodename = extSubtreeTileToNode;
     ha.ha_cumFlat.et_use = extYuseCum;
     HashInit(&ha.ha_connHash, 32, 0);
@@ -333,6 +335,7 @@ extSubtreeInteraction(ha)
 {
     CellDef *oneDef, *cumDef = ha->ha_cumFlat.et_use->cu_def;
     ExtTree *oneFlat, *nextFlat;
+    NodeRegion *reg;
     SearchContext scx;
 
     /* Copy parent paint into ha->ha_cumFlat (which was initially empty) */
@@ -408,6 +411,44 @@ extSubtreeInteraction(ha)
 	extSubtreeAdjustInit(ha);
 	for (oneFlat = extSubList; oneFlat; oneFlat = oneFlat->et_next)
 	    extHierAdjustments(ha, &ha->ha_cumFlat, oneFlat, &ha->ha_cumFlat);
+
+	/*
+	 * Output adjustments to substrate capacitance that are not
+	 * output anywhere else.  Nodes that connect down into the
+	 * hierarchy are part of ha_connHash and have adjustments
+	 * that are printed in the "merge" statement.  Nodes not in
+	 * the current cell are not considered.  Anything left over
+	 * has its adjusted value output. 
+	 */
+	for (reg = ha->ha_parentReg; reg; reg = reg->nreg_next)
+	{
+	    Rect r;
+	    NodeRegion *treg;
+	    CapValue finC;
+	    char *text;
+
+	    r.r_ll = reg->nreg_ll;
+	    r.r_xtop = r.r_xbot + 1;
+	    r.r_ytop = r.r_ybot + 1;
+
+	    /* Use the tile position of the parent region to find the
+	     * equivalent region in cumDef.  Then compare the substrate
+	     * cap and output the difference.
+	     */
+
+	    if (DBSrPaintArea((Tile *)NULL, cumDef->cd_planes[reg->nreg_pnum],
+			&r, &DBAllButSpaceBits, extConnFindFunc,
+			(ClientData) &treg))
+	    {
+		text = extNodeName(reg);
+		// Output the adjustment made to the substrate cap
+		// (should be negative).  Ignore adjustments of zero
+		finC = (treg->nreg_cap - reg->nreg_cap) /
+						ExtCurStyle->exts_capScale;
+		if (finC < -1.0E-6)
+		    fprintf(ha->ha_outf, "subcap \"%s\" %lg\n", text, finC);
+	    }
+	}
 
 	/*
 	 * Output adjustments to coupling capacitance.

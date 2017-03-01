@@ -684,9 +684,19 @@ extAddCouple(bp, ecs)
     {
 	bpCopy = *bp;
 	bp = &bpCopy;
+	
 	GEOCLIP(&bp->b_segment, extCoupleSearchArea);
-	if (GEO_RECTNULL(&bp->b_segment))
-	    return (0);
+
+	/* Fixed 2/27/2017 by Tim
+	 * GEO_RECTNULL should not be applied to boundaries, which are
+	 * segments and therefore have no area.  This causes the function
+	 * to always return.
+	 */
+	/* if (GEO_RECTNULL(&bp->b_segment)) return (0); */
+
+	if ((bp->b_segment.r_ytop <= bp->b_segment.r_ybot) &&
+		(bp->b_segment.r_xtop <= bp->b_segment.r_xbot))
+	    return 0;
     }
     r = ovr = bp->b_segment;
 
