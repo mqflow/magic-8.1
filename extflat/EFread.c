@@ -274,7 +274,7 @@ readfile:
 
 	    /* subcap node capacitance */
 	    case SUBCAP:
-		cap = cscale*atoCap(argv[3]);
+		cap = cscale*atoCap(argv[2]);
 		efAdjustSubCap(def, argv[1], cap);
 		break;
 
