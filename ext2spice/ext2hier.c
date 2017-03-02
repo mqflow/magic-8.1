@@ -301,6 +301,10 @@ spcHierWriteParams(hc, dev, scale, l, w, sdM)
 	}
 	plist = plist->parm_next;
     }
+
+    /* Add parameters that are to be copied verbatim */
+    for (plist = dev->dev_params; plist; plist = plist->parm_next)
+	fprintf(esSpiceF, " %s", plist->parm_name);
 }
 
 /*
