@@ -1317,7 +1317,7 @@ subcktVisit(use, hierName, is_top)
     EFNode *snode;
     Def *def = use->use_def;
     EFNodeName *nodeName;
-    int portorder, portmax, imp_max;
+    int portorder, portmax, imp_max, tchars;
     char stmp[MAX_STR_SIZE];
     char *instname, *subcktname;
     DevParam *plist, *pptr;
@@ -1326,7 +1326,10 @@ subcktVisit(use, hierName, is_top)
 
     /* Retain instance name unless esDoRenumber is set, or format is Spice2 */
     if (use->use_id == NULL || esDoRenumber == TRUE || esFormat == SPICE2)
+    {
 	fprintf(esSpiceF, "X%d", esSbckNum++);
+	tchars = 5;
+    }
     else
     {
 	int savflags = EFTrimFlags;
@@ -1337,6 +1340,7 @@ subcktVisit(use, hierName, is_top)
 	EFHNSprintf(stmp, hierName);
 	fprintf(esSpiceF, "X%s", stmp);
 	EFTrimFlags = savflags;
+	tchars = 1 + strlen(stmp);
     }
 
     /* This is not a DEV, but "spcdevOutNode" is a general-purpose routine that */
@@ -1364,7 +1368,12 @@ subcktVisit(use, hierName, is_top)
 		    if (nodeName->efnn_port >= 0)
 		    {
 			portmax++;
-			spcdevOutNode(hierName, nodeName->efnn_hier,
+			if (tchars > 80)
+			{
+			    fprintf(esSpiceF, "\n+");
+			    tchars = 1;
+			}
+			tchars += spcdevOutNode(hierName, nodeName->efnn_hier,
 					"subcircuit", esSpiceF); 
 		    }
 	}
@@ -1384,7 +1393,13 @@ subcktVisit(use, hierName, is_top)
 
 		/* This is not a hierarchical name or node! */
 		EFHNSprintf(stmp, nodeName->efnn_hier);
+		if (tchars > 80)
+		{
+		    fprintf(esSpiceF, "\n+");
+		    tchars = 1;
+		}
 		fprintf(esSpiceF, " %s", stmp);
+		tchars += (1 + strlen(stmp));
 	    }
 	}
     }
@@ -1407,7 +1422,12 @@ subcktVisit(use, hierName, is_top)
 		    int portidx = nodeName->efnn_port;
 		    if (portidx == portorder)
 		    {
-			spcdevOutNode(hierName, nodeName->efnn_hier,
+			if (tchars > 80)
+			{
+			    fprintf(esSpiceF, "\n+");
+			    tchars = 1;
+			}
+			tchars += spcdevOutNode(hierName, nodeName->efnn_hier,
 					"subcircuit", esSpiceF); 
 			break;
 		    }
@@ -1433,7 +1453,13 @@ subcktVisit(use, hierName, is_top)
 		{
 		    /* This is not a hierarchical name or node! */
 		    EFHNSprintf(stmp, nodeName->efnn_hier);
+		    if (tchars > 80)
+		    {
+			fprintf(esSpiceF, "\n+");
+			tchars = 1;
+		    }
 		    fprintf(esSpiceF, " %s", stmp);
+		    tchars += (1 + strlen(stmp));
 		}
 	    }
 	    portorder++;
@@ -1449,7 +1475,13 @@ subcktVisit(use, hierName, is_top)
     plist = efGetDeviceParams(instname);
     for (pptr = plist; pptr; pptr = pptr->parm_next)
     {
+	if (tchars > 80)
+	{
+	    fprintf(esSpiceF, "\n+");
+	    tchars = 1;
+	}
 	fprintf(esSpiceF, " %s", pptr->parm_name);
+	tchars += (1 + strlen(pptr->parm_name));
     }    
     freeMagic(instname);
 
@@ -1458,6 +1490,7 @@ subcktVisit(use, hierName, is_top)
     subcktname = def->def_name;
     while (!isalpha(*subcktname)) subcktname++;
 
+    if (tchars > 80) fprintf(esSpiceF, "\n+");
     fprintf(esSpiceF, " %s\n", subcktname);	/* subcircuit model name */
     return 0;
 }
@@ -1522,10 +1555,11 @@ topVisit(def)
     EFNodeName *sname, *nodeName;
     HashSearch hs;
     HashEntry *he;
-    int portorder, portmax;
+    int portorder, portmax, tchars;
     DevParam *plist, *pptr;
     char *instname;
     char *subcktname;
+    char *pname;
 
     /* SPICE subcircuit names must begin with A-Z.  This will also be	*/
     /* enforced when writing X subcircuit calls.			*/
@@ -1533,6 +1567,7 @@ topVisit(def)
     while (!isalpha(*subcktname)) subcktname++;
 
     fprintf(esSpiceF, ".subckt %s", subcktname);
+    tchars = 8 + strlen(subcktname);
 
     /* Note that the ports of the subcircuit will not necessarily be	*/
     /* ALL the entries in the hash table, so we have to check.		*/
@@ -1571,8 +1606,15 @@ topVisit(def)
 	    if (snode->efnode_flags & EF_PORT)
 		if (snode->efnode_name->efnn_port < 0)
 		{
-		    fprintf(esSpiceF, " %s",
-				nodeSpiceName(snode->efnode_name->efnn_hier));
+		    if (tchars > 80)
+		    {
+			/* Line continuation */
+			fprintf(esSpiceF, "\n+");
+			tchars = 1;
+		    }
+		    pname = nodeSpiceName(snode->efnode_name->efnn_hier);
+		    fprintf(esSpiceF, " %s", pname);
+		    tchars += strlen(pname) + 1;
 		    snode->efnode_name->efnn_port = portorder++;
 		}
 	}
@@ -1601,9 +1643,15 @@ topVisit(def)
 		    portidx = nodeName->efnn_port;
 		    if (portidx == portorder)
 		    {
-			// fprintf(esSpiceF, " %s", he->h_key.h_name);
-			fprintf(esSpiceF, " %s",
-				nodeSpiceName(snode->efnode_name->efnn_hier));
+			if (tchars > 80)
+			{
+			    /* Line continuation */
+			    fprintf(esSpiceF, "\n+");
+			    tchars = 1;
+			}
+			pname =	nodeSpiceName(snode->efnode_name->efnn_hier);
+			fprintf(esSpiceF, " %s", pname);
+			tchars += strlen(pname) + 1;
 			break;
 		    }
 		    else if (portidx < 0)
@@ -1634,10 +1682,17 @@ topVisit(def)
 	    {
 		char stmp[MAX_STR_SIZE];
 
+		if (tchars > 80)
+		{
+		    /* Line continuation */
+		    fprintf(esSpiceF, "\n+");
+		    tchars = 1;
+		}
 		/* This is not a hierarchical name or node! */
 		EFHNSprintf(stmp, snode->efnode_name->efnn_hier);
 		fprintf(esSpiceF, " %s", stmp);
 		snode->efnode_name->efnn_port = portorder++;
+		tchars += strlen(stmp) + 1;
 	    }
 	}
     }
@@ -1649,7 +1704,15 @@ topVisit(def)
     plist = efGetDeviceParams(instname);
     for (pptr = plist; pptr; pptr = pptr->parm_next)
     {
-	fprintf(esSpiceF, " %s", pptr->parm_name);
+	if (tchars > 80)
+	{
+	    /* Line continuation */
+	    fprintf(esSpiceF, "\n+");
+	    tchars = 1;
+	}
+	pname = pptr->parm_name;
+	fprintf(esSpiceF, " %s", pname);
+	tchars += strlen(pname) + 1;
     }    
     freeMagic(instname);
 
@@ -2755,7 +2818,7 @@ int spcnAPHier(dterm, hierName, resClass, scale, asterm, psterm, m, outf)
  *
  *
  * Results:
- *	Return 0 on success, 1 on error.
+ *	Return number of characters printed on success, 0 on error.
  *
  * Side effects:
  *	Writes to the file 'outf'.
@@ -2773,18 +2836,20 @@ spcdevOutNode(prefix, suffix, name, outf)
 {
     HashEntry *he;
     EFNodeName *nn;
+    char *nname;
 
     he = EFHNConcatLook(prefix, suffix, name);
     if (he == NULL)
     {
 	fprintf(outf, " errGnd!");
-	return 1;
+	return 0;
     }
     nn = (EFNodeName *) HashGetValue(he);
-    fprintf(outf, " %s", nodeSpiceName(nn->efnn_node->efnode_name->efnn_hier));
+    nname = nodeSpiceName(nn->efnn_node->efnode_name->efnn_hier);
+    fprintf(outf, " %s", nname);
     /* Mark node as visited */
     ((nodeClient *)nn->efnn_node->efnode_client)->m_w.visitMask |= DEV_CONNECT_MASK;
-    return 0;
+    return (1 + strlen(nname));
 }
 
 
