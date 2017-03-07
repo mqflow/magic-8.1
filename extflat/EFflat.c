@@ -218,8 +218,10 @@ EFFlatBuildOneLevel(def, flags)
     efFlatKills(&efFlatContext);
     if (!(flags & EF_NONAMEMERGE))
 	efFlatGlob();
-    efFlatCapsDeviceless(&efFlatContext);
-    efFlatDists(&efFlatContext);
+    if (flags & EF_FLATCAPS)
+	efFlatCapsDeviceless(&efFlatContext);
+    if (flags & EF_FLATDISTS)
+	efFlatDists(&efFlatContext);
 
     return &efFlatContext;
 }
