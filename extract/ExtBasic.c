@@ -189,6 +189,8 @@ extBasic(def, outFile)
     bool coupleInitialized = FALSE;
     TransRegion *transList;
     HashTable extCoupleHash;
+    char *propptr;
+    bool propfound = FALSE;
 
     glob_subsnode = (NodeRegion *)NULL;
 
@@ -251,12 +253,25 @@ extBasic(def, outFile)
     if (!SigInterruptPending)
 	extOutputParameters(def, transList, outFile);
 
+    /* Check for "device", as it modifies handling of parasitics */
+    propptr = (char *)DBPropGet(def, "device", &propfound);
+    if (propfound)
+    {
+	/* Remove parasitics from local nodes */
+	NodeRegion *tnode;
+	for (tnode = nodeList; tnode; tnode = tnode->nreg_next)
+	{
+	    tnode->nreg_cap = (CapValue)0.0;
+	    tnode->nreg_resist = (ResValue)0;
+	}
+    }
+
     /* Output each node, along with its resistance and capacitance to substrate */
     if (!SigInterruptPending)
 	extOutputNodes(nodeList, outFile);
 
     /* Output coupling capacitances */
-    if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING))
+    if (!SigInterruptPending && (ExtOptions&EXT_DOCOUPLING) && (!propfound))
 	extOutputCoupling(&extCoupleHash, outFile);
 
     /* Output devices and connectivity between nodes */
@@ -264,14 +279,11 @@ extBasic(def, outFile)
     {
 	int llx, lly, urx, ury, devidx, l, w;
 	char *token, *modelname, *subsnode;
-	char *propvalue, *propptr;
-	bool propfound;
+	char *propvalue;
 
 	modelname = NULL;
 	subsnode = NULL;
-	propfound = FALSE;
 	propvalue = NULL;
-        propptr = (char *)DBPropGet(def, "device", &propfound);
 	
 	if (propfound)
 	{
