@@ -138,7 +138,7 @@ extSubtree(parentUse, reg, f)
     CellDef *def = parentUse->cu_def;
     int halo = ExtCurStyle->exts_sideCoupleHalo	 + 1;
     HierExtractArg ha;
-    Rect r, rbloat, *b;
+    Rect r, rlab, rbloat, *b;
     Label *lab;
     bool result;
 
@@ -186,11 +186,23 @@ extSubtree(parentUse, reg, f)
 	    result = DRCFindInteractions(def, &rbloat, halo, &ha.ha_interArea);
 
 	    // Check area for labels.  Expand interaction area to include
-	    // the labels.
+	    // the labels.  This catches labels that are not attached to
+	    // any geometry in the cell and therefore do not get flagged by
+	    // DRCFindInteractions().
 
 	    for (lab = def->cd_labels; lab; lab = lab->lab_next)
-		if (GEO_OVERLAP(&lab->lab_rect, &r) || GEO_TOUCH(&lab->lab_rect, &r))
-		    result |= GeoIncludeAll(&lab->lab_rect, &ha.ha_interArea);
+		if (GEO_OVERLAP(&lab->lab_rect, &r) || GEO_TOUCH(&lab->lab_rect, &r)) {
+		    // Clip the label area to the area of rbloat
+		    rlab = lab->lab_rect;
+		    GEOCLIP(&rlab, &rbloat);
+		    if (!result) {
+			// If result == FALSE then ha.ha_interArea is invalid.
+			ha.ha_interArea = rlab;
+			result = TRUE;
+		    }	
+		    else
+		        result |= GeoIncludeAll(&rlab, &ha.ha_interArea);
+		}
 
 	    if (result)
 	    {
