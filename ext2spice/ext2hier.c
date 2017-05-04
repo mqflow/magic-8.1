@@ -399,6 +399,7 @@ subcktHierVisit(use, hierName, is_top)
 {
     Def *def = use->use_def;
     EFNode *snode;
+    EFNodeName *nodeName;
     bool hasports = FALSE;
 
     /* Avoid generating records for circuits that have no ports.	*/
@@ -411,6 +412,16 @@ subcktHierVisit(use, hierName, is_top)
 		snode != &def->def_firstn;
 		snode = (EFNode *) snode->efnode_next)
 	if (snode->efnode_flags & EF_PORT)
+	{
+	    for (nodeName = snode->efnode_name; nodeName != NULL;
+			nodeName = nodeName->efnn_next)
+		if (nodeName->efnn_port >= 0)
+		{
+		    hasports = TRUE;
+		    break;
+		}
+	}
+	else if (snode->efnode_flags & EF_SUBS_PORT)
 	{
 	    hasports = TRUE;
 	    break;
