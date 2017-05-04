@@ -404,11 +404,13 @@ subcktHierVisit(use, hierName, is_top)
     /* Avoid generating records for circuits that have no ports.	*/
     /* These are already absorbed into the parent.  All other		*/
     /* subcircuits have at least one port marked by the EF_PORT flag.	*/
+    /* Do not count the substrate port, as it exists even on cells	*/
+    /* with no other ports.						*/
  
     for (snode = (EFNode *) def->def_firstn.efnode_next;
 		snode != &def->def_firstn;
 		snode = (EFNode *) snode->efnode_next)
-	if (snode->efnode_flags & (EF_PORT | EF_SUBS_PORT))
+	if (snode->efnode_flags & EF_PORT)
 	{
 	    hasports = TRUE;
 	    break;
