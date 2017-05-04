@@ -612,8 +612,12 @@ CIFPaintCurrent()
 		    {
 			CIFCopyRec cifCopyRec;
 
-			newplane = DBNewPlane((ClientData) TT_SPACE);
-			DBClearPaintPlane(newplane);
+			newplane = parray[pNum];
+			if (newplane == NULL)
+		 	{
+			    newplane = DBNewPlane((ClientData) TT_SPACE);
+			    DBClearPaintPlane(newplane);
+			}
 
 			cifCopyRec.plane = newplane;
 			cifCopyRec.trans = NULL;
