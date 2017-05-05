@@ -147,6 +147,18 @@ void extTransBad();
 
 bool extLabType();
 
+/* Function returns 1 if a tile is found by DBTreeSrTiles()	*/
+/* that is not in the topmost def of the search.		*/
+
+int
+extFoundFunc(tile, cxp)
+    Tile *tile;
+    TreeContext *cxp;
+{
+    CellDef *def = (CellDef *)cxp->tc_filter->tf_arg;
+    return (def == cxp->tc_scx->scx_use->cu_def) ? 0 : 1;
+}
+
 /*
  * ----------------------------------------------------------------------------
  *
@@ -187,7 +199,7 @@ extBasic(def, outFile)
 {
     NodeRegion *nodeList, *extFindNodes();
     bool coupleInitialized = FALSE;
-    TransRegion *transList;
+    TransRegion *transList, *reg;
     HashTable extCoupleHash;
     char *propptr;
     bool propfound = FALSE;
@@ -205,6 +217,33 @@ extBasic(def, outFile)
 				    ExtCurStyle->exts_transConn,
 				    extUnInit, extTransFirst, extTransEach);
     ExtResetTiles(def, extUnInit);
+
+    for (reg = transList; reg && !SigInterruptPending; reg = reg->treg_next)
+    {
+	/* For each transistor region, check if there is an equivalent	*/
+	/* region at the same location in a subcell.  The device in the	*/
+	/* subcell is given priority.  This avoids duplicating devices	*/
+	/* when, for example, a device contact is placed in another	*/
+	/* cell, which can happen for devices like capacitors and	*/
+	/* diodes, where the device identifier layer may include	*/
+	/* a contact type.						*/
+
+	SearchContext scontext;
+	CellUse	      dummy;
+	int	      extFoundFunc();
+
+	scontext.scx_use = &dummy;
+	dummy.cu_def = def;
+	dummy.cu_id = NULL;
+	scontext.scx_trans = GeoIdentityTransform;
+	scontext.scx_area.r_ll = scontext.scx_area.r_ur = reg->treg_tile->ti_ll;
+	scontext.scx_area.r_ur.p_x++;
+	scontext.scx_area.r_ur.p_y++;
+
+	if (DBTreeSrTiles(&scontext, &ExtCurStyle->exts_transMask, 0,
+			extFoundFunc, (ClientData)def) != 0)
+	    reg->treg_type = TT_SPACE;	/* Disables the trans record */
+    }
 
     /*
      * Build up a list of the electrical nodes (equipotentials)
@@ -1388,6 +1427,8 @@ extOutputParameters(def, transList, outFile)
     {
 	TileType loctype = reg->treg_type;
 
+	if (loctype == TT_SPACE) continue;	/* This has been disabled */
+
 	/* Watch for rare split reg->treg_type */
 	if (loctype & TT_DIAGONAL)
 	    loctype = (reg->treg_type & TT_SIDE) ? ((reg->treg_type &
@@ -1602,6 +1643,8 @@ extOutputDevices(def, transList, outFile)
 
     for (reg = transList; reg && !SigInterruptPending; reg = reg->treg_next)
     {
+	if (reg->treg_type == TT_SPACE) continue;	/* This has been disabled */
+
 	/*
 	 * Visit all of the tiles in the transistor region, updating
 	 * extTransRec.tr_termnode[] and extTransRec.tr_termlen[],
