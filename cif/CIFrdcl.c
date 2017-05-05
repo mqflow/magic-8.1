@@ -515,19 +515,24 @@ cifCopyPaintFunc(tile, cifCopyRec)
     CIFCopyRec *cifCopyRec;
 {
     int pNum;
+    TileType dinfo;
     Rect sourceRect, targetRect;
     Transform *trans = cifCopyRec->trans;
     Plane *plane = cifCopyRec->plane;
+
+    dinfo = TiGetTypeExact(tile);
 
     if (trans)
     {
         TiToRect(tile, &sourceRect);
         GeoTransRect(trans, &sourceRect, &targetRect);
+	if (IsSplit(tile))
+	    dinfo = DBTransformDiagonal(TiGetTypeExact(tile), trans);
     }
     else
         TiToRect(tile, &targetRect);
 
-    DBNMPaintPlane(plane, TiGetTypeExact(tile), &targetRect, CIFPaintTable,
+    DBNMPaintPlane(plane, dinfo, &targetRect, CIFPaintTable,
                 (PaintUndoInfo *)NULL);
 
     return 0;

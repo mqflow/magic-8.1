@@ -1706,6 +1706,13 @@ extOutputDevices(def, transList, outFile)
 	    }
 	    if (ExtDoWarn & EXTWARN_FETS)
 		extTransBad(def, reg->treg_tile, mesg);
+
+	    /* Devices with no terminals or a null node are badly	*/
+	    /* formed and should not be output.	  This can happen when	*/
+	    /* parts of devices are split into different cells.		*/
+
+	    if ((extTransRec.tr_nterm == 0) || (node == NULL))
+		continue;	   
 	}
 	else if (extTransRec.tr_nterm > nsd)
 	{
