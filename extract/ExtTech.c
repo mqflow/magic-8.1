@@ -2131,7 +2131,7 @@ ExtTechLine(sectionName, argc, argv)
 		    // are present by checking if the last argument
 		    // parses as a layer list.
 
-		    if (DBTechNameTypes(argv[argc - 1], &termtypes[0]) < 0)
+		    if (DBTechNameMask(argv[argc - 1], &termtypes[0]) <= 0)
 		    {
 			if (strcmp(argv[argc - 2], "None"))
 			    DBTechNoisyNameMask(argv[argc - 2], &subsTypes);
@@ -2155,7 +2155,7 @@ ExtTechLine(sectionName, argc, argv)
 		    }
 		    else
 		    {
-			nterm = argc - 5;
+			nterm = argc - 4;
 			iterm = 4;
 		    }
 		    

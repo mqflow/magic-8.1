@@ -729,7 +729,7 @@ extern bool DBTechAddContact();
 extern bool DBTechAddCompose();
 extern TileType DBTechNameType(), DBTechNoisyNameType();
 extern int DBTechNamePlane(), DBTechNoisyNamePlane();
-extern PlaneMask DBTechNoisyNameMask();
+extern PlaneMask DBTechNameMask(), DBTechNoisyNameMask();
 extern PlaneMask DBTechTypesToPlanes();
 extern bool DBTechTypesOnPlane();
 extern void DBTechInitPlane();
