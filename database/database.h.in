@@ -519,6 +519,7 @@ typedef struct celluse
 #define CU_DESCEND_NO_SUBCKT	0x0005	/* Descend no subcircuits */
 #define CU_DESCEND_NO_VENDOR	0x0006	/* Descend no vendor-GDS subcells */
 #define CU_DESCEND_NO_LOCK	0x0007	/* Descend unlocked subcells only */
+#define CU_DESCEND_NONE		0x0009	/* Descend no subcells */
 
 /*
  * All subcells used by a cell are part of another tile plane,

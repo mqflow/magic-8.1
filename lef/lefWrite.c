@@ -157,9 +157,10 @@ lefFileOpen(def, file, suffix, mode, prealfile)
  */
 
 void
-lefWriteHeader(def, f)
+lefWriteHeader(def, f, lefTech)
     CellDef *def;	/* Def for which to generate LEF output */
     FILE *f;		/* Output to this file */
+    bool lefTech;	/* If TRUE, write layer information */
 {
     TileType type;
 
@@ -183,6 +184,8 @@ lefWriteHeader(def, f)
     fprintf(f, "   DATABASE MICRONS 1000 ;\n");
     fprintf(f, "END UNITS\n");
     fprintf(f, "\n");
+
+    if (!lefTech) return;
 
     /* Layers (minimal information) */
 
@@ -613,6 +616,9 @@ lefWriteMacro(def, f, scale)
     char *propvalue, *class = NULL;
     Label *lab, *clab;
     Rect boundary;
+    SearchContext scx;
+    CellDef *lefFlatDef;
+    CellUse lefFlatUse, lefSourceUse;
     TileTypeBitMask lmask, boundmask;
     TileType ttype;
     lefClient lc;
@@ -625,13 +631,37 @@ lefWriteMacro(def, f, scale)
 
     TxPrintf("Diagnostic:  Writing LEF output for cell %s\n", def->cd_name);
 
+    lefFlatDef = DBCellLookDef("__lefFlat__");
+    if (lefFlatDef == (CellDef *)NULL)
+	lefFlatDef = DBCellNewDef("__lefFlat__", (char *)NULL);
+    DBCellSetAvail(lefFlatDef);
+    lefFlatDef->cd_flags |= CDINTERNAL;
+
+    lefFlatUse.cu_id = StrDup((char **)NULL, "Flattened cell");
+    lefFlatUse.cu_expandMask = CU_DESCEND_SPECIAL;
+    lefFlatUse.cu_def = lefFlatDef;
+    DBSetTrans(&lefFlatUse, &GeoIdentityTransform);
+    
+    lefSourceUse.cu_id = StrDup((char **)NULL, "Source cell");
+    lefSourceUse.cu_expandMask = CU_DESCEND_ALL;
+    lefSourceUse.cu_def = def;
+    DBSetTrans(&lefSourceUse, &GeoIdentityTransform);
+
+    scx.scx_use = &lefSourceUse;
+    scx.scx_trans = GeoIdentityTransform;
+    scx.scx_area = def->cd_bbox;
+    DBCellCopyAllPaint(&scx, &DBAllButSpaceAndDRCBits, CU_DESCEND_ALL, &lefFlatUse);
+
     /* Set up client record. */
 
     lc.file = f;
     lc.lastType = &ttype;
     lc.oscale = scale;
     lc.lefMagicMap = defMakeInverseLayerMap();
-    lc.lefYank = DBCellNewDef("lefYank", (char *)NULL);
+    lc.lefYank = DBCellLookDef("__lefYank__");
+    if (lc.lefYank == (CellDef *)NULL)
+	lc.lefYank = DBCellNewDef("__lefYank__", (char *)NULL);
+
     DBCellSetAvail(lc.lefYank);
     lc.lefYank->cd_flags |= CDINTERNAL;
 
@@ -723,20 +753,18 @@ lefWriteMacro(def, f, scale)
     else
 	boundary = def->cd_bbox;
 
-    /* Apparently ORIGIN is not reliable!  Assume origin must be (0,0)	*/
-    /* and adjust all geometry instead of adjusting the origin.		*/
+    /* Write position and size information */
 
-/*
     fprintf(f, "   ORIGIN %.4f %.4f ;\n",
-		lc.oscale * (float)boundary.r_xbot,
-		lc.oscale * (float)boundary.r_ybot);
-*/
-    fprintf(f, "   ORIGIN 0.00 0.00 ;\n");
-    lc.origin = boundary.r_ll;
+		-lc.oscale * (float)boundary.r_xbot,
+		-lc.oscale * (float)boundary.r_ybot);
 
     fprintf(f, "   SIZE %.4f BY %.4f ;\n",
 		lc.oscale * (float)(boundary.r_xtop - boundary.r_xbot),
 		lc.oscale * (float)(boundary.r_ytop - boundary.r_ybot));
+
+    lc.origin.p_x = 0;
+    lc.origin.p_y = 0;
 
     propvalue = (char *)DBPropGet(def, "LEFsymmetry", &propfound);
     if (propfound)
@@ -843,7 +871,7 @@ lefWriteMacro(def, f, scale)
 		    TTMaskSetOnlyType(&lmask, clab->lab_type);
 
 		    ttype = TT_SPACE;
-		    SimSrConnect(def, &labr, &lmask, DBConnectTbl,
+		    SimSrConnect(lefFlatDef, &labr, &lmask, DBConnectTbl,
 			&TiPlaneRect, lefYankGeometry2, (ClientData) &lc);
 
 		    for (pNum = PL_PAINTBASE; pNum < DBNumPlanes; pNum++)
@@ -879,7 +907,7 @@ lefWriteMacro(def, f, scale)
     fprintf(f, "   OBS\n");
     for (pNum = PL_PAINTBASE; pNum < DBNumPlanes; pNum++)
     {
-	DBSrPaintArea((Tile *)NULL, def->cd_planes[pNum], 
+	DBSrPaintArea((Tile *)NULL, lefFlatDef->cd_planes[pNum], 
 		&TiPlaneRect, &lc.rmask,
 		lefYankGeometry, (ClientData) &lc);
 
@@ -895,6 +923,9 @@ lefWriteMacro(def, f, scale)
     SigDisableInterrupts();
     freeMagic(lc.lefMagicMap);
     DBCellClearDef(lc.lefYank);
+    DBCellClearDef(lefFlatDef);
+    freeMagic(lefSourceUse.cu_id);
+    freeMagic(lefFlatUse.cu_id);
     SigEnableInterrupts();
 
     UndoEnable();
@@ -918,9 +949,10 @@ lefWriteMacro(def, f, scale)
  */
 
 void
-LefWriteAll(rootUse, writeTopCell)
+LefWriteAll(rootUse, writeTopCell, lefTech)
     CellUse *rootUse;
     bool writeTopCell;
+    bool lefTech;
 {
     CellDef *def, *rootdef;
     FILE *f;
@@ -963,7 +995,7 @@ LefWriteAll(rootUse, writeTopCell)
 
     /* Now generate LEF output for all the cells we just found */
 
-    lefWriteHeader(rootdef, f);
+    lefWriteHeader(rootdef, f, lefTech);
 
     while (def = (CellDef *) StackPop(lefDefStack))
     {
@@ -1029,10 +1061,11 @@ lefDefPushFunc(use)
  */
 
 void
-LefWriteCell(def, outName, isRoot)
+LefWriteCell(def, outName, isRoot, lefTech)
     CellDef *def;		/* Cell being written */
     char *outName;		/* Name of output file, or NULL. */
     bool isRoot;		/* Is this the root cell? */
+    bool lefTech;		/* Output layer information if TRUE */
 {
     char *filename;
     FILE *f;
@@ -1055,7 +1088,7 @@ LefWriteCell(def, outName, isRoot)
     }
 
     if (isRoot)
-	lefWriteHeader(def, f);
+	lefWriteHeader(def, f, lefTech);
     lefWriteMacro(def, f, scale);
     fclose(f);
 }
