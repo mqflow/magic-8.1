@@ -693,7 +693,8 @@ lefWriteMacro(def, f, scale)
 			if (DBIsContact(ttype))
 			{
 			    lrmask = DBResidueMask(ttype);
-			    TTMaskSetMask(&lc.rmask, lrmask);
+			    if (TTMaskHasType(lrmask, lefl->type))
+				TTMaskSetType(&lc.rmask, ttype);
 			}
 		}
 	    }
