@@ -398,6 +398,7 @@ lefYankGeometry(tile, cdata)
 	if (!TTMaskHasType(&lefdata->rmask, ttype)) return 0;
 	iscut = FALSE;
     }
+
     TiToRect(tile, &area);
 
     while (ttype < DBNumTypes)
@@ -673,6 +674,15 @@ lefWriteMacro(def, f, scale)
 
     TTMaskZero(&lc.rmask);
     TTMaskZero(&boundmask);
+
+    /* Any layer which has a port label attached to it should by	*/
+    /* necessity be considered a routing layer.	 Usually this will not	*/
+    /* add anything to the mask already created.			*/
+
+    for (lab = def->cd_labels; lab != NULL; lab = lab->lab_next)
+	if (lab->lab_flags & PORT_DIR_MASK)
+	    TTMaskSetType(&lc.rmask, lab->lab_type);
+
     HashStartSearch(&hs);
     while (he = HashNext(&LefInfo, &hs))
     {
@@ -693,14 +703,6 @@ lefWriteMacro(def, f, scale)
 	    if (lefl->type != -1)
 		TTMaskSetType(&boundmask, lefl->type);
     }
-
-    /* Any layer which has a port label attached to it should by	*/
-    /* necessity be considered a routing layer.	 Usually this will not	*/
-    /* add anything to the mask already created.			*/
-
-    for (lab = def->cd_labels; lab != NULL; lab = lab->lab_next)
-	if (lab->lab_flags & PORT_DIR_MASK)
-	    TTMaskSetType(&lc.rmask, lab->lab_type);
 
     /* NOTE:  This routine corresponds to Envisia LEF/DEF Language	*/
     /* Reference version 5.3 (May 31, 2000)				*/
@@ -885,7 +887,7 @@ lefWriteMacro(def, f, scale)
 	TTMaskSetOnlyType(&lmask, lab->lab_type);
 
 	ttype = TT_SPACE;
-	SimSrConnect(lefFlatDef, &labr, &lmask, DBConnectTbl,
+	DBSrConnectOnePass(lefFlatDef, &labr, &lmask, DBConnectTbl,
 		&TiPlaneRect, lefYankGeometry2, (ClientData) &lc);
 
 	lc.numWrites = 0;
@@ -938,7 +940,7 @@ lefWriteMacro(def, f, scale)
     for (pNum = PL_PAINTBASE; pNum < DBNumPlanes; pNum++)
     {
 	DBSrPaintArea((Tile *)NULL, lefFlatDef->cd_planes[pNum], 
-		&TiPlaneRect, &lc.rmask,
+		&TiPlaneRect, &DBAllButSpaceAndDRCBits,
 		lefYankGeometry, (ClientData) &lc);
 
 	DBSrPaintArea((Tile *)NULL, lc.lefYank->cd_planes[pNum], 
