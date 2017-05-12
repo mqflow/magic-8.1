@@ -695,6 +695,8 @@ dbcConnectLabelFunc(scx, lab, tpath, csa2)
 		    SearchContext scx2 = *csa2->csa2_topscx;
 		    TileTypeBitMask mask;
 
+		    // Do NOT go searching on labels connected to space!
+		    if (slab->lab_type == TT_SPACE) continue;
 		    TTMaskSetOnlyType(&mask, slab->lab_type);
 		    GeoTransRect(&scx->scx_trans, &slab->lab_rect, &scx2.scx_area);
 		    DBTreeSrTiles(&scx2, &mask, csa2->csa2_xMask,
