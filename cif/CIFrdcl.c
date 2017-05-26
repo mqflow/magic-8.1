@@ -1073,8 +1073,7 @@ cifParseUser94()
     }
     if (type >=0 )
     {
-	if (layer >= 0 && (cifCurReadStyle->crs_layers[layer]->crl_flags
-		& CIFR_TEXTLABELS))
+	if (layer >= 0 && cifCurReadStyle->crs_labelSticky[layer])
 	    flags = LABEL_STICKY;
 	else
 	    flags = 0;
@@ -1188,8 +1187,7 @@ cifParseUser95()
     if (type >=0 )
     {
 	int flags;
-	if (layer >= 0 && (cifCurReadStyle->crs_layers[layer]->crl_flags
-		& CIFR_TEXTLABELS))
+	if (layer >= 0 && cifCurReadStyle->crs_labelSticky[layer])
 	    flags = LABEL_STICKY;
 	else
 	    flags = 0;

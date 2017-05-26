@@ -1547,6 +1547,8 @@ origin_error:
 
 	DRCCheckThis(lefMacro, TT_CHECKPAINT, &lefMacro->cd_bbox);
     }
+
+    DBPropPut(lefMacro, "LEFview", StrDup((char **)NULL, token));
     DBWAreaChanged(lefMacro, &lefMacro->cd_bbox, DBW_ALLWINDOWS,
 		&DBAllButSpaceBits);
 }
