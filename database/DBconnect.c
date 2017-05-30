@@ -699,6 +699,12 @@ dbcConnectLabelFunc(scx, lab, tpath, csa2)
 		    if (slab->lab_type == TT_SPACE) continue;
 		    TTMaskSetOnlyType(&mask, slab->lab_type);
 		    GeoTransRect(&scx->scx_trans, &slab->lab_rect, &scx2.scx_area);
+
+		    // Expand search area by 1 to capture edge and point labels.
+		    scx2.scx_area.r_xbot--;
+		    scx2.scx_area.r_xtop++;
+		    scx2.scx_area.r_ybot--;
+		    scx2.scx_area.r_ytop++;
 		    DBTreeSrTiles(&scx2, &mask, csa2->csa2_xMask,
 				dbcConnectFunc, (ClientData) csa2);
 		}

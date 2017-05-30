@@ -288,7 +288,6 @@ typedef struct
     TileTypeBitMask rmask;	/* mask of routing layer types */
     Point	origin;		/* origin of cell */
     float	oscale;		/* units scale conversion factor */
-    int		pNum;		/* Plane number for tile marking */
     int		numWrites;	/* Track number of writes to output */
     int		lefMode;	/* can be LEF_MODE_PORT when searching
 				 * connections into ports, or
@@ -429,42 +428,6 @@ lefYankGeometry(tile, cdata)
 /*
  * ----------------------------------------------------------------------------
  *
- * lefWriteGeometry2 --
- *
- * Wrapper for lefWriteGeometry.  Called for each selection tile.  Calls
- * lefWriteGeometry on the tile, then searches the flattened database for
- * the tile in the same position and marks it as visited.
- *
- * ----------------------------------------------------------------------------
- */
-
-int
-lefWriteGeometry2(tile, cdata)
-    Tile *tile;
-    ClientData cdata;
-{
-    Tile *tp;
-    lefClient *lefdata = (lefClient *)cdata;
-    CellDef *lefFlatDef = lefdata->lefYank;
-    int pNum = lefdata->pNum;
-    Plane *plane = lefFlatDef->cd_planes[pNum];
-
-    /* Find the equivalent tile in the flattened cell. The selection	*/
-    /* cell is also flattened, so coordinates are the same in both.	*/
-
-    tp = plane->pl_hint;
-    GOTOPOINT(tp, &tile->ti_ll);
-    if (tp->ti_client != (ClientData)1)
-    {
-	TiSetClient(tp, (ClientData)1);
-	lefWriteGeometry(tile, cdata);
-    }
-    return 0;
-}
-
-/*
- * ----------------------------------------------------------------------------
- *
  * lefWriteGeometry --
  *
  * Function called from SimSrConnect() that outputs a RECT
@@ -564,6 +527,20 @@ lefWriteGeometry(tile, cdata)
 }
 
 /*
+ * When called from SimSrConnect(), the callback function needs another
+ * argument for the plane.
+ */
+
+int
+lefYankGeometry2(tile, plane, cdata)
+    Tile *tile;
+    Plane *plane;
+    ClientData cdata;
+{
+    return lefYankGeometry(tile, cdata);
+}
+
+/*
  * ----------------------------------------------------------------------------
  *
  * MakeLegalLEFSyntax --
@@ -653,8 +630,6 @@ lefWriteMacro(def, f, scale)
     HashSearch hs;
     HashEntry *he;
 
-    extern CellDef *SelectDef;
-
     UndoDisable();
 
     TxPrintf("Diagnostic:  Writing LEF output for cell %s\n", def->cd_name);
@@ -686,7 +661,12 @@ lefWriteMacro(def, f, scale)
     lc.lastType = &ttype;
     lc.oscale = scale;
     lc.lefMagicMap = defMakeInverseLayerMap();
-    lc.lefYank = lefFlatDef;
+    lc.lefYank = DBCellLookDef("__lefYank__");
+    if (lc.lefYank == (CellDef *)NULL)
+	lc.lefYank = DBCellNewDef("__lefYank__", (char *)NULL);
+
+    DBCellSetAvail(lc.lefYank);
+    lc.lefYank->cd_flags |= CDINTERNAL;
 
     TxPrintf("Diagnostic:  Scale value is %f\n", lc.oscale);
 
@@ -909,27 +889,16 @@ lefWriteMacro(def, f, scale)
 	TTMaskSetOnlyType(&lmask, lab->lab_type);
 
 	ttype = TT_SPACE;
-	// DBSrConnectOnePass(lefFlatDef, &labr, &lmask, DBConnectTbl,
-	//	&TiPlaneRect, lefYankGeometry2, (ClientData) &lc);
-	scx.scx_area = labr;
-	SelectClear();
-	SelectNet(&scx, lab->lab_type, 0, NULL, FALSE);
-
-	// For all geometry in the selection, write LEF records,
-	// and mark the corresponding tiles in lefFlatDef as
-	// visited.
+	DBSrConnectOnePass(lefFlatDef, &labr, &lmask, DBConnectTbl,
+		&TiPlaneRect, lefYankGeometry2, (ClientData) &lc);
 
 	lc.numWrites = 0;
 	for (pNum = PL_PAINTBASE; pNum < DBNumPlanes; pNum++)
 	{
-	    // DBSrPaintArea((Tile *)NULL, lc.lefYank->cd_planes[pNum], 
-	    //		&TiPlaneRect, &lc.rmask,
-	    //		lefWriteGeometry, (ClientData) &lc);
-	    // DBClearPaintPlane(lc.lefYank->cd_planes[pNum]);
-	    lc.pNum = pNum;
-	    DBSrPaintArea((Tile *)NULL, SelectDef->cd_planes[pNum], 
-	    		&TiPlaneRect, &lc.rmask,
-	    		lefWriteGeometry2, (ClientData) &lc);
+	    DBSrPaintArea((Tile *)NULL, lc.lefYank->cd_planes[pNum], 
+			&TiPlaneRect, &lc.rmask,
+			lefWriteGeometry, (ClientData) &lc);
+	    DBClearPaintPlane(lc.lefYank->cd_planes[pNum]);
 	}
 
 	if (lc.numWrites > 0)
@@ -962,15 +931,6 @@ lefWriteMacro(def, f, scale)
 	if (lab->lab_flags & PORT_DIR_MASK)
 	    lab->lab_flags &= ~(PORT_VISITED);
 
-    /* Generate cell for yanking obstructions */
-
-    lc.lefYank = DBCellLookDef("__lefYank__");
-    if (lc.lefYank == (CellDef *)NULL)
-	lc.lefYank = DBCellNewDef("__lefYank__", (char *)NULL);
-
-    DBCellSetAvail(lc.lefYank);
-    lc.lefYank->cd_flags |= CDINTERNAL;
-
     /* List of routing obstructions */
 
     lc.lefMode = LEF_MODE_OBSTRUCT;
@@ -1001,7 +961,6 @@ lefWriteMacro(def, f, scale)
     DBCellClearDef(lefFlatDef);
     freeMagic(lefSourceUse.cu_id);
     freeMagic(lefFlatUse.cu_id);
-    SelectClear();
     SigEnableInterrupts();
 
     UndoEnable();
