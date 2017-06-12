@@ -280,9 +280,10 @@ lefWriteHeader(def, f, lefTech)
 typedef struct
 {
     FILE	*file;		/* file to write to */
-    TileType	*lastType;	/* last type output, so we minimize LAYER
+    TileType	lastType;	/* last type output, so we minimize LAYER
 				 * statements.
 				 */
+    CellDef	*lefFlat;	/* Soure CellDef (flattened cell) */
     CellDef	*lefYank;	/* CellDef to write into */
     LefMapping  *lefMagicMap;	/* Layer inverse mapping table */
     TileTypeBitMask rmask;	/* mask of routing layer types */
@@ -300,6 +301,29 @@ typedef struct
 				 * whole tile.
 				 */
 } lefClient;
+
+/*
+ * ----------------------------------------------------------------------------
+ *
+ */
+
+int
+lefEraseGeometry(tile, cdata)
+    Tile *tile;
+    ClientData cdata;
+{
+    lefClient *lefdata = (lefClient *)cdata;
+    CellDef *flatDef = lefdata->lefFlat;
+    Rect area;
+    TileType ttype;
+
+    TiToRect(tile, &area);
+
+    /* Erase the tile area out of lefFlat */
+    DBErase(flatDef, &area, ttype);
+
+    return 0;
+}
 
 /*
  * ----------------------------------------------------------------------------
@@ -350,24 +374,10 @@ lefYankGeometry(tile, cdata)
     TileTypeBitMask sMask;
     bool iscut;
 
-    /* To enumerate obstructions, we search all tiles in the	*/
-    /* cell, and ignore all of those which were electrically	*/
-    /* connected to any pin.  These will have the tile's	*/
-    /* ti_client record set to 1.				*/
-
-    /* Because DBSrPaintArea will look at each tile once and	*/
-    /* only once, we can reset the ti_client record here, so	*/
-    /* everything is back to normal after LEF output.		*/
-
-    if (lefdata->lefMode == LEF_MODE_OBSTRUCT)
-	if (tile->ti_client == (ClientData)1)
-	{
-	    tile->ti_client = (ClientData)CLIENTDEFAULT;
-	    return 0;
-	}
+    /* Ignore marked tiles */
+    if (tile->ti_client != (ClientData)CLIENTDEFAULT) return 0;
 
     otype = TiGetTypeExact(tile);
-
     if (IsSplit(tile))
 	ttype = (otype & TT_SIDE) ? SplitRightType(tile) :
 			SplitLeftType(tile);
@@ -413,7 +423,11 @@ lefYankGeometry(tile, cdata)
 			((otype & TT_SIDE) ? (ttype << 14) : ttype);
 	    else
 		ptype = ttype;
-	    DBPaint(lefdata->lefYank, &area, ptype);
+
+	    /* Paint into yank buffer */
+	    DBNMPaintPlane(lefdata->lefYank->cd_planes[lefdata->pNum],
+			ptype, &area, DBStdPaintTbl(ttype, lefdata->pNum),
+			(PaintUndoInfo *)NULL);
 	}
 
 	if (iscut == FALSE) break;
@@ -422,42 +436,6 @@ lefYankGeometry(tile, cdata)
 	    if (TTMaskHasType(&sMask, ttype))
 		if (TTMaskHasType(&lefdata->rmask, ttype))
 		    break;
-    }
-    return 0;
-}
-
-/*
- * ----------------------------------------------------------------------------
- *
- * lefWriteGeometry2 --
- *
- * Wrapper for lefWriteGeometry.  Called for each selection tile.  Calls
- * lefWriteGeometry on the tile, then searches the flattened database for
- * the tile in the same position and marks it as visited.
- *
- * ----------------------------------------------------------------------------
- */
-
-int
-lefWriteGeometry2(tile, cdata)
-    Tile *tile;
-    ClientData cdata;
-{
-    Tile *tp;
-    lefClient *lefdata = (lefClient *)cdata;
-    CellDef *lefFlatDef = lefdata->lefYank;
-    int pNum = lefdata->pNum;
-    Plane *plane = lefFlatDef->cd_planes[pNum];
-
-    /* Find the equivalent tile in the flattened cell. The selection	*/
-    /* cell is also flattened, so coordinates are the same in both.	*/
-
-    tp = plane->pl_hint;
-    GOTOPOINT(tp, &tile->ti_ll);
-    if (tp->ti_client != (ClientData)1)
-    {
-	TiSetClient(tp, (ClientData)1);
-	lefWriteGeometry(tile, cdata);
     }
     return 0;
 }
@@ -486,6 +464,13 @@ lefWriteGeometry(tile, cdata)
     TileType ttype, otype = TiGetTypeExact(tile);
     LefMapping *lefMagicToLefLayer = lefdata->lefMagicMap;
 
+    /* Ignore tiles that have already been output */
+    if (tile->ti_client != (ClientData)CLIENTDEFAULT)
+	return 0;
+
+    /* Mark this tile as visited */
+    TiSetClient(tile, (ClientData)1);
+
     /* Get layer type */
     if (IsSplit(tile))
 	ttype = (otype & TT_SIDE) ? SplitRightType(tile) :
@@ -506,13 +491,13 @@ lefWriteGeometry(tile, cdata)
     }
     lefdata->numWrites++;
 
-    if (ttype != *(lefdata->lastType))
-    {
+    if (ttype != lefdata->lastType)
 	if (lefMagicToLefLayer[ttype].lefInfo != NULL)
-		fprintf(f, "         LAYER %s ;\n",
+	{
+	    fprintf(f, "         LAYER %s ;\n",
 				lefMagicToLefLayer[ttype].lefName);
-	*(lefdata->lastType) = ttype;
-    }
+	    lefdata->lastType = ttype;
+	}
 
     if (IsSplit(tile))
 	if (otype & TT_SIDE)
@@ -645,7 +630,7 @@ lefWriteMacro(def, f, scale)
     SearchContext scx;
     CellDef *lefFlatDef;
     CellUse lefFlatUse, lefSourceUse;
-    TileTypeBitMask lmask, boundmask;
+    TileTypeBitMask lmask, boundmask, *lrmask;
     TileType ttype;
     lefClient lc;
     int idx, pNum, maxport, curport;
@@ -680,13 +665,16 @@ lefWriteMacro(def, f, scale)
     scx.scx_area = def->cd_bbox;
     DBCellCopyAllPaint(&scx, &DBAllButSpaceAndDRCBits, CU_DESCEND_ALL, &lefFlatUse);
 
+    /* Reset scx to point to the flattened use */
+    scx.scx_use = &lefFlatUse;
+
     /* Set up client record. */
 
     lc.file = f;
-    lc.lastType = &ttype;
     lc.oscale = scale;
     lc.lefMagicMap = defMakeInverseLayerMap();
-    lc.lefYank = lefFlatDef;
+    lc.lastType = TT_SPACE;
+    lc.lefFlat = lefFlatDef;
 
     TxPrintf("Diagnostic:  Scale value is %f\n", lc.oscale);
 
@@ -706,7 +694,6 @@ lefWriteMacro(def, f, scale)
     HashStartSearch(&hs);
     while (he = HashNext(&LefInfo, &hs))
     {
-	TileTypeBitMask *lrmask;
 	lefLayer *lefl = (lefLayer *)HashGetValue(he);
 	if (lefl && (lefl->lefClass == CLASS_ROUTE || lefl->lefClass == CLASS_VIA))
 	    if (lefl->type != -1)
@@ -784,6 +771,15 @@ lefWriteMacro(def, f, scale)
     propvalue = (char *)DBPropGet(def, "LEFsymmetry", &propfound);
     if (propfound)
 	fprintf(f, "   SYMMETRY %s\n", propvalue);
+
+    /* Generate cell for yanking obstructions */
+
+    lc.lefYank = DBCellLookDef("__lefYank__");
+    if (lc.lefYank == (CellDef *)NULL)
+    lc.lefYank = DBCellNewDef("__lefYank__", (char *)NULL);
+
+    DBCellSetAvail(lc.lefYank);
+    lc.lefYank->cd_flags |= CDINTERNAL;
 
     /* List of pins (ports) (to be refined?) */
 
@@ -906,11 +902,9 @@ lefWriteMacro(def, f, scale)
 	    labr.r_ybot--;
 	}
 
-	TTMaskSetOnlyType(&lmask, lab->lab_type);
+	// TTMaskSetOnlyType(&lmask, lab->lab_type);
 
 	ttype = TT_SPACE;
-	// DBSrConnectOnePass(lefFlatDef, &labr, &lmask, DBConnectTbl,
-	//	&TiPlaneRect, lefYankGeometry2, (ClientData) &lc);
 	scx.scx_area = labr;
 	SelectClear();
 	SelectNet(&scx, lab->lab_type, 0, NULL, FALSE);
@@ -920,17 +914,23 @@ lefWriteMacro(def, f, scale)
 	// visited.
 
 	lc.numWrites = 0;
+	lc.lastType = TT_SPACE;
 	for (pNum = PL_PAINTBASE; pNum < DBNumPlanes; pNum++)
 	{
-	    // DBSrPaintArea((Tile *)NULL, lc.lefYank->cd_planes[pNum], 
-	    //		&TiPlaneRect, &lc.rmask,
-	    //		lefWriteGeometry, (ClientData) &lc);
-	    // DBClearPaintPlane(lc.lefYank->cd_planes[pNum]);
 	    lc.pNum = pNum;
 	    DBSrPaintArea((Tile *)NULL, SelectDef->cd_planes[pNum], 
+			&TiPlaneRect, &DBAllButSpaceAndDRCBits,
+			lefYankGeometry, (ClientData) &lc);
+
+	    DBSrPaintArea((Tile *)NULL, lc.lefYank->cd_planes[pNum], 
 	    		&TiPlaneRect, &lc.rmask,
-	    		lefWriteGeometry2, (ClientData) &lc);
+	    		lefWriteGeometry, (ClientData) &lc);
+
+	    DBSrPaintArea((Tile *)NULL, SelectDef->cd_planes[pNum], 
+			&TiPlaneRect, &DBAllButSpaceAndDRCBits,
+			lefEraseGeometry, (ClientData) &lc);
 	}
+	DBCellClearDef(lc.lefYank);
 
 	if (lc.numWrites > 0)
 	    fprintf(f, "      END\n");	/* end of port geometries */
@@ -962,20 +962,11 @@ lefWriteMacro(def, f, scale)
 	if (lab->lab_flags & PORT_DIR_MASK)
 	    lab->lab_flags &= ~(PORT_VISITED);
 
-    /* Generate cell for yanking obstructions */
-
-    lc.lefYank = DBCellLookDef("__lefYank__");
-    if (lc.lefYank == (CellDef *)NULL)
-	lc.lefYank = DBCellNewDef("__lefYank__", (char *)NULL);
-
-    DBCellSetAvail(lc.lefYank);
-    lc.lefYank->cd_flags |= CDINTERNAL;
-
     /* List of routing obstructions */
 
     lc.lefMode = LEF_MODE_OBSTRUCT;
     lc.numWrites = 0;
-    ttype = TT_SPACE;
+    lc.lastType = TT_SPACE;
 
     /* Restrict to routing planes only */
 
