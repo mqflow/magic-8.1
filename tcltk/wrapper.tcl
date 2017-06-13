@@ -1423,7 +1423,7 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
 
    $m add check -label "Crosshair" \
 	-variable Opts(crosshair) \
-	-command "if {$Opts(crosshair) == 0} {crosshair off}"
+	-command {if {$Opts(crosshair) == 0} {crosshair off}}
 
    catch {addmazehelper $m}
 
