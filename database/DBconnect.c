@@ -754,6 +754,7 @@ dbcConnectFunc(tile, cx)
     TileType loctype = TiGetTypeExact(tile);
     TileType dinfo = 0;
     int pNum = cx->tc_plane;
+    unsigned char searchtype;
     CellDef *def;
 
     TiToRect(tile, &tileArea);
@@ -864,8 +865,30 @@ dbcConnectFunc(tile, cx)
     /* Check the source def for any labels belonging to this	*/
     /* tile area and plane, and add them to the destination.	*/
 
+    searchtype = TF_LABEL_ATTACH;
+    if (IsSplit(tile))
+    {
+	/* If the tile is split, then labels attached to the	*/
+	/* opposite point of the triangle are NOT connected.	*/
+
+	if (SplitSide(tile))
+	{
+	    if (SplitDirection(tile))
+		searchtype |= TF_LABEL_ATTACH_NOT_SW;
+	    else
+		searchtype |= TF_LABEL_ATTACH_NOT_NW;
+	}
+	else
+	{
+	    if (SplitDirection(tile))
+		searchtype |= TF_LABEL_ATTACH_NOT_NE;
+	    else
+		searchtype |= TF_LABEL_ATTACH_NOT_SE;
+	}
+    }
+
     DBTreeSrLabels(&scx2, connectMask, csa2->csa2_xMask, NULL,
-			TF_LABEL_ATTACH, dbcConnectLabelFunc,
+			searchtype, dbcConnectLabelFunc,
 			(ClientData) csa2);
 
     /* Since the whole area of this tile hasn't been recorded,
