@@ -48,6 +48,7 @@ static char rcsid[] __attribute__ ((unused)) = "$Header: /usr/cvsroot/magic-8.0/
 bool esDoExtResis = FALSE;
 bool esDoPorts = TRUE;
 bool esDoHierarchy = FALSE;
+bool esDoBlackBox = FALSE;
 bool esDoRenumber = FALSE;
 bool esDoResistorTee = FALSE;
 int  esDoSubckt = AUTO;
@@ -207,9 +208,10 @@ Exttospice_Init(interp)
 #define EXTTOSPC_SCALE		8
 #define EXTTOSPC_SUBCIRCUITS	9
 #define EXTTOSPC_HIERARCHY	10
-#define EXTTOSPC_RENUMBER	11
-#define EXTTOSPC_MERGENAMES	12
-#define EXTTOSPC_HELP		13
+#define EXTTOSPC_BLACKBOX	11
+#define EXTTOSPC_RENUMBER	12
+#define EXTTOSPC_MERGENAMES	13
+#define EXTTOSPC_HELP		14
 
 void
 CmdExtToSpice(w, cmd)
@@ -256,6 +258,7 @@ CmdExtToSpice(w, cmd)
 	"scale [on|off]		use .option card for scaling",
 	"subcircuits [on|off]	standard cells become subcircuit calls",
 	"hierarchy [on|off]	output hierarchical spice for LVS",
+	"blackbox [on|off]	output abstract views as black-box entries",
 	"renumber [on|off]	on = number instances X1, X2, etc.\n"
 	"			off = keep instance ID names",
 	"global [on|off]	on = merge unconnected global nets by name",
@@ -371,6 +374,20 @@ CmdExtToSpice(w, cmd)
 		esDoHierarchy = TRUE;
 	    else	 /* no */
 		esDoHierarchy = FALSE;
+	    break;
+
+	case EXTTOSPC_BLACKBOX:
+	    if (cmd->tx_argc == 2)
+	    {
+		Tcl_SetResult(magicinterp, (esDoBlackBox) ? "on" : "off", NULL);
+		return;
+	    }
+	    idx = Lookup(cmd->tx_argv[2], yesno);
+	    if (idx < 0) goto usage;
+	    else if (idx < 3)	/* yes */
+		esDoBlackBox = TRUE;
+	    else	 /* no */
+		esDoBlackBox = FALSE;
 	    break;
 
 	case EXTTOSPC_RENUMBER:

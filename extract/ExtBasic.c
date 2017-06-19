@@ -203,6 +203,7 @@ extBasic(def, outFile)
     HashTable extCoupleHash;
     char *propptr;
     bool propfound = FALSE;
+    bool isabstract = FALSE;
 
     glob_subsnode = (NodeRegion *)NULL;
 
@@ -304,6 +305,12 @@ extBasic(def, outFile)
 	    tnode->nreg_resist = (ResValue)0;
 	}
     }
+
+    /* Check for "LEFview", for which special output handling	*/
+    /* can be specified in ext2spice.				*/
+
+    DBPropGet(def, "LEFview", &isabstract);
+    if (isabstract) fprintf(outFile, "abstract\n");
 
     /* Output each node, along with its resistance and capacitance to substrate */
     if (!SigInterruptPending)

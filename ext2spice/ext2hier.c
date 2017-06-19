@@ -1727,6 +1727,7 @@ esHierVisit(hc, cdata)
     DefFlagsData *dfd;
     int flags;
     int locDoSubckt = esDoSubckt;
+    bool doStub;
 
     dfd = (DefFlagsData *)cdata;
     topdef = dfd->def;
@@ -1769,13 +1770,22 @@ esHierVisit(hc, cdata)
     hcf = EFFlatBuildOneLevel(hc->hc_use->use_def, flags);
 
     /* If definition has been marked as having no devices, then this	*/
-    /* def is not to be output unless it is the top level.		*/
+    /* def is not to be output unless it is the top level.  However, if	*/
+    /* this subcircuit is an abstract view, then create a subcircuit	*/
+    /* stub entry for it (declares port names and order but no devices)	*/
 
-    if ((def != topdef) && (hc->hc_use->use_def->def_flags & DEF_NODEVICES))
+    doStub = ((hc->hc_use->use_def->def_flags & DEF_ABSTRACT) && esDoBlackBox) ?
+		TRUE : FALSE;
+
+    if ((def != topdef) && (hc->hc_use->use_def->def_flags & DEF_NODEVICES) &&
+		(!doStub))
     {
 	EFFlatDone();
 	return 0;
     }
+    else if (doStub)
+	fprintf(esSpiceF, "* Black-box entry subcircuit for %s abstract view\n",
+		def->def_name);
 
     /* Generate subcircuit header */
     if ((def != topdef) || (def->def_flags & DEF_SUBCIRCUIT))
