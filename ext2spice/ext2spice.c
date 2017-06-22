@@ -846,7 +846,7 @@ runexttospice:
     if (esDoHierarchy)
     {
 	if ((esDoSubckt == TRUE) || (locDoSubckt == TRUE))
-	    topVisit(efFlatRootDef);
+	    topVisit(efFlatRootDef, FALSE);
 
 	ESGenerateHierarchy(inName, flatFlags);
 
@@ -863,7 +863,7 @@ runexttospice:
 		locDoSubckt = TRUE;
 	}
 	if ((esDoSubckt == TRUE) || (locDoSubckt == TRUE))
-	    topVisit(efFlatRootDef);
+	    topVisit(efFlatRootDef, FALSE);
 
 	/* When generating subcircuits, remove the subcircuit	*/
 	/* flag from the top level cell.  Other than being	*/
@@ -1039,7 +1039,7 @@ main(argc, argv)
 	    locDoSubckt = TRUE;
     }
     if ((esDoSubckt == TRUE) || (locDoSubckt == TRUE))
-	topVisit(efFlatRootDef);
+	topVisit(efFlatRootDef, FALSE);
 
     /* If we don't want to write subcircuit calls, remove the	*/
     /* subcircuit flag from all cells at this time.		*/
@@ -1565,14 +1565,18 @@ subcktUndef(use, hierName, is_top)
  *
  * where
  *	node1 node2 ... noden are the nodes connecting to the ports of
- *	the subcircuit.  "name" is the name of the cell def.
+ *	the subcircuit.  "name" is the name of the cell def.  If "doStub"
+ *	is TRUE, then the subcircuit is a stub (empty declaration) for a
+ *	subcircuit, and implicit substrate connections should not be
+ *	output.
  *
  * ----------------------------------------------------------------------------
  */
  
 void
-topVisit(def)
+topVisit(def, doStub)
     Def *def;
+    bool doStub;
 {
     EFNode *snode;
     EFNodeName *sname, *nodeName;
@@ -1692,30 +1696,33 @@ topVisit(def)
 
     /* Add all implicitly-defined local substrate node names */
 
-    HashStartSearch(&hs);
-    while (he = HashNext(&def->def_nodes, &hs))
+    if (!doStub)
     {
-	sname = (EFNodeName *) HashGetValue(he);
-	if (sname == NULL) continue;
-	snode = sname->efnn_node;
-
-	if (snode->efnode_flags & EF_SUBS_PORT)
+	HashStartSearch(&hs);
+	while (he = HashNext(&def->def_nodes, &hs))
 	{
-	    if (snode->efnode_name->efnn_port < 0)
-	    {
-		char stmp[MAX_STR_SIZE];
+	    sname = (EFNodeName *) HashGetValue(he);
+	    if (sname == NULL) continue;
+	    snode = sname->efnn_node;
 
-		if (tchars > 80)
+	    if (snode->efnode_flags & EF_SUBS_PORT)
+	    {
+		if (snode->efnode_name->efnn_port < 0)
 		{
-		    /* Line continuation */
-		    fprintf(esSpiceF, "\n+");
-		    tchars = 1;
+		    char stmp[MAX_STR_SIZE];
+
+		    if (tchars > 80)
+		    {
+			/* Line continuation */
+			fprintf(esSpiceF, "\n+");
+			tchars = 1;
+		    }
+		    /* This is not a hierarchical name or node! */
+		    EFHNSprintf(stmp, snode->efnode_name->efnn_hier);
+		    fprintf(esSpiceF, " %s", stmp);
+		    snode->efnode_name->efnn_port = portorder++;
+		    tchars += strlen(stmp) + 1;
 		}
-		/* This is not a hierarchical name or node! */
-		EFHNSprintf(stmp, snode->efnode_name->efnn_hier);
-		fprintf(esSpiceF, " %s", stmp);
-		snode->efnode_name->efnn_port = portorder++;
-		tchars += strlen(stmp) + 1;
 	    }
 	}
     }

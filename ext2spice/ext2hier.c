@@ -1789,7 +1789,7 @@ esHierVisit(hc, cdata)
 
     /* Generate subcircuit header */
     if ((def != topdef) || (def->def_flags & DEF_SUBCIRCUIT))
-	topVisit(def);
+	topVisit(def, doStub);
     else
 	fprintf(esSpiceF, "\n* Top level circuit %s\n\n", topdef->def_name);
 
