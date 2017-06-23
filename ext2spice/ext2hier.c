@@ -1586,12 +1586,9 @@ esMakePorts(hc, cdata)
 		portname = tptr + 1;
 
 		// Find the net of portname in the subcell and
-		// make it a port if it is not already.  (NOTE:
-		// black-box subcircuits do not get any ports
-		// that are not explicitly declared.)
+		// make it a port if it is not already.
 
-		if (portdef && (!(portdef->def_flags & DEF_ABSTRACT) ||
-			(!esDoBlackBox)))
+		if (portdef)
 		{
 		    he = HashFind(&portdef->def_nodes, portname);
 		    nn = (EFNodeName *) HashGetValue(he);

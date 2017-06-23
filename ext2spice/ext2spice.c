@@ -1687,8 +1687,14 @@ topVisit(def, doStub)
 		if (nodeName != NULL)
 		    break;
 		else if (portidx < 0)
-		    // Node has not been assigned a port number
-		    unnumbered->efnn_port = ++portmax;
+		{
+		    // Node has not been assigned a port number.
+		    // Give it one unless this is a black-box circuit
+		    // and "ext2spice blackbox on" is in effect.
+ 
+		    if (esDoBlackBox == FALSE || !(def->def_flags & DEF_ABSTRACT))
+			unnumbered->efnn_port = ++portmax;
+		}
 	    }
 	    portorder++;
 	}
