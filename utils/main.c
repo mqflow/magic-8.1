@@ -560,8 +560,12 @@ mainInitAfterArgs()
 		+ strlen(TechFileName) - 1);
 	sprintf(CellLibPath, MAGIC_LIB_PATH, TechFileName);
     }
-    else
-	CellLibPath = StrDup((char **)NULL, MAGIC_LIB_PATH);
+    else if ((TechDefault != NULL) && TechOverridesDefault)
+    {
+	CellLibPath = (char *)mallocMagic(strlen(MAGIC_LIB_PATH)
+		+ strlen(TechDefault) - 1);
+	sprintf(CellLibPath, MAGIC_LIB_PATH, TechDefault);
+    }
     
     if (MainGraphicsFile == NULL) MainGraphicsFile = "/dev/null";
     if (MainMouseFile == NULL) MainMouseFile = MainGraphicsFile;
