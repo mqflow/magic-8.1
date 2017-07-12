@@ -1489,6 +1489,14 @@ subcktVisit(use, hierName, is_top)
 	}
     }
 
+    /* SPICE subcircuit names must begin with A-Z.  This will also be   */
+    /* enforced when writing X subcircuit calls.                        */
+    subcktname = def->def_name;
+    while (!isalpha(*subcktname)) subcktname++;
+
+    if (tchars > 80) fprintf(esSpiceF, "\n+");
+    fprintf(esSpiceF, " %s", subcktname);	/* subcircuit model name */
+
     // Check for a "device parameter" defined with the name of the cell.
     // This contains a list of parameter strings to be passed to the
     // cell instance.
@@ -1507,14 +1515,7 @@ subcktVisit(use, hierName, is_top)
 	tchars += (1 + strlen(pptr->parm_name));
     }    
     freeMagic(instname);
-
-    /* SPICE subcircuit names must begin with A-Z.  This will also be   */
-    /* enforced when writing X subcircuit calls.                        */
-    subcktname = def->def_name;
-    while (!isalpha(*subcktname)) subcktname++;
-
-    if (tchars > 80) fprintf(esSpiceF, "\n+");
-    fprintf(esSpiceF, " %s\n", subcktname);	/* subcircuit model name */
+    fprintf(esSpiceF, "\n");
     return 0;
 }
 
