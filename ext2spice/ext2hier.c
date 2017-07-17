@@ -1793,43 +1793,46 @@ esHierVisit(hc, cdata)
     else
 	fprintf(esSpiceF, "\n* Top level circuit %s\n\n", topdef->def_name);
 
-    /* Output subcircuit calls */
-    EFHierVisitSubcircuits(hcf, subcktHierVisit, (ClientData)NULL);
-
-    /* Merge devices */
-    if (esMergeDevsA || esMergeDevsC)
+    if (!doStub)	/* By definition, stubs have no internal components */
     {
-	devMerge *p;
+	/* Output subcircuit calls */
+	EFHierVisitSubcircuits(hcf, subcktHierVisit, (ClientData)NULL);
 
-	EFHierVisitDevs(hcf, spcdevHierMergeVisit, (ClientData)NULL);
-	TxPrintf("Devs merged: %d\n", esSpiceDevsMerged);
-	esFMIndex = 0;
-	for (p = devMergeList; p != NULL; p = p->next)
-	    freeMagic(p);
-	devMergeList = NULL;
-    }
+	/* Merge devices */
+	if (esMergeDevsA || esMergeDevsC)
+	{
+	    devMerge *p;
 
-    /* Output devices */
-    EFHierVisitDevs(hcf, spcdevHierVisit, (ClientData)NULL);
+	    EFHierVisitDevs(hcf, spcdevHierMergeVisit, (ClientData)NULL);
+	    TxPrintf("Devs merged: %d\n", esSpiceDevsMerged);
+	    esFMIndex = 0;
+	    for (p = devMergeList; p != NULL; p = p->next)
+		freeMagic(p);
+	    devMergeList = NULL;
+	}
 
-    /* Output lumped parasitic resistors */
-    EFHierVisitResists(hcf, spcresistHierVisit, (ClientData)NULL);
+	/* Output devices */
+	EFHierVisitDevs(hcf, spcdevHierVisit, (ClientData)NULL);
 
-    /* Output coupling capacitances */
-    sprintf( esSpiceCapFormat,  "C%%d %%s %%s %%.%dlffF\n", esCapAccuracy);
-    EFHierVisitCaps(hcf, spccapHierVisit, (ClientData)NULL);
+	/* Output lumped parasitic resistors */
+	EFHierVisitResists(hcf, spcresistHierVisit, (ClientData)NULL);
 
-    if (EFCompat == FALSE)
-    {
-	/* Find the substrate node */
-	EFHierVisitNodes(hcf, spcsubHierVisit, (ClientData)&resstr);
-	if (resstr == NULL) resstr = StrDup((char **)NULL, "0");
+	/* Output coupling capacitances */
+	sprintf( esSpiceCapFormat,  "C%%d %%s %%s %%.%dlffF\n", esCapAccuracy);
+	EFHierVisitCaps(hcf, spccapHierVisit, (ClientData)NULL);
 
-	/* Output lumped capacitance and resistance to substrate */
-	sprintf( esSpiceCapFormat,  "C%%d %%s %s %%.%dlffF%%s\n",
+	if (EFCompat == FALSE)
+	{
+	    /* Find the substrate node */
+	    EFHierVisitNodes(hcf, spcsubHierVisit, (ClientData)&resstr);
+	    if (resstr == NULL) resstr = StrDup((char **)NULL, "0");
+
+	    /* Output lumped capacitance and resistance to substrate */
+	    sprintf( esSpiceCapFormat,  "C%%d %%s %s %%.%dlffF%%s\n",
 			resstr, esCapAccuracy);
-	EFHierVisitNodes(hcf, spcnodeHierVisit, (ClientData) NULL);
-	freeMagic(resstr);
+	    EFHierVisitNodes(hcf, spcnodeHierVisit, (ClientData) NULL);
+	    freeMagic(resstr);
+	}
     }
 
     if ((def != topdef) || (def->def_flags & DEF_SUBCIRCUIT))
