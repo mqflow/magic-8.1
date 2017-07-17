@@ -88,7 +88,7 @@ CmdLef(w, cmd)
     {	
 	"read [filename]		read a LEF file filename[.lef]\n"
 	"    read [filename] -import	read a LEF file; import cells from .mag files",
-	"write [filename] [-ports]	write LEF for current cell",
+	"write [filename] [-tech]	write LEF for current cell",
 	"writeall			write all cells including the top-level cell\n"
 	"    writeall -notop		write all subcells of the top-level cell",
 	"help                   	print this help information",
@@ -187,23 +187,30 @@ CmdLef(w, cmd)
 	    }
 	    break;
 	case LEF_WRITE:
-	    if (!is_lef)
+	    allSpecial = FALSE;
+	    for (i = 2; i < cmd->tx_argc; i++)
 	    {
-		allSpecial = FALSE;
-		for (i = 3; i < cmd->tx_argc; i++)
+		if (*(cmd->tx_argv[i]) == '-')
 		{
-		    if (*(cmd->tx_argv[i]) == '-')
+		    if (!strncmp(cmd->tx_argv[i], "-allspec", 8))
 		    {
-			if (!strncmp(cmd->tx_argv[i], "-allspec", 8))
+			if (!is_lef)
 			    allSpecial = TRUE;
-			else if (!strncmp(cmd->tx_argv[i], "-tech", 5))
+			else
+			    TxPrintf("The \"-allspec\" option is only for def write\n");
+		    }
+		    else if (!strncmp(cmd->tx_argv[i], "-tech", 5))
+		    {
+			if (is_lef)
 			    lefTech = TRUE;
-			else goto wrongNumArgs;
+			else
+			    TxPrintf("The \"-tech\" option is only for lef write\n");
 		    }
 		    else goto wrongNumArgs;
 		}
+		else goto wrongNumArgs;
 	    }
-            else if (cmd->tx_argc != 2 && cmd->tx_argc != 3) goto wrongNumArgs;
+            if (cmd->tx_argc != 2 && cmd->tx_argc != 3) goto wrongNumArgs;
             if (selectedUse == NULL)
             {
                 TxError("No cell selected\n");
