@@ -363,6 +363,10 @@ proc magic::maketechmanager { mgrpath } {
 
 catch {source ${CAD_ROOT}/magic/tcl/cellmgr.tcl}
 
+# Generate the library manager
+
+catch {source ${CAD_ROOT}/magic/tcl/libmgr.tcl}
+
 # Generate the text helper
 
 catch {source ${CAD_ROOT}/magic/tcl/texthelper.tcl}
@@ -511,7 +515,7 @@ magic::tag findbox "magic::scrollupdate %W"
 magic::tag see "magic::toolupdate %W %1 %2"
 magic::tag tech "magic::techrebuild %W %1; magic::captions %1"
 magic::tag drc "magic::drcupdate %1"
-magic::tag path "magic::techmanager update"
+magic::tag path "[magic::tag path]; magic::techmanager update"
 magic::tag cellname "magic::mgrupdate %W %1"
 magic::tag cif      "magic::mgrupdate %W %1"
 magic::tag gds      "magic::mgrupdate %W %1"
@@ -1383,7 +1387,16 @@ proc magic::openwrapper {{cell ""} {framename ""}} {
       .winmenu entryconfigure last -command ".cellmgr.target.list configure \
          -text ${framename}"
    }
-
+   if {$tk_version >= 8.5} {
+     $m add check -label "Library Manager" -variable Opts(libmgr) \
+	-command [subst { magic::libmanager create; \
+	if { \$Opts(libmgr) } { \
+	   wm deiconify .libmgr ; raise .libmgr \
+	} else { \
+	   wm withdraw .libmgr } }]
+      .winmenu entryconfigure last -command ".libmgr.target.list configure \
+         -text ${framename}"
+   }
    $m add check -label "Tech Manager" -variable Opts(techmgr) \
 	-command [subst { magic::techmanager create; \
 		if { \$Opts(techmgr) } { \
