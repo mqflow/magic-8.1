@@ -493,7 +493,7 @@ windNamesCmd(w, cmd)
 	if (!strncmp(cmd->tx_argv[1], "all", 3))
 	    doforall = TRUE;
 #ifndef THREE_D
-	else if (!strcmp(cmd->tx_argv[1], "wind3d", 3))
+	else if (!strncmp(cmd->tx_argv[1], "wind3d", 6))
 	{
 	    return;	// do nothing
 	}
