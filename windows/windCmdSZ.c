@@ -492,6 +492,12 @@ windNamesCmd(w, cmd)
     {
 	if (!strncmp(cmd->tx_argv[1], "all", 3))
 	    doforall = TRUE;
+#ifndef THREE_D
+	else if (!strcmp(cmd->tx_argv[1], "wind3d", 3))
+	{
+	    return;	// do nothing
+	}
+#endif 	/* THREE_D */
 	else
 	{
 	    wc = WindGetClient(cmd->tx_argv[1], FALSE);
