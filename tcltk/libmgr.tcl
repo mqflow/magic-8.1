@@ -131,7 +131,7 @@ proc magic::addtolibset {item} {
          set keyword [lindex $tokens 0]
          if {$keyword != "tech"} {continue}
          set tech [lindex $tokens 1]
-         close fin
+         close $fin
 
 	 # filter here for compatible technology
 
