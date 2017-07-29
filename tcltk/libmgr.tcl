@@ -33,6 +33,11 @@ proc magic::libcallback {command} {
    switch $command {
       load {$winname load $celldef}
       place {$winname getcell $celldef}
+      pick {
+	magic::tool pick
+	$winname getcell $celldef
+	magic::startselect $winname pick
+      }
    }
 }
 
@@ -60,11 +65,13 @@ proc magic::makelibmanager { mgrpath } {
    pack ${mgrpath}.box -side top -fill both -expand true
    pack ${mgrpath}.target -side top -fill x
 
-   button ${mgrpath}.actionbar.load -text "Load" -command {magic::libcallback load}
+   button ${mgrpath}.actionbar.load  -text "Load" -command {magic::libcallback load}
    button ${mgrpath}.actionbar.place -text "Place" -command {magic::libcallback place}
+   button ${mgrpath}.actionbar.pick  -text "Pick" -command {magic::libcallback pick}
 
    pack ${mgrpath}.actionbar.load -side left
    pack ${mgrpath}.actionbar.place -side left
+   pack ${mgrpath}.actionbar.pick -side left
 
    label ${mgrpath}.target.name -text "Target window:"
    menubutton ${mgrpath}.target.list -text "default" \
@@ -118,8 +125,10 @@ proc magic::addlibentry {parent child tech} {
 proc magic::addtolibset {item} {
    set pathname [.libmgr.box.view item $item -text]
    set pathfiles [glob -nocomplain -directory $pathname *.mag]
+
+   # Sort files alphabetically
    
-   foreach f $pathfiles {
+   foreach f [lsort $pathfiles] {
       set rootname [file tail [file root $f]]
       if {![catch {open $f r} fin]} {
          # Read first two lines, break on error
