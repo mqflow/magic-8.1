@@ -443,7 +443,8 @@ calmaElementPath()
     if (nbytes > 0 && rtype == CALMA_PATHTYPE)
 	if (!calmaReadI2Record(CALMA_PATHTYPE, &pathtype)) return;
 
-    if (pathtype != CALMAPATH_SQUAREFLUSH && pathtype != CALMAPATH_SQUAREPLUS)
+    if (pathtype != CALMAPATH_SQUAREFLUSH && pathtype != CALMAPATH_SQUAREPLUS
+		&& pathtype != CALMAPATH_CUSTOM)
     {
 	calmaReadError("Warning: pathtype %d unsupported (ignored).\n", pathtype);
 	pathtype = CALMAPATH_SQUAREFLUSH;
@@ -466,11 +467,18 @@ calmaElementPath()
     width *= calmaReadScale1;
     if (width % calmaReadScale2 != 0)
 	calmaReadError("Wire width snapped to nearest integer boundary.\n");
-
     width /= calmaReadScale2;
 
+    if (pathtype == CALMAPATH_SQUAREFLUSH || pathtype == CALMAPATH_CUSTOM)
+    {
+	extend1 = extend2 = 0;
+    }
+    else if (pathtype == CALMAPATH_SQUAREPLUS || pathtype == CALMAPATH_ROUND)
+    {
+	extend1 = extend2 = (width / 2);
+    }
+
     /* Handle BGNEXTN, ENDEXTN */
-    extend1 = extend2 = 0;
     PEEKRH(nbytes, rtype);
     if (nbytes > 0 && rtype == CALMA_BGNEXTN)
     {
