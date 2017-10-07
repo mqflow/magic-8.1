@@ -469,14 +469,11 @@ calmaElementPath()
 	calmaReadError("Wire width snapped to nearest integer boundary.\n");
     width /= calmaReadScale2;
 
-    if (pathtype == CALMAPATH_SQUAREFLUSH || pathtype == CALMAPATH_CUSTOM)
-    {
-	extend1 = extend2 = 0;
-    }
-    else if (pathtype == CALMAPATH_SQUAREPLUS || pathtype == CALMAPATH_ROUND)
-    {
-	extend1 = extend2 = (width / 2);
-    }
+    /* Note:  SQUARE endcaps are handled inside CIFPaintWirePath by	*/
+    /* enabling "endcap".  Round endcaps are treated like square.	*/
+    /* Custom endcaps are treated like no endcap, with the extensions	*/
+    /* added in here.							*/
+    extend1 = extend2 = 0;
 
     /* Handle BGNEXTN, ENDEXTN */
     PEEKRH(nbytes, rtype);
@@ -605,8 +602,8 @@ calmaElementPath()
 	}
 
 	CIFPaintWirePath(pathheadp, width,
-		(pathtype == CALMAPATH_SQUAREFLUSH) ? FALSE : TRUE,
-		plane, CIFPaintTable, (PaintUndoInfo *)NULL);
+		(pathtype == CALMAPATH_SQUAREFLUSH || pathtype == CALMAPATH_CUSTOM) ?
+		FALSE : TRUE, plane, CIFPaintTable, (PaintUndoInfo *)NULL);
 
 	if (cifCurReadPlanes == cifEditCellPlanes)
 	{
