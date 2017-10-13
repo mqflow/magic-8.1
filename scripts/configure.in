@@ -242,6 +242,7 @@ case $target in
     ;;
 esac
 
+stub_defs=""
 extra_defs="$extra_defs -DCAD_DIR=\\\"\${LIBDIR}\\\" -DBIN_DIR=\\\"\${BINDIR}\\\""
 X_LIBS=
 X_CFLAGS=
@@ -1167,6 +1168,7 @@ if test $usingTcl ; then
   AC_DEFINE(MAGIC_WRAPPER)
   extra_libs="$extra_libs \${MAGICDIR}/tcltk/libtcltk.o"
   extra_defs="$extra_defs -DTCL_DIR=\\\"\${TCLDIR}\\\""
+  stub_defs="$stub_defs -DUSE_TCL_STUBS -DUSE_TK_STUBS"
 elif test $usingScheme ; then
   modules="$modules lisp"
   unused="$unused tcltk"
@@ -1279,6 +1281,7 @@ esac
 # -----------------------------------------------------------------------
 
 if test $usingTcl ; then
+   LIB_SPEC_NOSTUB="${LIB_SPECS}"
 
 # -----------------------------------------------------------------------
 #
@@ -1290,9 +1293,11 @@ if test $usingTcl ; then
   fi
   if test "${TK_LIB_DIR}" = "/usr/lib" -o \
         "${TK_LIB_DIR}" = "/usr/lib64" ; then
-    LIB_SPECS="${LIB_SPECS} ${TK_LIB_SPEC}"
+    LIB_SPECS_NOSTUB="${LIB_SPECS_NOSTUB} ${TK_LIB_SPEC}"
+    LIB_SPECS="${LIB_SPECS} ${TK_STUB_LIB_SPEC}"
   else
-    LIB_SPECS="${LIB_SPECS} -L${TK_LIB_DIR} ${TK_LIB_SPEC}"
+    LIB_SPECS_NOSTUB="${LIB_SPECS_NOSTUB} -L${TK_LIB_DIR} ${TK_LIB_SPEC}"
+    LIB_SPECS="${LIB_SPECS} -L${TK_LIB_DIR} ${TK_STUB_LIB_SPEC}"
     if test "x${loader_run_path}" = "x" ; then
       loader_run_path="${TK_LIB_DIR}"
     else
@@ -1317,9 +1322,11 @@ if test $usingTcl ; then
   if test "${TCL_LIB_DIR}" = "/usr/lib" -o \
         "${TCL_LIB_DIR}" = "/usr/lib64" -o \
         "${TCL_LIB_DIR}" = "${TK_LIB_DIR}" ; then
-    LIB_SPECS="${LIB_SPECS} ${TCL_LIB_SPEC}"
+    LIB_SPECS_NOSTUB="${LIB_SPECS_NOSTUB} ${TCL_LIB_SPEC}"
+    LIB_SPECS="${LIB_SPECS} ${TCL_STUB_LIB_SPEC}"
   else
-    LIB_SPECS="${LIB_SPECS} -L${TCL_LIB_DIR} ${TCL_LIB_SPEC}"
+    LIB_SPECS_NOSTUB="${LIB_SPECS_NOSTUB} -L${TCL_LIB_DIR} ${TCL_LIB_SPEC}"
+    LIB_SPECS="${LIB_SPECS} -L${TCL_LIB_DIR} ${TCL_STUB_LIB_SPEC}"
     if test "x${loader_run_path}" = "x" ; then
       loader_run_path="${TCL_LIB_DIR}"
     else
@@ -1638,6 +1645,7 @@ if test $usingTcl ; then
   AC_SUBST(LDFLAGS)
   AC_SUBST(INC_SPECS)
   AC_SUBST(LIB_SPECS)
+  AC_SUBST(LIB_SPECS_NOSTUB)
   AC_SUBST(WISH_EXE)
   AC_SUBST(TCLSH_EXE)
   AC_SUBST(TCL_LIB_DIR)
@@ -1656,6 +1664,7 @@ AC_SUBST(PACKAGE)
 AC_SUBST(SCRIPTS)
 AC_SUBST(extra_libs)
 AC_SUBST(extra_defs)
+AC_SUBST(stub_defs)
 AC_SUBST(ld_extra_libs)
 AC_SUBST(ld_extra_objs)
 AC_SUBST(top_extra_libs)

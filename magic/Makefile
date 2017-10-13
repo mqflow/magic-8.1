@@ -35,7 +35,8 @@ tclmagic${SHDLIB_EXT}: ${EXTRA_LIBS}
 	@echo --- making magic Tcl library \(tclmagic${SHDLIB_EXT}\)
 	${RM} tclmagic${SHDLIB_EXT}
 	${CC} ${CFLAGS} ${CPPFLAGS} -o $@ ${LDDL_FLAGS} ${LD_RUN_PATH} \
-		${EXTRA_LIBS} -lc ${LIBS}
+		${EXTRA_LIBS} ${LD_EXTRA_LIBS} -lc ${LIBS} \
+		${LIB_SPECS} ${LDFLAGS}
 
 proto.magicrc: proto.magicrc.m4
 	sed -e /CAD_DIR/s%CAD_DIR%${LIBDIR}%g proto.magicrc.m4 | \
