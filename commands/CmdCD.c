@@ -140,8 +140,6 @@ CmdCalma(w, cmd)
 	"		for the window's root cell",
 	"polygon subcells [yes|no]\n"
 	"		put non-Manhattan polygons into subcells",
-	"unfracture tiles[yes|no]\n"
-	"		optimize tiling of non-Manhattan geometry",
 	NULL
     };
 
