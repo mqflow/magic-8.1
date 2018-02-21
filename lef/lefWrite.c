@@ -909,6 +909,9 @@ lefWriteMacro(def, f, scale)
 	    labr.r_ybot--;
 	}
 
+	// Avoid errors caused by labels not attached to anything.
+	TTMaskClearType(&lc.rmask, TT_SPACE);
+
 	// TTMaskSetOnlyType(&lmask, lab->lab_type);
 
 	ttype = TT_SPACE;
