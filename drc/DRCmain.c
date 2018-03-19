@@ -533,7 +533,7 @@ drcWhyFunc(scx, cdarg)
 //  (void) DRCBasicCheck(def, &haloArea, &scx->scx_area,
 //		(dolist) ? drcListError : drcPrintError,
 //		(ClientData) scx);
-    (void) DRCInteractionCheck(def, &scx->scx_area,
+    (void) DRCInteractionCheck(def, &scx->scx_area, &scx->scx_area,
 		(dolist) ? drcListError : drcPrintError,
 		(ClientData) scx);
     (void) DRCArrayCheck(def, &scx->scx_area,
@@ -558,9 +558,9 @@ drcWhyAllFunc(scx, cdarg)
 
     /* Check paint and interactions in this subcell. */
     
-    (void) DRCInteractionCheck(def, &scx->scx_area,
+    (void) DRCInteractionCheck(def, &scx->scx_area, &scx->scx_area,
 		drcListallError, (ClientData)scx);
-    (void) DRCArrayCheck(def, &scx->scx_area,
+    (void) DRCArrayCheck(def, &scx->scx_area, &scx->scx_area,
 		drcListallError, (ClientData)scx);
     
     /* Also search children. */
