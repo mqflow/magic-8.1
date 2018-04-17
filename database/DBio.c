@@ -1026,7 +1026,6 @@ dbReadOpen(cellDef, name, setFileName, errptr)
 	f = PaLockOpen(cellDef->cd_file, "r", DBSuffix, ".",
 			(char *) NULL, &filename, &is_locked);
 
-
 	/* Fall back on the original method of using search paths. */
 
 	if (f == NULL)
@@ -1036,12 +1035,11 @@ dbReadOpen(cellDef, name, setFileName, errptr)
 
 	    if (f != NULL)
 	    {
-		TxError("Warning:  Parent cell of %s marked file location as %s.\n",
-			cellDef->cd_name, cellDef->cd_file);
-		TxError("Cell could not be found in that location.  However,"
-			"the cell was found in the search paths at\n");
-		TxError("%s.\n", filename);
-		TxError("Please make sure that this is the intended cell version.\n");
+		if (pptr != NULL) *pptr = '.';
+		TxError("Warning:  Parent cell lists instance \"%s\" at bad file "
+			"path %s.\n", cellDef->cd_name, cellDef->cd_file);
+		TxError("The cell exists in the search paths at %s.\n", filename);
+		TxError("The discovered version will be used.\n");
 	    }
 	}
 
@@ -1182,7 +1180,7 @@ dbReadUse(cellDef, line, len, f, scalen, scaled)
     Transform t;
     Rect r;
     bool locked;
-    char *slashptr;
+    char *slashptr, *pathptr;
 
     if (strncmp(line, "use", 3) != 0)
     {
@@ -1199,7 +1197,11 @@ dbReadUse(cellDef, line, len, f, scalen, scaled)
     }
     /* Make sure useid[0] is an empty string if no useid was provided */
     if (nconv == 1) useid[0] = '\0';
-    if (nconv == 2) path[0] = '\0';
+    if (nconv <= 2) path[0] = '\0';
+
+    pathptr = &path[0];
+    while (*pathptr == ' ' || *pathptr == '\t') pathptr++;
+    if (*pathptr == '\n') *pathptr = '\0';
 
     locked = (useid[0] == CULOCKCHAR) ? TRUE : FALSE;
 
@@ -1346,19 +1348,20 @@ badTransform:
     /* or "~" and cellDef->cd_file has path components, then the path	*/
     /* should be interpreted relative to the path of the parent cell.	*/
 
-    if ((path[0] == '\0') || ((path[0] != '/') && (path[0] != '~')))
+    if ((*pathptr == '\0') || ((*pathptr != '/') && (*pathptr != '~')))
 	if ((cellDef->cd_file != NULL) &&
 			(slashptr = strrchr(cellDef->cd_file, '/')) != NULL)
 	{
 	    *slashptr = '\0';
-	    if (path[0] == '\0')
+	    if (*pathptr == '\0')
 		strcpy(path, cellDef->cd_file);
 	    else
 	    {
 		char savepath[1024];
-		strcpy(savepath, path);
+		strcpy(savepath, pathptr);
 		sprintf(path, "%s/%s", cellDef->cd_file, savepath);
 	    }
+	    pathptr = &path[0];
 	    *slashptr = '/';
 	}
 
@@ -1367,7 +1370,7 @@ badTransform:
     /* to be a different home directory, then replace the "~" with the	*/
     /* home directory used by the parent cell.				*/
 
-    if (path[0] == '~' && path[1] == '/')
+    if (*pathptr == '~' && *(pathptr + 1) == '/')
 	if ((cellDef->cd_file != NULL) && (cellDef->cd_file[0] == '/'))
 	{
 	    char *homedir = getenv("HOME");
@@ -1383,9 +1386,10 @@ badTransform:
 		    if (userbrk != NULL)
 		    {
 			int userlen = (int)(userbrk - cellDef->cd_file);
-			strcpy(savepath, path + 1);
+			strcpy(savepath, pathptr + 1);
 			strcpy(path, cellDef->cd_file);
 			strcpy(path + userlen, savepath);
+			pathptr = &path[0];
 		    }
 		}
 	    }
@@ -1404,17 +1408,24 @@ badTransform:
 	{
 	    *slashptr = '\0';
 
-	    if (strcmp(subCellDef->cd_file, path))
+	    if (strcmp(subCellDef->cd_file, pathptr))
 	    {
-		TxError("Internal inconsistency:  Instance is from path %s"
-				" but cell definition comes from %s.\n",
-				path, subCellDef->cd_file);
-		TxError("Instance path will be ignored.  Please check and fix.\n");
+		TxError("Duplicate cell:  Instance of cell %s is from path %s"
+				" but cell was previously read from %s.\n",
+				slashptr + 1, pathptr, subCellDef->cd_file);
+
+		/* To do:  Check if new path does not exist (ignore),	*/
+		/* or if new path has same symbolic link or is the same	*/
+		/* filesize and checksum (ignore).  If file appears to	*/
+		/* be truly different, then create a new cell with a	*/
+		/* modified cell name.					*/
+
+		TxError("New path will be ignored.  Please check.\n");
 	    }
 	    *slashptr = '/';
 	}
     }
-    else if (path[0] != '\0')
+    else if (*pathptr != '\0')
     {
 	/* Reconstruct file from path and cellname */
 
