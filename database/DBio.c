@@ -201,7 +201,7 @@ file_is_not_writeable(name)
  *	current technology.  Each line after the header has the
  *	format "rect <xbot> <ybot> <xtop> <ytop>".
  *	Nonmanhattan geometry is covered by the entry
- *	"try <xbot> <ybot> <xtop> <ytop> <dir>" with <dir> indicating
+ *	"tri <xbot> <ybot> <xtop> <ytop> <dir>" with <dir> indicating
  *	the direction of the corner made by the right triangle.
  *	If the split tile contains more than one type, separate entries
  *	are output for each.
