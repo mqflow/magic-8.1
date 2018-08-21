@@ -1273,6 +1273,8 @@ case $target in
     if test "$CPP" = "cc -E" ; then
        CPPFLAGS="$CPPFLAGS -no-cpp-precomp"
     fi
+    AC_DEFINE(HAVE_VA_COPY, 1, [Define if we have va_copy])
+    AC_DEFINE(_FORTIFY_SOURCE, 0, [Avoid runtime error from string overflow])
     ;;
 esac
 
