@@ -846,17 +846,9 @@ calmaElementText()
     }
     else
     {
-	int flags, i;
+	int flags;
 
-        /* Find the style layer record corresponding to the label type */
-        layer = -1;
-        for (i = 0; i < cifCurReadStyle->crs_nLayers; i++)
-            if (cifCurReadStyle->crs_layers[i]->crl_magicType == type) {
-                layer = i;
-                break;
-            }
-
-	if (layer >= 0 && cifCurReadStyle->crs_labelSticky[layer])
+	if (cifnum >= 0 && cifCurReadStyle->crs_labelSticky[cifnum])
 	    flags = LABEL_STICKY;
 	else if (cifCurReadStyle->crs_flags & CRF_NO_RECONNECT_LABELS)
 	    flags = LABEL_STICKY;
