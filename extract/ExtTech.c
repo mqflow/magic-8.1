@@ -43,6 +43,7 @@ static char sccsid[] = "@(#)ExtTech.c	4.8 MAGIC (Berkeley) 10/26/85";
 #include "extract/extract.h"
 #include "extract/extractInt.h"
 #include "cif/CIFint.h"
+#include "cif/cif.h"
 
 /* Whether we are converting units from microns to lambda */
 bool doConvert;
@@ -2853,10 +2854,14 @@ zinit:
 
     if (doConvert)
     {
-	/* exts_unitsPerLambda is in centimicrons, so divide by		*/
-	/* 100 to get microns.						*/
+	/* Use current CIF output scale for determining the scale       */
+	/* factor between micron units in the extract section and       */
+	/* lambda units of the database (conversion from lambda to      */
+	/* internal units is done separately).                          */
 
-	CapValue scalefac = (CapValue)style->exts_unitsPerLambda / 100.0;
+	float dscale = CIFGetOutputScale(1000);
+
+	CapValue scalefac = (CapValue)dscale;
 	CapValue sqfac = scalefac * scalefac;
 
 	for (r = 0; r < DBNumTypes; r++)
@@ -2894,10 +2899,10 @@ zinit:
 
 	/* side halo and step size are also in microns */
 
-	style->exts_sideCoupleHalo = (int)(((CapValue)style->exts_sideCoupleHalo
-		/ scalefac) + 0.5);
-	style->exts_stepSize = (int)(((CapValue)style->exts_stepSize
-		/ scalefac) + 0.5);
+	style->exts_sideCoupleHalo = (int)(((float)style->exts_sideCoupleHalo
+		/ dscale) + 0.5);
+	style->exts_stepSize = (int)(((float)style->exts_stepSize
+		/ dscale) + 0.5);
     }
 
     /* Avoid setting stepSize to zero, or extraction will hang! */
