@@ -1,0 +1,24 @@
+
+README-notes
+
+
+Origin
+========
+
+remote.origin.url=git://opencircuitdesign.com/magic-8.1
+
+
+Notes
+=======
+
+http://opencircuitdesign.com/magic/download.html
+
+ Stable Distribution (Magic 8.1) Source
+
+    In 2017, Version 8.1 has finally been declared stable enough to supplant version 8.0 
+    as the new stable distribution. As with version 8.0 before it, any bugs found will 
+    be fixed. However, further development and major code changes will be made to 
+    the development distribution version 8.2. The first revision to be called stable 
+    is magic-8.1.158. 
+
+
