@@ -1,5 +1,6 @@
 
 README-notes
+2019-2-3
 
 
 Origin
@@ -20,5 +21,9 @@ http://opencircuitdesign.com/magic/download.html
     be fixed. However, further development and major code changes will be made to 
     the development distribution version 8.2. The first revision to be called stable 
     is magic-8.1.158. 
+
+build dependencies on fedora core
+
+    gcc tcsh m4 libX11-devel tcl-devel tk-devel make
 
 
